@@ -1,0 +1,20 @@
+{
+  "name": "tiktok-jar-overlay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cross-platform local livestream gift jar overlay for OBS",
+  "type": "module",
+  "scripts": {
+    "start": "node server/src/index.js",
+    "dev": "node --watch server/src/index.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "matter-js": "^0.20.0",
+    "socket.io": "^4.8.1",
+    "tiktok-live-connector": "^2.5.0"
+  }
+}

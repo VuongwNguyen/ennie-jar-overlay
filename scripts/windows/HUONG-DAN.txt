@@ -1,0 +1,26 @@
+﻿GIFT JAR OVERLAY - HƯỚNG DẪN (3 bước)
+
+1. Giải nén file zip ra một thư mục bất kỳ (ví dụ Desktop).
+   Đừng chạy trực tiếp trong file zip.
+
+2. Bấm đúp vào file "start.bat".
+   - Một cửa sổ đen hiện ra: GIỮ NGUYÊN, đừng tắt khi đang live.
+   - Trình duyệt tự mở trang điều khiển.
+   - Chương trình tự kết nối vào kênh TikTok @ennieiuoiw khi kênh đang live.
+     Nếu chưa live, nó tự thử lại mỗi 30 giây.
+   - Nếu Windows hỏi "Windows protected your PC": chọn "More info" rồi "Run anyway".
+   - Nếu tường lửa hỏi quyền truy cập mạng: chọn "Allow".
+
+3. Thêm vào OBS:
+   - Thêm nguồn (Source) > "Trình duyệt" (Browser).
+   - URL:    http://127.0.0.1:8787/overlay.html
+   - Width:  1080     Height: 1920
+   - Bỏ tick "Shutdown source when not visible" nếu có.
+
+   Nếu dùng TikTok LIVE Studio thay cho OBS (chưa được kiểm tra):
+   - Add source > Link (hoặc Browser), dán cùng URL trên, kích thước 1080 x 1920.
+   - Nếu nguồn hiện thành ô rất nhỏ, hãy dùng OBS + Virtual Camera.
+
+Thử nghiệm khi chưa live: trên trang điều khiển, bấm "Gửi quà thử nghiệm".
+Reset số liệu mỗi buổi live: bấm "Reset phiên".
+Tắt chương trình: đóng cửa sổ đen.

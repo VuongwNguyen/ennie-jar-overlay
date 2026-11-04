@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gift Jar Overlay</title>
+  <link rel="stylesheet" href="/overlay.css">
+</head>
+<body class="overlay-page">
+  <main class="scene">
+    <div class="heading"><span class="sparkle">✦</span><span>GIFT JAR</span><span class="sparkle">✦</span></div>
+    <div class="jar-wrap" id="jarWrap">
+      <div class="ambient" aria-hidden="true">
+        <i style="left:4%;top:18%">✦</i><i style="left:92%;top:30%;animation-delay:.8s">✧</i>
+        <i style="left:10%;top:62%;animation-delay:1.6s">✧</i><i style="left:88%;top:70%;animation-delay:2.2s">✦</i>
+        <i style="left:48%;top:2%;animation-delay:1.1s">✧</i>
+      </div>
+      <div class="jar-aura" aria-hidden="true"></div>
+      <svg class="jar-svg" viewBox="-14 -14 300 390" width="300" height="390" aria-hidden="true">
+        <defs>
+          <linearGradient id="glassFill" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".3" stop-color="#d7b9ff" stop-opacity=".05"/>
+            <stop offset=".7" stop-color="#fff" stop-opacity=".07"/><stop offset="1" stop-color="#bda4e5" stop-opacity=".18"/>
+          </linearGradient>
+          <radialGradient id="innerGlow" cx=".5" cy="1" r=".8">
+            <stop offset="0" stop-color="#ffb3dd" stop-opacity=".8"/><stop offset="1" stop-color="#ffb3dd" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <path id="bodyFill" fill="url(#glassFill)"/>
+        <path id="bodyGlow" class="glow" fill="url(#innerGlow)"/>
+      </svg>
+      <div id="giftLayer" class="gift-layer"></div>
+      <svg class="jar-svg front" viewBox="-14 -14 300 390" width="300" height="390" aria-hidden="true">
+        <defs>
+          <linearGradient id="sweepGrad" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".28"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+          <linearGradient id="ribbonGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ffc0e2"/><stop offset="1" stop-color="#ee86bd"/></linearGradient>
+          <linearGradient id="lipGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#d9c0f7" stop-opacity=".45"/></linearGradient>
+          <clipPath id="jarClip"><path id="clipBody"/></clipPath>
+        </defs>
+        <g clip-path="url(#jarClip)"><rect class="sweep" x="-80" y="-20" width="60" height="420" fill="url(#sweepGrad)"/></g>
+        <path id="bodyEdge" fill="none" stroke="#f5eaff" stroke-opacity=".65" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+        <path id="hlLeft" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="9" stroke-linecap="round" class="soft"/>
+        <path id="hlRight" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="5" stroke-linecap="round" class="soft"/>
+        <rect x="60" y="-10" width="152" height="14" rx="7" fill="url(#lipGrad)" stroke="#f5eaff" stroke-opacity=".7" stroke-width="2"/>
+        <rect x="66" y="22" width="140" height="13" rx="3" fill="url(#ribbonGrad)" stroke="#ffe3f3" stroke-width="1.5"/>
+        <path d="M136 28 C118 10 100 16 104 28 C100 40 118 44 136 28Z M136 28 C154 10 172 16 168 28 C172 40 154 44 136 28Z" fill="url(#ribbonGrad)" stroke="#ffe3f3" stroke-width="1.5"/>
+        <path d="M133 32 L122 58 L131 53 L136 62Z M139 32 L150 58 L141 53 L136 62Z" fill="#ee86bd" stroke="#ffe3f3" stroke-width="1.2"/>
+        <circle cx="136" cy="28" r="6" fill="#f79bcb" stroke="#ffe3f3" stroke-width="1.5"/>
+        <g class="tag">
+          <path d="M70 35 L52 54" stroke="#ffe3f3" stroke-width="1.6" fill="none"/>
+          <rect x="34" y="52" width="34" height="32" rx="9" fill="#fff0f8" stroke="#ee86bd" stroke-width="2"/>
+          <text x="51" y="75" text-anchor="middle" font-size="20" fill="#ee86bd" style="text-shadow:none">♡</text>
+        </g>
+      </svg>
+      <div class="cork"></div>
+      <div class="jar-foot"></div>
+      <div id="fxLayer" class="fx-layer"></div>
+    </div>
+    <section class="donor-card" id="donorCard" hidden>
+      <div class="donor-icon">♡</div>
+      <div class="donor-copy"><small>THANK YOU</small><strong id="latestDonor">Chờ món quà đầu tiên</strong></div>
+      <div class="coin-pill" id="coinPill">✦ <b id="totalCoins">0</b></div>
+    </section>
+    <section class="mini-leaderboard" hidden>
+      <div class="leader-title">TOP SUPPORTERS</div>
+      <ol id="overlayLeaders"><li>Chưa có người tặng</li></ol>
+    </section>
+  </main>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/vendor/matter.min.js"></script>
+  <script src="/overlay.js"></script>
+</body>
+</html>
