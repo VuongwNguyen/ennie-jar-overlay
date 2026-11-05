@@ -36,15 +36,17 @@
           <label>Số lượng<input id="repeatCount" type="number" min="1" value="1"></label>
         </div>
         <button id="sendGift">Gửi quà thử nghiệm</button>
+        <p class="hint" id="giftNotice" role="status"></p>
         <p class="hint">Simulator chỉ dùng để kiểm tra giao diện, chưa kết nối TikTok.</p>
       </div>
       <div class="card">
         <h2>Top người tặng</h2>
         <ol id="leaderboard" class="leaderboard"><li class="empty">Chưa có dữ liệu</li></ol>
         <button class="secondary" id="reset">Reset phiên</button>
+        <p class="hint" id="resetNotice" role="status"></p>
       </div>
     </section>
-    <footer><a href="/overlay.html" target="_blank">Mở overlay</a><span>OBS Browser Source: <code>http://127.0.0.1:8787/overlay.html</code></span></footer>
+    <footer><a href="/overlay.html" target="_blank">Mở overlay</a><span>OBS Browser Source: <code id="overlayUrl">http://127.0.0.1:8787/overlay.html</code></span></footer>
   </main>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/dashboard.js"></script>

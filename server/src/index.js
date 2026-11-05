@@ -22,8 +22,16 @@ app.use(express.static(path.join(projectRoot, "overlay")));
 app.get("/vendor/matter.min.js", (_req, res) => {
   res.sendFile(path.join(projectRoot, "node_modules/matter-js/build/matter.min.js"));
 });
+app.get("/vendor/gsap.min.js", (_req, res) => {
+  res.sendFile(path.join(projectRoot, "node_modules/gsap/dist/gsap.min.js"));
+});
+// Three's module build imports a second file next to it, so the whole folder is served.
+app.use("/vendor/three", express.static(path.join(projectRoot, "node_modules/three/build")));
+app.get("/vendor/pacifico.woff2", (_req, res) => {
+  res.sendFile(path.join(projectRoot, "node_modules/@fontsource/pacifico/files/pacifico-latin-400-normal.woff2"));
+});
 
-const freshState = () => ({ sessionId: randomUUID(), startedAt: Date.now(), totalCoins: 0, gifts: 0, donors: {} });
+const freshState = () => ({ sessionId: randomUUID(), startedAt: Date.now(), totalCoins: 0, gifts: 0, donors: {}, jar: [] });
 let state;
 
 // Writes are serialized so concurrent gifts never race on the same .tmp file.
@@ -43,6 +51,8 @@ async function loadState() {
   try {
     const parsed = JSON.parse(await readFile(dataFile, "utf8"));
     if (!parsed || typeof parsed.totalCoins !== "number" || !parsed.donors) throw new Error("Invalid state");
+    // Sessions saved by older versions have no jar.
+    if (!Array.isArray(parsed.jar)) parsed.jar = [];
     return parsed;
   } catch {
     return freshState();
@@ -107,6 +117,8 @@ async function handleGift(raw) {
   state.donors[event.user.id] = donor;
   state.totalCoins += coins;
   state.gifts += event.gift.repeatCount;
+  const { name, image, diamondCount, repeatCount } = event.gift;
+  state.jar.push({ eventId: event.eventId, calculatedCoins: coins, gift: { name, image, diamondCount, repeatCount } });
   await persist();
 
   io.emit("gift", { ...event, calculatedCoins: coins });
@@ -186,6 +198,7 @@ app.post("/api/tiktok/disconnect", async (_req, res) => {
 
 io.on("connection", socket => {
   socket.emit("state", publicState());
+  socket.emit("jar", { sessionId: state.sessionId, gifts: state.jar });
   socket.emit("tiktok-status", tiktok.getStatus());
 });
 

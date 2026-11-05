@@ -16,10 +16,20 @@ function render(state) {
   });
 }
 socket.on("state", render);
+const friendlyError = error => (/isn't online/i.test(error || "") ? "Kênh này đang không live." : error || "");
+// Messages appear on the page: some embedded browsers, such as streaming apps, silently block alert() and confirm().
+let noticeTimer = 0;
+function notify(id, text, isError = false) {
+  const line = $(id);
+  line.textContent = text;
+  line.classList.toggle("err", isError);
+  clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(() => { line.textContent = ""; }, 4000);
+}
 function renderTikTok(status) {
   const labels = { disconnected: "Chưa kết nối", connecting: "Đang kết nối…", connected: "Đã kết nối" };
   $("tiktokStatus").textContent = labels[status.state] + (status.username && status.state !== "disconnected" ? ` · @${status.username}` : "");
-  $("tiktokError").textContent = status.error || "";
+  $("tiktokError").textContent = friendlyError(status.error);
   $("tiktokConnect").disabled = status.state === "connecting";
   $("tiktokDisconnect").disabled = status.state === "disconnected";
 }
@@ -31,17 +41,30 @@ async function post(url, data) {
 $("tiktokConnect").addEventListener("click", async () => {
   const username = $("tiktokUser").value.trim();
   if (!username) { $("tiktokError").textContent = "Nhập username TikTok"; return; }
+  // Shown straight away, because the answer from TikTok can take several seconds.
+  $("tiktokStatus").textContent = "Đang kết nối…";
+  $("tiktokError").textContent = "";
+  $("tiktokConnect").disabled = true;
   try {
     const { ok, body } = await post("/api/tiktok/connect", { username });
-    if (!ok) $("tiktokError").textContent = body.error || "Không kết nối được";
-  } catch { $("tiktokError").textContent = "Không liên lạc được với server."; }
+    if (!ok) {
+      $("tiktokStatus").textContent = "Chưa kết nối";
+      $("tiktokError").textContent = friendlyError(body.error) || "Không kết nối được";
+    }
+  } catch {
+    $("tiktokStatus").textContent = "Chưa kết nối";
+    $("tiktokError").textContent = "Không liên lạc được với server.";
+  }
+  $("tiktokConnect").disabled = false;
 });
-$("tiktokDisconnect").addEventListener("click", () => post("/api/tiktok/disconnect").catch(() => {}));
+$("tiktokDisconnect").addEventListener("click", () => post("/api/tiktok/disconnect").catch(() => {
+  $("tiktokError").textContent = "Không liên lạc được với server.";
+}));
 $("sendGift").addEventListener("click", async () => {
   const diamondCount = Number($("diamondCount").value);
   const repeatCount = Number($("repeatCount").value);
   if (!Number.isFinite(diamondCount) || diamondCount < 0 || !Number.isInteger(repeatCount) || repeatCount < 1) {
-    alert("Xu / quà phải ≥ 0 và Số lượng phải là số nguyên ≥ 1.");
+    notify("giftNotice", "Xu / quà phải ≥ 0 và Số lượng phải là số nguyên ≥ 1.", true);
     return;
   }
   const body = {
@@ -50,10 +73,31 @@ $("sendGift").addEventListener("click", async () => {
   };
   try {
     const response = await fetch("/api/simulate/gift", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) });
-    if (!response.ok) alert("Không gửi được sự kiện thử nghiệm.");
-  } catch { alert("Không liên lạc được với server."); }
+    if (response.ok) notify("giftNotice", "Đã gửi quà thử nghiệm ✓");
+    else notify("giftNotice", "Không gửi được sự kiện thử nghiệm.", true);
+  } catch { notify("giftNotice", "Không liên lạc được với server.", true); }
 });
+// Reset wipes the session's gifts, so it asks for a second click within a few seconds.
+const RESET_LABEL = $("reset").textContent;
+let resetArmed = 0;
 $("reset").addEventListener("click", async () => {
-  if (!confirm("Reset toàn bộ dữ liệu phiên hiện tại?")) return;
-  try { await fetch("/api/session/reset", { method:"POST" }); } catch { alert("Không liên lạc được với server."); }
+  if (!resetArmed) {
+    $("reset").textContent = "Bấm lần nữa để xóa hết";
+    $("reset").classList.add("danger");
+    resetArmed = setTimeout(disarmReset, 4000);
+    return;
+  }
+  disarmReset();
+  try {
+    const response = await fetch("/api/session/reset", { method: "POST" });
+    if (response.ok) notify("resetNotice", "Đã reset phiên ✓");
+    else notify("resetNotice", "Không reset được.", true);
+  } catch { notify("resetNotice", "Không liên lạc được với server.", true); }
 });
+function disarmReset() {
+  clearTimeout(resetArmed);
+  resetArmed = 0;
+  $("reset").textContent = RESET_LABEL;
+  $("reset").classList.remove("danger");
+}
+$("overlayUrl").textContent = `${location.origin}/overlay.html`;

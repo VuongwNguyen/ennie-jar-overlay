@@ -1,0 +1,86 @@
+{
+ "frameSize": 320,
+ "clips": {
+  "Walk": {
+   "frames": 17,
+   "columns": 5,
+   "rows": 4,
+   "fps": 15,
+   "loops": true
+  },
+  "Run": {
+   "frames": 8,
+   "columns": 3,
+   "rows": 3,
+   "fps": 15,
+   "loops": true
+  },
+  "Idle": {
+   "frames": 15,
+   "columns": 4,
+   "rows": 4,
+   "fps": 5,
+   "loops": true
+  },
+  "TailWag": {
+   "frames": 15,
+   "columns": 4,
+   "rows": 4,
+   "fps": 10,
+   "loops": true
+  },
+  "HeadTilt": {
+   "frames": 15,
+   "columns": 4,
+   "rows": 4,
+   "fps": 10,
+   "loops": false
+  },
+  "Jump": {
+   "frames": 11,
+   "columns": 4,
+   "rows": 3,
+   "fps": 15,
+   "loops": false
+  },
+  "Joy": {
+   "frames": 15,
+   "columns": 4,
+   "rows": 4,
+   "fps": 10,
+   "loops": true
+  },
+  "Pant": {
+   "frames": 8,
+   "columns": 3,
+   "rows": 3,
+   "fps": 8,
+   "loops": true
+  },
+  "Surprised": {
+   "frames": 4,
+   "columns": 2,
+   "rows": 2,
+   "fps": 16,
+   "loops": false
+  },
+  "Yawn": {
+   "frames": 10,
+   "columns": 4,
+   "rows": 3,
+   "fps": 7,
+   "loops": false
+  },
+  "Blink": {
+   "frames": 3,
+   "columns": 2,
+   "rows": 2,
+   "fps": 24,
+   "loops": false
+  }
+ },
+ "groundX": 0.4977,
+ "groundY": 0.8803,
+ "bodyWidth": 0.5306,
+ "walkUnit": 0.1395
+}

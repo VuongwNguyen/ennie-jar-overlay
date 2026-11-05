@@ -29,5 +29,10 @@ cp scripts/windows/HUONG-DAN.txt "$STAGE/"
 # .bat files need CRLF line endings
 sed 's/$/\r/' scripts/windows/start.bat > "$STAGE/start.bat"
 
-(cd dist && zip -qr GiftJar-Windows.zip GiftJar)
+# Git Bash ships without zip; fall back to the tar.exe built into Windows 10+.
+if command -v zip >/dev/null 2>&1; then
+  (cd dist && zip -qr GiftJar-Windows.zip GiftJar)
+else
+  (cd dist && "$(cygpath -u "$SYSTEMROOT")/System32/tar.exe" -a -cf GiftJar-Windows.zip GiftJar)
+fi
 ls -lh dist/GiftJar-Windows.zip
