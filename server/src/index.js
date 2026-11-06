@@ -150,7 +150,9 @@ app.post("/api/simulate/member", (req, res) => {
   const nickname = String(req.body?.nickname ?? "").trim().slice(0, 40) || "Người xem";
   const uniqueId = String(req.body?.uniqueId ?? "").trim().replace(/^@/, "").slice(0, 40);
   const level = value => Math.max(0, Math.min(100, Math.round(Number(value)) || 0));
-  handleMember({ type: "member", user: { id: `test-${uniqueId || nickname}`, uniqueId, nickname, fanLevel: level(req.body?.fanLevel), gifterLevel: level(req.body?.gifterLevel) } });
+  // source "chat", "like", "social" or "gift" pretends they were first seen that way rather than joining.
+  const source = ["chat", "like", "social", "gift"].includes(req.body?.source) ? req.body.source : "join";
+  considerWelcome({ id: `test-${uniqueId || nickname}`, uniqueId, nickname, fanLevel: level(req.body?.fanLevel), gifterLevel: level(req.body?.gifterLevel) }, source);
   res.status(201).json({ ok: true });
 });
 
@@ -172,20 +174,41 @@ const RETRY_MS = 30_000;
 let autoUsername = AUTO_USERNAME;
 let retryTimer = null;
 
-// A viewer joined: passed straight to the overlay, where the dog greets them.
-// The last viewers who joined, shown on the control page so it is easy to see the @name TikTok sends
-// and whether it matched the welcome list. Kept in memory only, and emptied each time a connection to
-// a live starts (see onStatus), so it shows the people of the current connection.
+// ---------- People seen in the live ----------
+// TikTok does not report every join: on a real live it sometimes sends none for minutes while people
+// chat. So someone is considered for the welcome frame when they join, and also the first time they
+// are seen in this connection through chat, likes, a gift, a follow or a share.
+// The control page lists them (newest first) with why they were or were not welcomed. Kept in memory
+// only, and emptied each time a connection to a live starts (see onStatus).
 const recentMembers = [];
-const handleMember = event => {
-  const user = withRememberedLevels(event.user);
+// For each person seen in this connection: whether they qualified for the frame.
+const seenThisConnection = new Map();
+function considerWelcome(rawUser, source) {
+  const user = withRememberedLevels(rawUser);
+  // Nobody is left out for an unusual name: the id TikTok gives everyone comes first.
+  const key = String(user?.id || user?.uniqueId || user?.nickname || "");
+  if (!key) return;
   const match = welcomeFor(user);
-  const seen = { ...event, user, listed: Boolean(match), reason: match?.reason ?? "", at: Date.now() };
+  const qualifiedBefore = seenThisConnection.get(key);
+  seenThisConnection.set(key, Boolean(qualifiedBefore || match));
+  // Joins are always listed and considered. Other activity only when it is the first sighting, or when
+  // this person did not qualify before but does now: a like often comes without badges, and their levels
+  // only show with a later chat or gift.
+  if (source !== "join" && qualifiedBefore !== undefined && (qualifiedBefore || !match)) return;
+  const status = match ? welcome(user, match) : (user.fanLevel || user.gifterLevel ? "below" : "no-level");
+  const seen = { type: "member", user, source, key, listed: Boolean(match), reason: match?.reason ?? "", status, at: Date.now() };
   recentMembers.unshift(seen);
   recentMembers.length = Math.min(recentMembers.length, 100);
   io.emit("member", seen);
-  if (match) welcome(user, match);
-};
+}
+// A viewer joined: the dog greets them (overlay), and they may get the welcome frame.
+const handleMember = event => considerWelcome(event.user, "join");
+// Updates the status shown for someone in the list (queued -> welcomed, or dropped).
+function updateStatus(key, status) {
+  const entry = recentMembers.find(item => item.key === key);
+  if (entry) entry.status = status;
+  io.emit("member-status", { key, status });
+}
 app.get("/api/members/recent", (_req, res) => res.json(recentMembers));
 
 // ---------- Remembered levels ----------
@@ -238,9 +261,15 @@ function withRememberedLevels(user) {
 // Picked by their TikTok @name or numeric id, and kept in data/ so updates never touch the list.
 const welcomeFile = path.join(dataDir, "welcome.json");
 let welcomeList = [];
-// When each person was welcomed: at least 15 seconds apart, and at most 3 times in any 10 minutes.
+// When each person's frame was shown: at least 15 seconds apart, and at most 3 times in any 10 minutes.
+// Only shown frames count; ones still waiting in the overlay's queue are in pendingWelcomes, so the same
+// person is not queued twice. A pending one that the overlay never shows (closed, disconnected) is let go
+// after a few minutes.
 const welcomedAt = new Map();
-const WELCOME_AGAIN_MS = 15_000, WELCOME_WINDOW_MS = 10 * 60_000, WELCOME_MAX_IN_WINDOW = 3;
+const pendingWelcomes = new Map();
+// Jar overlays that are open and can show the frame (they say hello when they connect).
+const overlaySockets = new Set();
+const WELCOME_AGAIN_MS = 15_000, WELCOME_WINDOW_MS = 10 * 60_000, WELCOME_MAX_IN_WINDOW = 3, PENDING_MS = 3 * 60_000;
 const cleanId = id => String(id ?? "").trim().replace(/^@/, "").toLowerCase();
 
 async function loadWelcomeList() {
@@ -284,27 +313,68 @@ async function loadWelcomeRules() {
 // title on the frame, and its place in the queue (rank 1 is shown first).
 function welcomeFor(user) {
   const ids = [user?.uniqueId, user?.id].map(cleanId).filter(Boolean);
-  const listed = welcomeList.find(entry => ids.includes(cleanId(entry.id)));
-  if (listed) return { id: listed.id, badge: listed.badge, reason: "list", rank: 1 };
+  // The @name or id first; the display name only as a fallback, since several people can share one.
+  const listed = welcomeList.find(entry => ids.includes(cleanId(entry.id)))
+    ?? welcomeList.find(entry => cleanId(entry.id) === cleanId(user?.nickname));
+  if (listed) return { id: user?.uniqueId || user?.id || listed.id, badge: listed.badge, reason: "list", rank: 1 };
   const id = user?.uniqueId || user?.id;
   const { fan, gifter } = welcomeRules;
   if (fan.on && (user?.fanLevel ?? 0) > fan.above) return { id, badge: fan.badge, reason: "fan", rank: 2 };
   if (gifter.on && (user?.gifterLevel ?? 0) > gifter.above) return { id, badge: gifter.badge, reason: "gifter", rank: 3 };
   return null;
 }
-// Someone who leaves and comes back within 15 seconds is not welcomed twice, and nobody more than
-// 3 times in 10 minutes. The test button (force) is not counted against either.
+// Sends someone to the overlay's queue, unless they are already waiting there, were shown less than
+// 15 seconds ago, or have been shown 3 times in the last 10 minutes. Returns what happened, for the
+// control page. The test button (force) skips the checks and is never counted.
 function welcome(user, match, { force = false } = {}) {
   const key = cleanId(match.id), now = Date.now();
   if (!force) {
     const recent = (welcomedAt.get(key) ?? []).filter(at => now - at < WELCOME_WINDOW_MS);
-    if (recent.length >= WELCOME_MAX_IN_WINDOW || (recent.length && now - recent.at(-1) < WELCOME_AGAIN_MS)) return;
-    welcomedAt.set(key, [...recent, now]);
+    welcomedAt.set(key, recent);
+    // Spam limits, switched off for now: uncomment to allow at most 3 welcomes in 10 minutes per person,
+    // at least 15 seconds apart.
+    // if (recent.length >= WELCOME_MAX_IN_WINDOW) return "limit";
+    // if (recent.length && now - recent.at(-1) < WELCOME_AGAIN_MS) return "soon";
+    // Still on: someone already waiting in the overlay's queue is not queued a second time.
+    if (now - (pendingWelcomes.get(key) ?? 0) < PENDING_MS) return "queued";
+    // With no jar overlay open, nothing could show the frame: say so rather than wait forever.
+    if (!overlaySockets.size) return "no-overlay";
+    pendingWelcomes.set(key, now);
+    // If the overlay never shows it (closed, reloaded, hidden), the line stops saying "waiting".
+    setTimeout(() => {
+      if (pendingWelcomes.get(key) !== now) return;
+      pendingWelcomes.delete(key);
+      updateStatusFor(key, "missed");
+    }, PENDING_MS);
   }
   io.emit("welcome", {
-    name: user?.nickname || match.id, avatar: user?.avatar || "", badge: match.badge || "KHÁCH QUÝ",
+    key: force ? "" : key, name: user?.nickname || match.id, avatar: user?.avatar || "", badge: match.badge || "KHÁCH QUÝ",
     rank: match.rank ?? 1, reason: match.reason ?? "list"
   });
+  return "queued";
+}
+// The overlay says a frame is on screen. Several overlays may be open; the first report counts. A frame
+// shown after its line said "queue full" or "not shown in time" (another overlay was slower) still
+// counts, and the line is corrected.
+function welcomeShown(key) {
+  if (!key) return;
+  const entry = recentMembers.find(item => cleanId(item.user?.uniqueId) === key || cleanId(item.user?.id) === key);
+  if (!pendingWelcomes.has(key) && !["dropped", "missed"].includes(entry?.status)) return;
+  pendingWelcomes.delete(key);
+  welcomedAt.set(key, [...(welcomedAt.get(key) ?? []), Date.now()]);
+  updateStatusFor(key, "welcomed");
+}
+// An overlay's queue was full and let someone go. With other overlays open one of them may still show
+// it, so only the last overlay standing gets to call it dropped.
+function welcomeDropped(key) {
+  if (!key || !pendingWelcomes.has(key) || overlaySockets.size > 1) return;
+  pendingWelcomes.delete(key);
+  updateStatusFor(key, "dropped");
+}
+// Statuses in the list are keyed by the person's id; the welcome key is their @name or id.
+function updateStatusFor(welcomeKey, status) {
+  const entry = recentMembers.find(item => cleanId(item.user?.uniqueId) === welcomeKey || cleanId(item.user?.id) === welcomeKey);
+  if (entry) updateStatus(entry.key, status);
 }
 
 app.get("/api/welcome/rules", (_req, res) => res.json(welcomeRules));
@@ -341,15 +411,18 @@ app.post("/api/welcome/test", (req, res) => {
 
 const tiktok = createTikTokAdapter({
   onGift: event => {
-    rememberLevels(event.user);
+    considerWelcome(event.user, "gift");
     return handleGift(event);
   },
   onMember: handleMember,
-  onUser: rememberLevels,
+  // Chat, likes, follows and shares: their levels are remembered, and someone seen this way for the
+  // first time (TikTok may not have reported their join) is considered for the welcome frame.
+  onUser: (user, source) => considerWelcome(user, source),
   onStatus: status => {
-    // A new connection (Kết nối, or reconnecting on its own) starts with an empty list of joins.
+    // A new connection (Kết nối, or reconnecting on its own) starts with an empty list of people.
     if (status.state === "connecting") {
       recentMembers.length = 0;
+      seenThisConnection.clear();
       io.emit("members-cleared");
     }
     io.emit("tiktok-status", status);
@@ -393,6 +466,12 @@ io.on("connection", socket => {
   socket.emit("state", publicState());
   socket.emit("jar", { sessionId: state.sessionId, gifts: state.jar });
   socket.emit("tiktok-status", tiktok.getStatus());
+  // The overlay reports welcome frames as they appear, or when its queue was full and let one go.
+  socket.on("welcome-shown", key => welcomeShown(cleanId(key)));
+  socket.on("welcome-dropped", key => welcomeDropped(cleanId(key)));
+  socket.on("overlay-hello", () => overlaySockets.add(socket.id));
+  socket.on("overlay-bye", () => overlaySockets.delete(socket.id));
+  socket.on("disconnect", () => overlaySockets.delete(socket.id));
 });
 
 state = await loadState();

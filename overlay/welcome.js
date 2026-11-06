@@ -253,8 +253,15 @@
     loops = [];
   }
 
+  // The jar overlay already has a connection (overlay.js); welcome.html on its own opens one.
+  const link = typeof socket !== "undefined" ? socket : io();
+  // With this many waiting, each frame plays faster (about 3 seconds instead of 5) so the line moves.
+  const CROWD = 3, CROWD_SECONDS = 3;
+
   let playing = null;
-  function show({ name, avatar, badge = "KHÁCH QUÝ" }) {
+  function show({ key, name, avatar, badge = "KHÁCH QUÝ" }) {
+    // Tells the server this person's frame is on screen; only shown frames count towards their limit.
+    if (key) link.emit("welcome-shown", key);
     $("welcomeName").textContent = name;
     // A long title ("NHÀ TÀI TRỢ") gets smaller letters, so it stays on the ribbon.
     const ribbon = $("welcomeBadge");
@@ -306,11 +313,13 @@
       .add(() => sparkles(12, 1.2), 3)
       .fromTo("#wShineBar", { attr: { x: -120 } }, { attr: { x: 760 }, duration: 1.1, ease: "power1.inOut" }, 2.4)
       .to(art, { opacity: 0, y: -20, scale: 0.96, duration: 0.45, ease: "power1.in" }, SHOW_SECONDS);
+    if (waiting.length >= CROWD) playing.timeScale((SHOW_SECONDS + 0.45) / CROWD_SECONDS);
   }
 
   // One welcome at a time. The others wait in a queue ordered by rank (1 picked by name, 2 team heart,
-  // 3 gifter level) and, within a rank, by arrival. A full queue lets go of its lowest place.
-  const QUEUE_MAX = 15;
+  // 3 gifter level) and, within a rank, by arrival. A full queue lets go of its lowest place, and tells
+  // the server, so that person is not counted as welcomed.
+  const QUEUE_MAX = 30;
   const waiting = [];
   // True from the moment a welcome is picked until it has faded out, including the short pause before
   // it starts, so several arriving together queue up instead of each starting one of their own.
@@ -323,15 +332,36 @@
   }
   window.welcomeViewer = viewer => {
     if (!viewer?.name) return;
+    // A page in the background (a hidden browser tab) cannot play the frame: it would only pile up.
+    if (document.hidden) return;
     const rank = viewer.rank ?? 1;
     const at = waiting.findIndex(other => (other.rank ?? 1) > rank);
     waiting.splice(at < 0 ? waiting.length : at, 0, viewer);
-    if (waiting.length > QUEUE_MAX) waiting.pop();
+    if (waiting.length > QUEUE_MAX) {
+      const dropped = waiting.pop();
+      if (dropped.key) link.emit("welcome-dropped", dropped.key);
+    }
     if (!busy) next();
   };
 
-  // The jar overlay already has a connection (overlay.js); welcome.html on its own opens one.
-  (typeof socket !== "undefined" ? socket : io()).on("welcome", viewer => window.welcomeViewer(viewer));
+  link.on("welcome", viewer => window.welcomeViewer(viewer));
+  // Lets the server know a page that can show the frame is open (again after any reconnect), but only
+  // while it is visible. Hidden, the browser stops its animation, so a frame would never finish and the
+  // queue would only grow: the page says goodbye, empties its queue and stops, until it is shown again.
+  const hello = () => { if (!document.hidden) link.emit("overlay-hello"); };
+  link.on("connect", hello);
+  if (link.connected) hello();
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) return hello();
+    link.emit("overlay-bye");
+    waiting.length = 0;
+    playing?.kill();
+    playing = null;
+    stopLoops();
+    dog.pause?.();
+    frame.classList.remove("show");
+    busy = false;
+  });
 
   const test = new URLSearchParams(location.search).get(onJar ? "welcome" : "test");
   // ?welcome=hold (?test=hold on its own) keeps one sample on screen, to see where it sits.

@@ -185,7 +185,19 @@ $("rulesForm").addEventListener("submit", async event => {
 });
 
 // ---------- Viewers who just joined, with the @name to copy into the list ----------
-const REASONS = { list: "✓ chỉ định", fan: "✓ tim đội", gifter: "✓ cấp quà" };
+// Why someone was or was not welcomed, and how they were seen (TikTok does not report every join).
+const REASONS = { list: "chỉ định", fan: "tim đội", gifter: "cấp quà" };
+const STATUSES = {
+  queued: "⏳ đang chờ", welcomed: "✓ đã chào", limit: "đã chào 3 lần/10 phút", soon: "vừa chào xong",
+  dropped: "hàng chờ đầy", below: "chưa đủ cấp", "no-level": "không có cấp",
+  "no-overlay": "chưa mở hũ quà (overlay)", missed: "overlay không hiện kịp"
+};
+const SOURCES = { join: "vào live", chat: "chat", like: "thả tim", social: "follow/share", gift: "tặng quà" };
+function statusText(member) {
+  const status = STATUSES[member.status] ?? "";
+  const reason = REASONS[member.reason];
+  return reason && ["queued", "welcomed"].includes(member.status) ? `${status} · ${reason}` : status;
+}
 let members = [], memberPage = 0;
 const MEMBERS_PER_PAGE = 6, MEMBERS_KEPT = 100;
 function renderMembers() {
@@ -214,10 +226,11 @@ function renderMembers() {
     who.textContent = `${member.user?.nickname ?? "?"} · ${handle}${levels ? ` · ${levels}` : ""}`;
     const time = document.createElement("span");
     time.className = "badge";
-    time.textContent = new Date(member.at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    time.textContent = `${new Date(member.at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })} · ${SOURCES[member.source] ?? "vào live"}`;
     const mark = document.createElement("span");
     mark.className = "badge";
-    mark.textContent = REASONS[member.reason] ?? (member.listed ? "✓ chào mừng" : "");
+    mark.textContent = statusText(member);
+    mark.classList.toggle("off", !["queued", "welcomed"].includes(member.status));
     const add = document.createElement("button");
     add.className = "chip";
     add.textContent = "Thêm";
@@ -239,6 +252,13 @@ socket.on("connect", loadMembers);
 socket.on("members-cleared", () => { members = []; memberPage = 0; renderMembers(); });
 $("memberPrev").addEventListener("click", () => { memberPage--; renderMembers(); });
 $("memberNext").addEventListener("click", () => { memberPage++; renderMembers(); });
+// A queued welcome appeared on screen (or was let go): update that person's line.
+socket.on("member-status", ({ key, status }) => {
+  const member = members.find(item => item.key === key);
+  if (!member) return;
+  member.status = status;
+  renderMembers();
+});
 socket.on("member", member => {
   members.unshift(member);
   members.length = Math.min(members.length, MEMBERS_KEPT);

@@ -65,9 +65,15 @@ export function userLevels(user) {
   return { gifterLevel, fanLevel, fanClub };
 }
 
-// Who someone is, from any TikTok message that carries a user.
+// A name with something visible in it: letters, digits, emoji or symbols in any script. A name of only
+// spaces or invisible characters is replaced by the @name, so it still shows on the frame.
+const visible = text => /[\p{L}\p{N}\p{S}\p{P}]/u.test(String(text ?? ""));
+
+// Who someone is, from any TikTok message that carries a user. Nobody is skipped for their name: with
+// no usable name at all, someone who has an id is shown as "Người xem".
 export function mapTikTokUser(user) {
-  const nickname = user?.nickname || user?.uniqueId || user?.displayId;
+  const hasId = Boolean(user?.userId || user?.id || user?.uniqueId || user?.displayId);
+  const nickname = [user?.nickname, user?.uniqueId, user?.displayId].find(visible) || (hasId ? "Người xem" : "");
   if (!nickname) return null;
   return {
     // Newer TikTok messages name these id and displayId; older ones userId and uniqueId.
@@ -86,7 +92,7 @@ export function mapTikTokMember(data) {
   return user ? { type: "member", user } : null;
 }
 
-// onUser hears everyone who chats or sends likes, so their levels can be remembered.
+// onUser(user, source) hears everyone who chats, sends likes, follows or shares.
 export function createTikTokAdapter({ onGift, onMember, onUser, onStatus }) {
   let connection = null;
   let status = { state: "disconnected", username: "", error: "" };
@@ -130,11 +136,12 @@ export function createTikTokAdapter({ onGift, onMember, onUser, onStatus }) {
       const event = mapTikTokMember(data);
       if (event) onMember?.(event);
     });
-    for (const name of [WebcastEvent.CHAT, WebcastEvent.LIKE]) {
+    // Anyone who chats, likes, follows or shares (SOCIAL covers follows and shares).
+    for (const [name, source] of [[WebcastEvent.CHAT, "chat"], [WebcastEvent.LIKE, "like"], [WebcastEvent.SOCIAL, "social"]]) {
       conn.on(name, data => {
         if (connection !== conn) return;
         const user = mapTikTokUser(data?.user);
-        if (user && (user.fanLevel || user.gifterLevel)) onUser?.(user);
+        if (user) onUser?.(user, source);
       });
     }
     conn.on(ControlEvent.DISCONNECTED, () => {

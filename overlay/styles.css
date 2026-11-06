@@ -95,6 +95,8 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .pager { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 8px; font-size: 12px; color: #c9c2d8; }
 .member-list li { font-size: 13px; }
 .member-list .badge { color: #8ff0bd; letter-spacing: 0; }
+.member-list .badge.off { color: #8f88a3; font-weight: 500; }
+.member-list li { grid-template-columns: 1fr auto auto auto; }
 
 .hint { margin: 0; font-size: 12px; color: #aaa3bd; }
 .hint:empty { display: none; }
