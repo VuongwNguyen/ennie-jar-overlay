@@ -101,6 +101,11 @@ function disarmReset() {
   $("reset").textContent = RESET_LABEL;
   $("reset").classList.remove("danger");
 }
+// Which build is running, so an update can be seen to have arrived.
+fetch("/api/version").then(r => r.json()).then(({ build }) => {
+  $("buildTag").textContent = build == null ? "bản đang phát triển" : `build ${build}`;
+}).catch(() => {});
+
 // ---------- Links for Studio ----------
 $("overlayUrl").value = `${location.origin}/overlay.html`;
 $("heartUrl").value = `${location.origin}/heart.html`;

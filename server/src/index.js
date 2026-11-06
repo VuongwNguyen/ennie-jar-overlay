@@ -128,6 +128,14 @@ async function handleGift(raw) {
 
 app.get("/api/health", (_req, res) => res.json({ ok: true, app: "tiktok-jar-overlay", version: "0.1.0" }));
 app.get("/api/state", (_req, res) => res.json(publicState()));
+// The build number written by scripts/build-windows.sh, shown on the control page. A copy run from the source has none.
+app.get("/api/version", async (_req, res) => {
+  try {
+    res.json(JSON.parse(await readFile(path.join(projectRoot, "version.json"), "utf8")));
+  } catch {
+    res.json({ build: null });
+  }
+});
 
 app.post("/api/simulate/gift", async (req, res) => {
   try {
