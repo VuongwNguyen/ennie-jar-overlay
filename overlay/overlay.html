@@ -21,7 +21,12 @@
             <stop offset="0" stop-color="#fff" stop-opacity=".1"/><stop offset=".14" stop-color="#fff" stop-opacity="0"/>
             <stop offset=".86" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".1"/>
           </linearGradient>
+          <!-- The pastel colour of the glass, from overlay.css (--jar-tint-*), also used in front of the gifts. -->
+          <linearGradient id="jarTint" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" class="jar-tint-top"/><stop offset="1" class="jar-tint-bottom"/>
+          </linearGradient>
         </defs>
+        <path id="bodyBack" fill="url(#jarTint)" fill-opacity=".5"/>
         <path id="bodyFill" fill="url(#glassFill)"/>
       </svg>
       <div id="giftLayer" class="gift-layer"></div>
@@ -29,7 +34,16 @@
         <defs>
           <linearGradient id="sweepGrad" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".28"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
           <linearGradient id="ribbonGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ffc0e2"/><stop offset="1" stop-color="#ee86bd"/></linearGradient>
-          <linearGradient id="lipGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#d9c0f7" stop-opacity=".45"/></linearGradient>
+          <linearGradient id="lipGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset="1" class="jar-tint-bottom" stop-opacity=".85"/></linearGradient>
+          <linearGradient id="glassBody" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0" class="jar-tint-bottom" stop-opacity=".55"/><stop offset=".2" class="jar-tint-top" stop-opacity=".14"/>
+            <stop offset=".8" class="jar-tint-top" stop-opacity=".14"/><stop offset="1" class="jar-tint-bottom" stop-opacity=".55"/>
+          </linearGradient>
+          <!-- Highlights fade out at both ends, as reflections on curved glass do. -->
+          <linearGradient id="shineGrad" x1="0" x2="0" y1="0" y2="1" gradientUnits="objectBoundingBox">
+            <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".25" stop-color="#fff" stop-opacity=".75"/>
+            <stop offset=".7" stop-color="#fff" stop-opacity=".6"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+          </linearGradient>
           <clipPath id="jarClip"><path id="clipBody"/></clipPath>
           <!-- A 3D puppy built from shaded spheres: each curl is a small lit ball, and the shade depends on where it sits on the form. -->
           <radialGradient id="furL" cx=".42" cy=".38" fx=".3" fy=".24" r=".72"><stop offset="0" stop-color="#d2a382"/><stop offset=".45" stop-color="#9f6f52"/><stop offset="1" stop-color="#6a4432"/></radialGradient>
@@ -66,11 +80,27 @@
           <g id="dogLegs3d"><circle cx="-11.3" cy="72.6" r="8.5" fill="url(#furD)"/><circle cx="-12.1" cy="59.9" r="8.5" fill="url(#furL)"/><circle cx="-10.2" cy="49.2" r="8.5" fill="url(#furL)"/><circle cx="-8.1" cy="54.9" r="8.5" fill="url(#furL)"/><circle cx="-8.5" cy="69" r="8.5" fill="url(#furM)"/><circle cx="10.7" cy="72.6" r="8.5" fill="url(#furD)"/><circle cx="9.9" cy="59.9" r="8.5" fill="url(#furL)"/><circle cx="11.8" cy="49.2" r="8.5" fill="url(#furL)"/><circle cx="13.9" cy="54.9" r="8.5" fill="url(#furL)"/><circle cx="13.5" cy="69" r="8.5" fill="url(#furM)"/><circle cx="-12" cy="79" r="11" fill="url(#furL)"/><circle cx="12" cy="79" r="11" fill="url(#furL)"/></g>
           <path id="bowShape" d="M136 28 C118 10 100 16 104 28 C100 40 118 44 136 28Z M136 28 C154 10 172 16 168 28 C172 40 154 44 136 28Z"/>
         </defs>
-        <g clip-path="url(#jarClip)"><rect class="sweep" x="-80" y="-20" width="60" height="420" fill="url(#sweepGrad)"/></g>
-        <path id="bodyEdge" fill="none" stroke="#fff" stroke-opacity=".78" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
-        <path id="hlLeft" fill="none" stroke="#fff" stroke-opacity=".38" stroke-width="7" stroke-linecap="round" class="soft"/>
-        <path id="hlRight" fill="none" stroke="#fff" stroke-opacity=".2" stroke-width="4" stroke-linecap="round" class="soft"/>
-        <rect x="14" y="-8" width="244" height="13" rx="6.5" fill="url(#lipGrad)" stroke="#fff" stroke-opacity=".8" stroke-width="2"/>
+        <!-- Coloured glass over the gifts inside: nearly clear in the middle and deeper toward the walls,
+             where light passes through more glass. It keeps them apart from the gifts outside. -->
+        <path id="bodyTint" fill="url(#glassBody)"/>
+        <g clip-path="url(#jarClip)">
+          <!-- The thickness of the glass, a soft band just inside the walls (half of this stroke is clipped away). -->
+          <path id="bodyInner" class="jar-inner" fill="none" stroke-width="20" stroke-opacity=".5" stroke-linejoin="round"/>
+          <path id="bodyInnerLight" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="7" stroke-linejoin="round"/>
+          <rect class="sweep" x="-80" y="-20" width="60" height="420" fill="url(#sweepGrad)"/>
+        </g>
+        <!-- A soft edge rather than a hard line: a faint wide glow, a thin pastel line and a fine highlight. -->
+        <path id="bodyEdgeHalo" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="11" stroke-linejoin="round" stroke-linecap="round"/>
+        <path id="bodyEdgeOuter" class="jar-edge-outer" fill="none" stroke-opacity=".6" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <path id="bodyEdge" class="jar-edge" fill="none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        <path id="bodyEdgeShine" fill="none" stroke="#fff" stroke-opacity=".95" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+        <!-- Reflections of a window: a long streak and a short one on the left, a faint one on the right. -->
+        <path id="hlLeft" fill="none" stroke="url(#shineGrad)" stroke-width="9" stroke-linecap="round"/>
+        <path id="hlLeftThin" fill="none" stroke="url(#shineGrad)" stroke-width="3.5" stroke-linecap="round"/>
+        <path id="hlRight" fill="none" stroke="url(#shineGrad)" stroke-opacity=".6" stroke-width="5" stroke-linecap="round"/>
+        <!-- The rim: rounded glass with a highlight along the top. -->
+        <rect x="14" y="-8" width="244" height="14" rx="7" class="jar-lip" fill="url(#lipGrad)" stroke-opacity=".6" stroke-width="2"/>
+        <rect x="26" y="-5.5" width="150" height="3" rx="1.5" fill="#fff" fill-opacity=".85"/>
         <rect x="22" y="16" width="228" height="11" rx="3" fill="url(#ribbonGrad)" stroke="#ffe3f3" stroke-width="1.5"/>
         <!-- The knot where the name tag's string is tied. -->
         <circle cx="35" cy="24" r="4" fill="#f79bcb" stroke="#ffe3f3" stroke-width="1.5"/>

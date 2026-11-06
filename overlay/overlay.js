@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // Inner size of the glass body (px). The outline below drives both the drawing and the physics.
-const JAR = { w: 272, h: 356, corner: 56, neck: 112, belly: 134 };
+const JAR = { w: 272, h: 356, corner: 80, neck: 112, belly: 134 };
 const CX = JAR.w / 2;
 const MOUTH = { x: 155, y: 40 }; // where gifts enter, in .jar-wrap coordinates
 const BIG_GIFT = 100;
@@ -67,11 +67,15 @@ function drawJar() {
   const left = leftOutline();
   const right = mirror(left).reverse();
   const closed = `${toPath([...left, ...right])}Z`;
-  for (const id of ["bodyFill", "clipBody"]) $(id).setAttribute("d", closed);
-  $("bodyEdge").setAttribute("d", toPath([...left, ...right]));
+  for (const id of ["bodyBack", "bodyFill", "bodyTint", "bodyInner", "bodyInnerLight", "clipBody"]) $(id).setAttribute("d", closed);
+  for (const id of ["bodyEdgeHalo", "bodyEdgeOuter", "bodyEdge", "bodyEdgeShine"]) $(id).setAttribute("d", toPath([...left, ...right]));
+  // ?jar=blue, lavender or mint picks another pastel for the glass (see overlay.css).
+  const colour = new URLSearchParams(location.search).get("jar");
+  if (colour) $("jarWrap").dataset.jar = colour;
   const inset = (pts, d, from, to) => pts.filter(([, y]) => y >= from && y <= to).map(([x, y]) => [x + d, y]);
-  $("hlLeft").setAttribute("d", toPath(inset(left, 20, 90, 280)));
-  $("hlRight").setAttribute("d", toPath(inset(mirror(left), -16, 110, 250)));
+  $("hlLeft").setAttribute("d", toPath(inset(left, 20, 80, 290)));
+  $("hlLeftThin").setAttribute("d", toPath(inset(left, 34, 96, 170)));
+  $("hlRight").setAttribute("d", toPath(inset(mirror(left), -16, 110, 260)));
 }
 
 function startPhysics() {

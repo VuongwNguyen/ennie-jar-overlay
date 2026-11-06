@@ -61,6 +61,30 @@ body.overlay-page { background: transparent; color: #fff; overflow: hidden; }
 
 .jar-svg { position: absolute; left: 5px; top: 22px; z-index: 1; pointer-events: none; overflow: visible; }
 .jar-svg.front { z-index: 9; }
+/* The glass in pastel: a tint, a deeper outline that stands out from the gifts, and a light edge.
+   Pastel pink by default, as Ennie chose; ?jar=blue, lavender or mint picks another. */
+.jar-wrap {
+  --jar-tint-top: #ffeaf5; --jar-tint-bottom: #ffcde6;
+  --jar-edge-dark: #d9689f; --jar-edge: #ffd3ea; --jar-lip: #fff1f8;
+}
+.jar-wrap[data-jar="blue"] {
+  --jar-tint-top: #e8f6ff; --jar-tint-bottom: #c9e3ff;
+  --jar-edge-dark: #86b2e6; --jar-edge: #d8ecff; --jar-lip: #eef8ff;
+}
+.jar-wrap[data-jar="lavender"] {
+  --jar-tint-top: #f3eaff; --jar-tint-bottom: #dccaff;
+  --jar-edge-dark: #a688da; --jar-edge: #e7dbff; --jar-lip: #f6f0ff;
+}
+.jar-wrap[data-jar="mint"] {
+  --jar-tint-top: #e6fbf2; --jar-tint-bottom: #c4efdc;
+  --jar-edge-dark: #6fbf9f; --jar-edge: #d2f4e6; --jar-lip: #effcf6;
+}
+.jar-tint-top { stop-color: var(--jar-tint-top); }
+.jar-tint-bottom { stop-color: var(--jar-tint-bottom); }
+.jar-edge-outer { stroke: var(--jar-edge-dark); }
+.jar-edge { stroke: var(--jar-edge); }
+.jar-inner { stroke: var(--jar-tint-bottom); }
+.jar-lip { stroke: var(--jar-edge-dark); }
 .jar-svg .sweep { transform: skewX(-18deg); transform-origin: 0 0; animation: sweep 7s ease-in-out infinite; }
 /* The sitting dog blinks every few seconds, sometimes twice in a row. */
 .dog-eyes { transform-origin: 0 2px; animation: dog-blink 5s linear infinite; }
