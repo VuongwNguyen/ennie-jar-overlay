@@ -95,6 +95,24 @@ body.overlay-page { background: transparent; color: #fff; overflow: hidden; }
 /* The pre-rendered poodle (dogsprite.js) and its soft shadow, moved around with a transform. */
 .dog-sprite { position: absolute; left: 0; top: 0; width: 190px; height: 190px; z-index: 10; pointer-events: none; will-change: transform; }
 .dog-sprite-shadow { position: absolute; left: 0; top: 0; height: 18px; z-index: 10; pointer-events: none; background: radial-gradient(closest-side, #1b0d1266, transparent); }
+/* The speech bubble over the walking dog's head (dogsprite.js), greeting viewers who join.
+   --tail is where the dog's head is, measured from the bubble's left edge. */
+.dog-bubble { position: absolute; left: 0; top: 0; z-index: 12; pointer-events: none; display: none; --tail: 50%; }
+.dog-bubble.on { display: block; }
+.dog-bubble-body {
+  position: relative; padding: 6px 13px; border-radius: 16px; white-space: nowrap;
+  background: #fffafd; border: 2.5px solid #ee86bd; box-shadow: 0 3px 8px #24152d40;
+  color: #c43d84; font-size: 15px; font-weight: 800; line-height: 1.2; text-shadow: none;
+  transform-origin: var(--tail) 100%;
+}
+/* Thanks for a gift stand out from greetings: a golden edge, like the top donor's tag. */
+.dog-bubble.thanks .dog-bubble-body { border-color: #f4c95d; color: #b0447f; background: #fffbea; }
+.dog-bubble.thanks .dog-bubble-body::after { border-color: #f4c95d; background: #fffbea; }
+.dog-bubble-body::after {
+  content: ""; position: absolute; left: var(--tail); bottom: -8px; width: 13px; height: 13px; margin-left: -6.5px;
+  background: #fffafd; border-right: 2.5px solid #ee86bd; border-bottom: 2.5px solid #ee86bd;
+  border-bottom-right-radius: 3px; transform: rotate(45deg);
+}
 /* The flat cartoon puppy (dogtoon.js), moved around with a transform. */
 /* Decorations from jardecor.js. The lights switch between two sets, so the glass only redraws when they change. */
 .jar-decor { z-index: 9; }

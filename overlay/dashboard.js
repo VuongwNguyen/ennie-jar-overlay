@@ -78,6 +78,13 @@ $("sendGift").addEventListener("click", async () => {
     else notify("giftNotice", "Không gửi được sự kiện thử nghiệm.", true);
   } catch { notify("giftNotice", "Không liên lạc được với server.", true); }
 });
+// A pretend viewer joining, greeted by the dog with the name in "Người tặng". Nothing is saved.
+$("sendMember").addEventListener("click", async () => {
+  try {
+    const { ok } = await post("/api/simulate/member", { nickname: $("nickname").value.trim() });
+    notify("giftNotice", ok ? "Đã gửi người vào live ✓" : "Không gửi được.", !ok);
+  } catch { notify("giftNotice", "Không liên lạc được với server.", true); }
+});
 // Reset wipes the session's gifts, so it asks for a second click within a few seconds.
 const RESET_LABEL = $("reset").textContent;
 let resetArmed = 0;

@@ -44,7 +44,15 @@ export function mapTikTokGift(data) {
   };
 }
 
-export function createTikTokAdapter({ onGift, onStatus }) {
+// Maps a raw TikTok "member" message (a viewer joining the live) to { user }.
+export function mapTikTokMember(data) {
+  const user = data?.user ?? {};
+  const nickname = user.nickname || user.uniqueId || user.displayId;
+  if (!nickname) return null;
+  return { type: "member", user: { id: String(user.userId ?? user.id ?? user.uniqueId ?? nickname), nickname } };
+}
+
+export function createTikTokAdapter({ onGift, onMember, onStatus }) {
   let connection = null;
   let status = { state: "disconnected", username: "", error: "" };
 
@@ -81,6 +89,11 @@ export function createTikTokAdapter({ onGift, onStatus }) {
       } catch (err) {
         console.error("Could not map TikTok gift:", err);
       }
+    });
+    conn.on(WebcastEvent.MEMBER, data => {
+      if (connection !== conn) return;
+      const event = mapTikTokMember(data);
+      if (event) onMember?.(event);
     });
     conn.on(ControlEvent.DISCONNECTED, () => {
       if (connection === conn) { connection = null; setStatus({ state: "disconnected" }); }

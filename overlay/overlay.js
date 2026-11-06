@@ -299,6 +299,8 @@ function pour(event) {
 function addGift(event) {
   shownEvents.add(event.eventId);
   $("latestDonor").textContent = event.user.nickname;
+  // The walking dog thanks the sender in its speech bubble (dogsprite.js), ahead of any greetings.
+  window.dogThank?.(event.user.nickname, event.gift?.name, event.gift?.repeatCount);
   const coins = coinsOf(event);
   const tier = tierOf(coins);
   pour(event);
@@ -417,6 +419,8 @@ addEventListener("resize", fitScene); // before startPhysics, so buildFrame sees
 drawJar();
 startPhysics();
 socket.on("gift", addGift);
+// A viewer joined the live: the walking dog greets them (dogsprite.js).
+socket.on("member", event => window.dogGreet?.(event?.user?.nickname));
 socket.on("state", renderState);
 socket.on("jar", syncJar);
 socket.on("session-reset", () => {

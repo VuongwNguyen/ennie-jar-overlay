@@ -114,7 +114,40 @@ export async function startSpriteDog() {
     const lift = Math.min(1, -stage.hop / 60);
     shadow.style.transform = `translate(${(stage.x - shadowWidth / 2).toFixed(2)}px, ${FLOOR - 10}px) scale(${(1 - lift * 0.3).toFixed(3)})`;
     shadow.style.opacity = (1 - lift * 0.5).toFixed(3);
+    placeBubble();
   };
+
+  // ---------- A speech bubble over its head, greeting viewers who join the live ----------
+  const bubble = document.createElement("div");
+  bubble.className = "dog-bubble";
+  bubble.innerHTML = '<div class="dog-bubble-body"><span class="dog-bubble-text"></span></div>';
+  wrap.append(bubble);
+  const bubbleBody = bubble.firstChild, bubbleText = bubble.querySelector(".dog-bubble-text");
+  // The top of the head in the pictures, measured once from the first standing picture.
+  let headTop = 0.2, headX = 0.5;
+  function measureHead() {
+    const { data } = ctx.getImageData(0, 0, frameSize, frameSize);
+    for (let y = 0; y < frameSize; y++) {
+      for (let x = 0; x < frameSize; x++) {
+        if (data[(y * frameSize + x) * 4 + 3] > 128) {
+          headTop = y / frameSize;
+          headX = x / frameSize;
+          return;
+        }
+      }
+    }
+  }
+  function placeBubble() {
+    if (!bubble.classList.contains("on")) return;
+    // The pictures face left; flipped, the head is on the other side of the ground point.
+    const offset = (headX - groundX) * SIZE * stage.facing;
+    const top = FLOOR - groundY * SIZE + headTop * SIZE + stage.hop - 6;
+    // Kept inside the visible frame, which the jar's right edge is close to.
+    const box = wrap.getBoundingClientRect(), s = sceneScale(), half = bubble.offsetWidth / 2;
+    const left = Math.min(Math.max(stage.x + offset, -box.left / s + half + 4), (innerWidth - box.left) / s - half - 4);
+    bubble.style.transform = `translate(${(left - half).toFixed(1)}px, ${(top - bubble.offsetHeight).toFixed(1)}px)`;
+    bubble.style.setProperty("--tail", `${(stage.x + offset - left + half).toFixed(1)}px`);
+  }
 
   const sceneScale = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--scale")) || 1;
   const range = () => {
@@ -127,6 +160,8 @@ export async function startSpriteDog() {
   place();
   gsap.ticker.add(tick);
   tick(0, 0);
+  measureHead();
+  startGreetings();
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
     gsap.ticker.remove(tick);
     window.dogReact = () => {};
@@ -243,4 +278,80 @@ export async function startSpriteDog() {
     wake?.();
     interrupt?.();
   };
+
+  // The speech bubble says one thing at a time: thanks for gifts first, then greetings for viewers
+  // who join. A thank-you that arrives during a greeting cuts the greeting short. In a busy live
+  // people join faster than anyone could read, so only the latest few greetings wait their turn,
+  // and someone who leaves and comes back is not greeted again soon.
+  function startGreetings() {
+    const SHOW = 2.6, THANK_SHOW = 3.2, SHORT_SHOW = 0.8, GAP = 0.3;
+    const GREETINGS_MAX = 3, THANKS_MAX = 6, AGAIN_AFTER_MS = 10 * 60_000;
+    const thanks = [], greetings = [], greeted = new Map();
+    let showing = null, hideCall = null;
+    const short = (text, max) => {
+      const letters = [...String(text)];
+      return letters.length > max ? `${letters.slice(0, max - 1).join("")}…` : String(text);
+    };
+
+    window.dogGreet = rawName => {
+      const name = String(rawName ?? "").trim();
+      if (!name) return;
+      const now = Date.now();
+      if (now - (greeted.get(name) ?? -Infinity) < AGAIN_AFTER_MS) return;
+      greeted.set(name, now);
+      if (greeted.size > 500) greeted.delete(greeted.keys().next().value);
+      greetings.push(name);
+      if (greetings.length > GREETINGS_MAX) greetings.splice(0, greetings.length - GREETINGS_MAX);
+      if (!showing) next();
+    };
+
+    window.dogThank = (rawName, rawGift, count = 1) => {
+      const name = String(rawName ?? "").trim() || "bạn";
+      const gift = String(rawGift ?? "").trim() || "quà";
+      // A sender who has just greeted needs no greeting as well.
+      greeted.set(name, Date.now());
+      const index = greetings.indexOf(name);
+      if (index >= 0) greetings.splice(index, 1);
+      // Repeats of the same gift from the same person, still waiting, become one thank-you with a count.
+      const same = thanks.find(t => t.name === name && t.gift === gift);
+      if (same) same.count += Number(count) || 1;
+      else thanks.push({ name, gift, count: Number(count) || 1 });
+      if (thanks.length > THANKS_MAX) thanks.splice(0, thanks.length - THANKS_MAX);
+      if (!showing) next();
+      else if (showing === "greeting") hideSoon(SHORT_SHOW);
+    };
+
+    function hideSoon(seconds) {
+      hideCall?.kill();
+      hideCall = gsap.delayedCall(seconds, () => gsap.to(bubbleBody, {
+        scale: 0.8, opacity: 0, duration: 0.25, ease: "power1.in",
+        onComplete: () => {
+          bubble.classList.remove("on");
+          showing = null;
+          gsap.delayedCall(GAP, () => { if (!showing) next(); });
+        }
+      }));
+    }
+
+    function next() {
+      const thank = thanks.shift();
+      const name = thank ? null : greetings.shift();
+      if (!thank && !name) return;
+      if (thank) {
+        const times = thank.count > 1 ? ` ×${thank.count}` : "";
+        bubbleText.textContent = `Cảm ơn ${short(thank.name, 14)} đã tặng ${short(thank.gift, 14)}${times}! 💖`;
+        bubble.classList.add("thanks");
+      } else {
+        bubbleText.textContent = `Chào ${short(name, 16)}! 🐾`;
+        bubble.classList.remove("thanks");
+      }
+      showing = thank ? "thanks" : "greeting";
+      bubble.classList.add("on");
+      placeBubble();
+      gsap.fromTo(bubbleBody, { scale: 0.4, opacity: 0, y: 8 }, { scale: 1, opacity: 1, y: 0, duration: 0.35, ease: "back.out(2)" });
+      // A greeting waiting behind thanks would otherwise never be seen in a busy live; a waiting
+      // thank-you shortens the current one a little so the line keeps moving.
+      hideSoon(thank ? (thanks.length ? 2.2 : THANK_SHOW) : SHOW);
+    }
+  }
 }

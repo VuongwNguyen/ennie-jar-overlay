@@ -146,6 +146,12 @@ app.post("/api/simulate/gift", async (req, res) => {
   }
 });
 
+app.post("/api/simulate/member", (req, res) => {
+  const nickname = String(req.body?.nickname ?? "").trim().slice(0, 40) || "Người xem";
+  handleMember({ type: "member", user: { id: `test-${nickname}`, nickname } });
+  res.status(201).json({ ok: true });
+});
+
 app.post("/api/session/reset", async (_req, res) => {
   try {
     state = freshState();
@@ -164,8 +170,12 @@ const RETRY_MS = 30_000;
 let autoUsername = AUTO_USERNAME;
 let retryTimer = null;
 
+// A viewer joined: passed straight to the overlay, where the dog greets them. Nothing is stored.
+const handleMember = event => io.emit("member", event);
+
 const tiktok = createTikTokAdapter({
   onGift: handleGift,
+  onMember: handleMember,
   onStatus: status => {
     io.emit("tiktok-status", status);
     if (status.state === "disconnected" && autoUsername) scheduleReconnect();
