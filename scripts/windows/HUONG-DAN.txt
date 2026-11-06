@@ -5,6 +5,9 @@
 
 2. Bấm đúp vào file "start.bat".
    - Một cửa sổ đen hiện ra: GIỮ NGUYÊN, đừng tắt khi đang live.
+   - Chương trình tự kiểm tra bản mới trên GitHub và tự cập nhật trước khi chạy.
+     Quà và top người tặng vẫn được giữ. Không có mạng thì nó chạy bản đang có.
+     Nếu bản mới không chạy được, nó tự quay lại bản cũ.
    - Trình duyệt tự mở trang điều khiển.
    - Chương trình tự kết nối vào kênh TikTok @ennieiuoiw khi kênh đang live.
      Nếu chưa live, nó tự thử lại mỗi 30 giây.
