@@ -5,7 +5,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,6 +24,26 @@ const TRIAL_MS = 30_000;
 const say = text => console.log(`[Cap nhat] ${text}`);
 const readJson = async file => JSON.parse(await readFile(file, "utf8"));
 const buildOf = async dir => (await readJson(path.join(dir, "version.json")).catch(() => ({}))).build ?? 0;
+const wait = ms => new Promise(done => setTimeout(done, ms));
+
+// Moves a file or folder. Windows refuses to rename a folder while another program has something
+// in it open (an Explorer window, an antivirus scan, an editor watching it), so after a few tries
+// it copies over instead, which works through such locks, and removes what it can of the original.
+const LOCKED = new Set(["EPERM", "EBUSY", "EACCES", "ENOTEMPTY"]);
+async function move(from, to) {
+  // An antivirus scan of freshly unpacked files usually lets go within a few seconds.
+  for (let attempt = 0; attempt < 10; attempt++) {
+    try {
+      await rename(from, to);
+      return;
+    } catch (error) {
+      if (!LOCKED.has(error.code)) throw error;
+      await wait(500);
+    }
+  }
+  await cp(from, to, { recursive: true, force: true });
+  await rm(from, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 }).catch(() => {});
+}
 
 async function download(url, timeoutMs) {
   const response = await fetch(url, { headers: { "User-Agent": "GiftJar-updater" }, signal: AbortSignal.timeout(timeoutMs) });
@@ -74,7 +94,7 @@ async function repair() {
   for (const part of PARTS) {
     const current = path.join(ROOT, part), saved = path.join(backup, part);
     if (!existsSync(current) && existsSync(saved)) {
-      await rename(saved, current);
+      await move(saved, current);
       say(`Da khoi phuc ${part} tu ban truoc.`);
     }
   }
@@ -97,16 +117,16 @@ async function swap(from, to, backup) {
   try {
     for (const part of PARTS) {
       const current = path.join(to, part), incoming = path.join(from, part), saved = path.join(backup, part);
-      if (existsSync(current)) await rename(current, saved);
+      if (existsSync(current)) await move(current, saved);
       done.push(part);
-      if (existsSync(incoming)) await rename(incoming, current);
+      if (existsSync(incoming)) await move(incoming, current);
     }
   } catch (error) {
     for (const part of done.reverse()) {
       const current = path.join(to, part), saved = path.join(backup, part);
       if (existsSync(saved)) {
-        await rm(current, { recursive: true, force: true });
-        await rename(saved, current);
+        await rm(current, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 }).catch(() => {});
+        await move(saved, current);
       }
     }
     throw error;
