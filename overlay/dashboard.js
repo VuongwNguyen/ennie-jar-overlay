@@ -30,6 +30,8 @@ function renderTikTok(status) {
   const labels = { disconnected: "Chưa kết nối", connecting: "Đang kết nối…", connected: "Đã kết nối" };
   $("tiktokStatus").textContent = labels[status.state] + (status.username && status.state !== "disconnected" ? ` · @${status.username}` : "");
   $("tiktokStatus").className = `pill ${status.state === "connected" ? "on" : status.state === "connecting" ? "wait" : ""}`;
+  // The box shows the channel actually connected, unless someone is typing in it.
+  if (status.username && status.state !== "disconnected" && document.activeElement !== $("tiktokUser")) $("tiktokUser").value = status.username;
   $("tiktokError").textContent = friendlyError(status.error);
   $("tiktokConnect").disabled = status.state === "connecting";
   $("tiktokDisconnect").disabled = status.state === "disconnected";
@@ -116,6 +118,144 @@ fetch("/api/version").then(r => r.json()).then(({ build }) => {
 // ---------- Links for Studio ----------
 $("overlayUrl").value = `${location.origin}/overlay.html`;
 $("heartUrl").value = `${location.origin}/heart.html`;
+
+// ---------- Viewers who get the welcome frame ----------
+function renderWelcome(list) {
+  const ul = $("welcomeList");
+  ul.replaceChildren();
+  if (!list.length) {
+    const li = document.createElement("li");
+    li.className = "empty";
+    li.textContent = "Chưa có ai";
+    ul.append(li);
+    return;
+  }
+  for (const entry of list) {
+    const li = document.createElement("li");
+    const who = document.createElement("span");
+    who.className = "who";
+    who.textContent = `@${entry.id}`;
+    const badge = document.createElement("span");
+    badge.className = "badge";
+    badge.textContent = entry.badge;
+    const test = document.createElement("button");
+    test.className = "chip";
+    test.textContent = "Thử";
+    test.title = "Hiện khung cho người này ngay";
+    test.addEventListener("click", async () => {
+      const { ok } = await post("/api/welcome/test", { id: entry.id }).catch(() => ({ ok: false }));
+      notify("welcomeNotice", ok ? `Đã hiện khung cho @${entry.id} ✓` : "Không hiện được.", !ok);
+    });
+    const remove = document.createElement("button");
+    remove.className = "chip";
+    remove.textContent = "Xóa";
+    remove.addEventListener("click", async () => {
+      const response = await fetch(`/api/welcome/${encodeURIComponent(entry.id)}`, { method: "DELETE" }).catch(() => null);
+      if (response?.ok) renderWelcome(await response.json());
+      else notify("welcomeNotice", "Không xóa được.", true);
+    });
+    li.append(who, badge, test, remove);
+    ul.append(li);
+  }
+}
+fetch("/api/welcome").then(r => r.json()).then(renderWelcome).catch(() => {});
+
+// ---------- Welcoming by level ----------
+function renderRules(rules) {
+  $("ruleFanOn").checked = rules.fan.on;
+  $("ruleFanAbove").value = rules.fan.above;
+  $("ruleFanBadge").value = rules.fan.badge;
+  $("ruleGifterOn").checked = rules.gifter.on;
+  $("ruleGifterAbove").value = rules.gifter.above;
+  $("ruleGifterBadge").value = rules.gifter.badge;
+}
+fetch("/api/welcome/rules").then(r => r.json()).then(renderRules).catch(() => {});
+$("rulesForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const rules = {
+    fan: { on: $("ruleFanOn").checked, above: Number($("ruleFanAbove").value), badge: $("ruleFanBadge").value.trim() },
+    gifter: { on: $("ruleGifterOn").checked, above: Number($("ruleGifterAbove").value), badge: $("ruleGifterBadge").value.trim() }
+  };
+  try {
+    const { ok, body } = await post("/api/welcome/rules", rules);
+    if (!ok) { notify("rulesNotice", "Không lưu được.", true); return; }
+    renderRules(body);
+    notify("rulesNotice", `Đã lưu ✓ Tim đội từ cấp ${body.fan.above + 1}, cấp quà từ cấp ${body.gifter.above + 1}.`);
+  } catch { notify("rulesNotice", "Không liên lạc được với server.", true); }
+});
+
+// ---------- Viewers who just joined, with the @name to copy into the list ----------
+const REASONS = { list: "✓ chỉ định", fan: "✓ tim đội", gifter: "✓ cấp quà" };
+let members = [], memberPage = 0;
+const MEMBERS_PER_PAGE = 6, MEMBERS_KEPT = 100;
+function renderMembers() {
+  const ul = $("memberList");
+  ul.replaceChildren();
+  $("memberCount").textContent = members.length;
+  const pages = Math.max(1, Math.ceil(members.length / MEMBERS_PER_PAGE));
+  memberPage = Math.min(memberPage, pages - 1);
+  $("memberPager").hidden = pages < 2;
+  $("memberPage").textContent = `${memberPage + 1} / ${pages}`;
+  $("memberPrev").disabled = memberPage === 0;
+  $("memberNext").disabled = memberPage >= pages - 1;
+  if (!members.length) {
+    const li = document.createElement("li");
+    li.className = "empty";
+    li.textContent = "Chưa có ai vào (cần đang kết nối TikTok)";
+    ul.append(li);
+    return;
+  }
+  for (const member of members.slice(memberPage * MEMBERS_PER_PAGE, (memberPage + 1) * MEMBERS_PER_PAGE)) {
+    const li = document.createElement("li");
+    const who = document.createElement("span");
+    who.className = "who";
+    const handle = member.user?.uniqueId ? `@${member.user.uniqueId}` : `id ${member.user?.id ?? "?"}`;
+    const levels = [member.user?.fanLevel ? `💗${member.user.fanLevel}` : "", member.user?.gifterLevel ? `🎁${member.user.gifterLevel}` : ""].filter(Boolean).join(" ");
+    who.textContent = `${member.user?.nickname ?? "?"} · ${handle}${levels ? ` · ${levels}` : ""}`;
+    const time = document.createElement("span");
+    time.className = "badge";
+    time.textContent = new Date(member.at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    const mark = document.createElement("span");
+    mark.className = "badge";
+    mark.textContent = REASONS[member.reason] ?? (member.listed ? "✓ chào mừng" : "");
+    const add = document.createElement("button");
+    add.className = "chip";
+    add.textContent = "Thêm";
+    add.title = "Thêm người này vào danh sách khung chào mừng";
+    add.disabled = member.reason === "list" || !(member.user?.uniqueId || member.user?.id);
+    add.addEventListener("click", async () => {
+      const { ok, body } = await post("/api/welcome", { id: member.user.uniqueId || member.user.id, badge: "" }).catch(() => ({ ok: false, body: {} }));
+      if (ok) { renderWelcome(body); notify("welcomeNotice", `Đã thêm ${handle} ✓`); }
+      else notify("welcomeNotice", body.error || "Không thêm được.", true);
+    });
+    li.append(who, time, mark, add);
+    ul.append(li);
+  }
+}
+// The server empties this list each time it connects to a live, and keeps it in memory only. Fetched
+// again whenever the page (re)connects to the server, so a page left open does not keep old people.
+const loadMembers = () => fetch("/api/members/recent").then(r => r.json()).then(list => { members = list; memberPage = 0; renderMembers(); }).catch(() => {});
+socket.on("connect", loadMembers);
+socket.on("members-cleared", () => { members = []; memberPage = 0; renderMembers(); });
+$("memberPrev").addEventListener("click", () => { memberPage--; renderMembers(); });
+$("memberNext").addEventListener("click", () => { memberPage++; renderMembers(); });
+socket.on("member", member => {
+  members.unshift(member);
+  members.length = Math.min(members.length, MEMBERS_KEPT);
+  renderMembers();
+});
+$("welcomeForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const id = $("welcomeId").value.trim();
+  if (!id) { notify("welcomeNotice", "Nhập @tên TikTok hoặc id.", true); return; }
+  try {
+    const { ok, body } = await post("/api/welcome", { id, badge: $("welcomeBadge").value.trim() });
+    if (!ok) { notify("welcomeNotice", body.error || "Không thêm được.", true); return; }
+    renderWelcome(body);
+    $("welcomeId").value = "";
+    notify("welcomeNotice", `Đã thêm @${id.replace(/^@/, "")} ✓`);
+  } catch { notify("welcomeNotice", "Không liên lạc được với server.", true); }
+});
 // Clicking the address selects all of it, for copying by hand.
 for (const field of document.querySelectorAll(".link-url")) field.addEventListener("focus", () => field.select());
 async function copyText(text) {

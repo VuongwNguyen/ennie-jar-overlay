@@ -282,10 +282,10 @@ export async function startSpriteDog() {
   // The speech bubble says one thing at a time: thanks for gifts first, then greetings for viewers
   // who join. A thank-you that arrives during a greeting cuts the greeting short. In a busy live
   // people join faster than anyone could read, so only the latest few greetings wait their turn,
-  // and someone who leaves and comes back is not greeted again soon.
+  // and someone who leaves and comes back within 15 seconds is not greeted again.
   function startGreetings() {
     const SHOW = 2.6, THANK_SHOW = 3.2, SHORT_SHOW = 0.8, GAP = 0.3;
-    const GREETINGS_MAX = 3, THANKS_MAX = 6, AGAIN_AFTER_MS = 10 * 60_000;
+    const GREETINGS_MAX = 3, THANKS_MAX = 6, AGAIN_AFTER_MS = 15_000;
     const thanks = [], greetings = [], greeted = new Map();
     let showing = null, hideCall = null;
     const short = (text, max) => {

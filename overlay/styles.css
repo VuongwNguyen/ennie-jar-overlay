@@ -55,6 +55,47 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .leaderboard li { padding: 6px 0; border-bottom: 1px solid #332f41; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .leaderboard .empty { color: #999; }
 
+/* The welcome list: @name, title, try and remove. */
+.welcome-add { grid-template-columns: 1fr 180px auto; }
+.welcome-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.welcome-list li { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items: center; padding: 6px 10px; background: #12111c; border-radius: 9px; }
+.welcome-list .empty { display: block; color: #999; background: none; padding: 4px 0; }
+.welcome-list .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.welcome-list .badge { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: #ffd98a; }
+/* Smaller headings inside a card. */
+.minor { font-size: 13px; margin: 14px 0 8px; color: #e6dcf7; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.minor small { font-weight: 400; color: #aaa3bd; font-size: 12px; }
+/* The level rules: on/off, "above" level, and the title, one line each. */
+.rules { display: grid; gap: 8px; }
+.rule { display: grid; grid-template-columns: auto auto 70px auto 1fr; gap: 8px; align-items: center; font-size: 13px; color: #c9c2d8; }
+.rule input[type="checkbox"] { width: 18px; height: 18px; accent-color: #bd91e9; }
+.rules > button { justify-self: start; }
+@media (max-width: 560px) { .rule { grid-template-columns: auto 1fr 70px; } .rule > span:nth-of-type(2), .rule > input:last-child { grid-column: 2 / -1; } }
+/* Step numbers on the cards used during a live. */
+.step { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #bd91e9; color: #1c1427; font-size: 12px; font-weight: 800; }
+.actions { display: flex; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+.test-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.hint-links { margin: 10px 0 0; font-size: 12px; color: #aaa3bd; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+/* Cards used rarely, folded to their title until clicked open. */
+.fold-card > summary { cursor: pointer; font-size: 15px; font-weight: 700; list-style: none; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fold-card > summary::-webkit-details-marker { display: none; }
+.fold-card > summary::before { content: "▸"; color: #bd91e9; transition: transform .15s; }
+.fold-card[open] > summary::before { transform: rotate(90deg); }
+.fold-card > summary small { font-size: 12px; font-weight: 400; color: #aaa3bd; }
+.fold-card[open] > summary { margin-bottom: 12px; }
+.fold-card .grid { margin-top: 10px; }
+/* A section folded away until clicked open. */
+.fold { margin-top: 12px; border-top: 1px solid #302c40; padding-top: 10px; }
+.fold summary { cursor: pointer; font-weight: 700; font-size: 14px; list-style: none; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.fold summary::-webkit-details-marker { display: none; }
+.fold summary::before { content: "▸"; color: #bd91e9; transition: transform .15s; }
+.fold[open] summary::before { transform: rotate(90deg); }
+.fold summary small { font-weight: 400; color: #aaa3bd; font-size: 12px; }
+.fold .count { background: #2a2639; color: #e6dcf7; border-radius: 20px; padding: 1px 8px; font-size: 12px; }
+.pager { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 8px; font-size: 12px; color: #c9c2d8; }
+.member-list li { font-size: 13px; }
+.member-list .badge { color: #8ff0bd; letter-spacing: 0; }
+
 .hint { margin: 0; font-size: 12px; color: #aaa3bd; }
 .hint:empty { display: none; }
 .err { color: #ff9aa8; }
@@ -63,4 +104,6 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   .columns { grid-template-columns: 1fr; }
   .link-row { grid-template-columns: 1fr auto auto; }
   .link-name { grid-column: 1 / -1; }
+  .welcome-add { grid-template-columns: 1fr auto; }
+  .welcome-add #welcomeBadge { grid-column: 1; }
 }

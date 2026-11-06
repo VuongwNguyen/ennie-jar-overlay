@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body class="dashboard">
+  <!-- In the order of a live: connect, welcome people, watch the session; then the rarely used
+       parts (testing, links for Studio) folded away at the bottom until clicked open. -->
   <main class="panel">
     <header>
       <h1>Gift Jar <small id="buildTag" class="build-tag"></small></h1>
@@ -15,9 +17,95 @@
       </p>
     </header>
 
-    <!-- What gets pasted into TikTok LIVE Studio, first and one click away. -->
+    <!-- 1. Connect to the live. -->
     <section class="card">
-      <h2>Link cho Studio <small>Thêm nguồn Link, kích thước 1080 × 1920</small></h2>
+      <h2><span class="step">1</span> Kết nối TikTok LIVE <small id="tiktokStatus" class="pill">Chưa kết nối</small></h2>
+      <div class="row">
+        <input id="tiktokUser" value="ennieiuoiw" placeholder="Username, không cần @" aria-label="Username TikTok">
+        <button id="tiktokConnect">Kết nối</button>
+        <button class="secondary" id="tiktokDisconnect" disabled>Ngắt</button>
+      </div>
+      <p class="hint err" id="tiktokError"></p>
+    </section>
+
+    <!-- 2. Viewers who get the welcome frame when they join; the list is kept in data/welcome.json. -->
+    <section class="card">
+      <h2><span class="step">2</span> Khung chào mừng <small>hiện trên hũ khi có người vào live; ưu tiên: chỉ định › tim đội › cấp quà</small></h2>
+      <h3 class="minor">Chỉ định theo @tên</h3>
+      <form class="row welcome-add" id="welcomeForm">
+        <input id="welcomeId" placeholder="@tên TikTok hoặc id" aria-label="@tên TikTok hoặc id">
+        <input id="welcomeBadge" placeholder="Danh hiệu (KHÁCH QUÝ)" aria-label="Danh hiệu" maxlength="16">
+        <button>Thêm</button>
+      </form>
+      <ul id="welcomeList" class="welcome-list"><li class="empty">Chưa có ai</li></ul>
+      <p class="hint" id="welcomeNotice" role="status"></p>
+      <!-- Everyone else, by level, with one title per group (kept in data/welcome-rules.json). -->
+      <h3 class="minor">Tự chào theo cấp <small>mỗi người tối đa 3 lần trong 10 phút</small></h3>
+      <form class="rules" id="rulesForm">
+        <label class="rule">
+          <input type="checkbox" id="ruleFanOn"> <span>💗 Tim đội cấp lớn hơn</span>
+          <input type="number" id="ruleFanAbove" min="0" max="100" aria-label="Cấp tim đội lớn hơn">
+          <span>danh hiệu</span> <input id="ruleFanBadge" maxlength="16" aria-label="Danh hiệu cho tim đội">
+        </label>
+        <label class="rule">
+          <input type="checkbox" id="ruleGifterOn"> <span>🎁 Cấp quà lớn hơn</span>
+          <input type="number" id="ruleGifterAbove" min="0" max="100" aria-label="Cấp quà lớn hơn">
+          <span>danh hiệu</span> <input id="ruleGifterBadge" maxlength="16" aria-label="Danh hiệu cho cấp quà">
+        </label>
+        <button>Lưu</button>
+      </form>
+      <p class="hint" id="rulesNotice" role="status"></p>
+      <!-- Who joined, with the @name TikTok sends, a page at a time. -->
+      <details class="fold" id="memberFold">
+        <summary>Người vừa vào live <span class="count" id="memberCount">0</span> <small>@tên, cấp tim đội 💗 và cấp quà 🎁; ✓ là được chào</small></summary>
+        <ul id="memberList" class="welcome-list member-list"><li class="empty">Chưa có ai vào (cần đang kết nối TikTok)</li></ul>
+        <div class="pager" id="memberPager" hidden>
+          <button class="chip" id="memberPrev" aria-label="Trang trước">‹ Trước</button>
+          <span id="memberPage">1 / 1</span>
+          <button class="chip" id="memberNext" aria-label="Trang sau">Sau ›</button>
+        </div>
+      </details>
+    </section>
+
+    <!-- 3. During the live: the session's donors, and starting a new session. -->
+    <section class="card">
+      <h2><span class="step">3</span> Phiên live <small>top người tặng của phiên này</small></h2>
+      <ol id="leaderboard" class="leaderboard"><li class="empty">Chưa có dữ liệu</li></ol>
+      <div class="actions">
+        <button class="secondary" id="reset" title="Xóa quà và top người tặng, bắt đầu phiên mới">Reset phiên</button>
+        <p class="hint" id="resetNotice" role="status"></p>
+      </div>
+    </section>
+
+    <!-- Testing without a live: gifts, a viewer joining, the heart clip and the welcome frame. -->
+    <details class="card fold-card">
+      <summary>Thử nghiệm <small>giả lập quà và người vào, không ảnh hưởng TikTok</small></summary>
+      <div class="presets" aria-label="Chọn nhanh">
+        <button class="chip" data-gift="Rose" data-coins="1">Hoa hồng</button>
+        <button class="chip" data-gift="Heart Me" data-coins="1">Tim đội</button>
+        <button class="chip" data-gift="Lion" data-coins="199">Quà to (199 xu)</button>
+      </div>
+      <div class="grid">
+        <label>Người tặng / người vào<input id="nickname" value="Yinnz"></label>
+        <label>Tên quà<input id="giftName" value="Rose"></label>
+        <label>Xu / quà<input id="diamondCount" type="number" min="0" value="1"></label>
+        <label>Số lượng<input id="repeatCount" type="number" min="1" value="1"></label>
+      </div>
+      <div class="test-buttons">
+        <button id="sendGift">Gửi quà thử</button>
+        <button class="secondary" id="sendMember" title="Chó chào tên ở ô Người tặng / người vào">Thử người vào live</button>
+      </div>
+      <p class="hint" id="giftNotice" role="status"></p>
+      <p class="hint-links">
+        Xem thử:
+        <a class="open" href="/heart.html?test" target="_blank" title="Mở và phát video tim đội một lần">Video tim đội</a>
+        <a class="open" href="/overlay.html?welcome=hold" target="_blank" title="Mở hũ với một khung chào mừng đứng yên">Khung chào mừng</a>
+      </p>
+    </details>
+
+    <!-- Set up once in TikTok LIVE Studio. -->
+    <details class="card fold-card">
+      <summary>Link cho Studio <small>thêm nguồn Link, kích thước 1080 × 1920</small></summary>
       <div class="link-row">
         <span class="link-name">Hũ quà</span>
         <input class="link-url" id="overlayUrl" readonly value="http://127.0.0.1:8787/overlay.html">
@@ -30,44 +118,7 @@
         <button class="copy" data-copy="heartUrl">Copy</button>
         <a class="open" href="/heart.html?test" target="_blank" title="Mở và phát thử video một lần">Thử</a>
       </div>
-    </section>
-
-    <section class="card">
-      <h2>TikTok LIVE <small id="tiktokStatus" class="pill">Chưa kết nối</small></h2>
-      <div class="row">
-        <input id="tiktokUser" value="ennieiuoiw" placeholder="Username, không cần @" aria-label="Username TikTok">
-        <button id="tiktokConnect">Kết nối</button>
-        <button class="secondary" id="tiktokDisconnect" disabled>Ngắt</button>
-      </div>
-      <p class="hint err" id="tiktokError"></p>
-    </section>
-
-    <div class="columns">
-      <section class="card">
-        <h2>Thử quà <small>không ảnh hưởng TikTok</small></h2>
-        <div class="presets" aria-label="Chọn nhanh">
-          <button class="chip" data-gift="Rose" data-coins="1">Hoa hồng</button>
-          <button class="chip" data-gift="Heart Me" data-coins="1">Tim đội</button>
-          <button class="chip" data-gift="Lion" data-coins="199">Quà to (199 xu)</button>
-        </div>
-        <div class="grid">
-          <label>Người tặng<input id="nickname" value="Yinnz"></label>
-          <label>Tên quà<input id="giftName" value="Rose"></label>
-          <label>Xu / quà<input id="diamondCount" type="number" min="0" value="1"></label>
-          <label>Số lượng<input id="repeatCount" type="number" min="1" value="1"></label>
-        </div>
-        <button id="sendGift">Gửi quà thử</button>
-        <button class="secondary" id="sendMember" title="Chó chào tên ở ô Người tặng">Thử người vào live</button>
-        <p class="hint" id="giftNotice" role="status"></p>
-      </section>
-
-      <section class="card">
-        <h2>Top người tặng</h2>
-        <ol id="leaderboard" class="leaderboard"><li class="empty">Chưa có dữ liệu</li></ol>
-        <button class="secondary" id="reset">Reset phiên</button>
-        <p class="hint" id="resetNotice" role="status"></p>
-      </section>
-    </div>
+    </details>
   </main>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/dashboard.js"></script>
