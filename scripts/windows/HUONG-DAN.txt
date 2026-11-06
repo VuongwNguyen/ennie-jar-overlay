@@ -24,6 +24,12 @@
    - Add source > Link (hoặc Browser), dán cùng URL trên, kích thước 1080 x 1920.
    - Nếu nguồn hiện thành ô rất nhỏ, hãy dùng OBS + Virtual Camera.
 
+4. Video tim đội (nguồn thứ hai, tách riêng với hũ quà):
+   - Thêm một nguồn Link/Browser nữa, URL: http://127.0.0.1:8787/heart.html
+   - Kích thước 1080 x 1920, đặt phủ cả khung hình. Nền trong suốt, chỉ hiện khi có quà "Tim đội".
+   - Đặt nguồn này trên hoặc dưới hũ quà tùy ý; âm lượng chỉnh riêng được.
+   - Thử vị trí: mở http://127.0.0.1:8787/heart.html?test (video chạy một lần sau 1 giây).
+
 Thử nghiệm khi chưa live: trên trang điều khiển, bấm "Gửi quà thử nghiệm".
 Reset số liệu mỗi buổi live: bấm "Reset phiên".
 Tắt chương trình: đóng cửa sổ đen.

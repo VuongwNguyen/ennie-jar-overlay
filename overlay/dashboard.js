@@ -29,6 +29,7 @@ function notify(id, text, isError = false) {
 function renderTikTok(status) {
   const labels = { disconnected: "Chưa kết nối", connecting: "Đang kết nối…", connected: "Đã kết nối" };
   $("tiktokStatus").textContent = labels[status.state] + (status.username && status.state !== "disconnected" ? ` · @${status.username}` : "");
+  $("tiktokStatus").className = `pill ${status.state === "connected" ? "on" : status.state === "connecting" ? "wait" : ""}`;
   $("tiktokError").textContent = friendlyError(status.error);
   $("tiktokConnect").disabled = status.state === "connecting";
   $("tiktokDisconnect").disabled = status.state === "disconnected";
@@ -100,4 +101,40 @@ function disarmReset() {
   $("reset").textContent = RESET_LABEL;
   $("reset").classList.remove("danger");
 }
-$("overlayUrl").textContent = `${location.origin}/overlay.html`;
+// ---------- Links for Studio ----------
+$("overlayUrl").value = `${location.origin}/overlay.html`;
+$("heartUrl").value = `${location.origin}/heart.html`;
+// Clicking the address selects all of it, for copying by hand.
+for (const field of document.querySelectorAll(".link-url")) field.addEventListener("focus", () => field.select());
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    // Older or embedded browsers without the clipboard API.
+    const field = document.createElement("textarea");
+    field.value = text;
+    document.body.append(field);
+    field.select();
+    const ok = document.execCommand("copy");
+    field.remove();
+    return ok;
+  }
+}
+for (const button of document.querySelectorAll(".copy")) {
+  button.addEventListener("click", async () => {
+    const ok = await copyText($(button.dataset.copy).value);
+    button.textContent = ok ? "Đã copy ✓" : "Bấm vào ô rồi Ctrl+C";
+    button.classList.toggle("done", ok);
+    setTimeout(() => { button.textContent = "Copy"; button.classList.remove("done"); }, 1800);
+  });
+}
+
+// Quick picks fill in the test gift.
+for (const chip of document.querySelectorAll(".chip")) {
+  chip.addEventListener("click", () => {
+    $("giftName").value = chip.dataset.gift;
+    $("diamondCount").value = chip.dataset.coins;
+    $("repeatCount").value = 1;
+  });
+}

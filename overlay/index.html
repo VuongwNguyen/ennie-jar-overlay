@@ -3,50 +3,70 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Jar Overlay · Control</title>
+  <title>Gift Jar · Điều khiển</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body class="dashboard">
   <main class="panel">
     <header>
-      <div><p class="eyebrow">LOCAL CONTROL CENTER</p><h1>Gift Jar Overlay</h1><p class="muted">Điều khiển phiên livestream và thử nghiệm sự kiện.</p></div>
-      <span class="status"><i></i> Local server</span>
+      <h1>Gift Jar</h1>
+      <p class="stats" aria-label="Phiên hiện tại">
+        <span><b id="coins">0</b> xu</span><span><b id="gifts">0</b> lượt quà</span><span><b id="donors">0</b> người tặng</span>
+      </p>
     </header>
-    <section class="stats">
-      <article><span>Tổng xu</span><strong id="coins">0</strong></article>
-      <article><span>Lượt quà</span><strong id="gifts">0</strong></article>
-      <article><span>Người tặng</span><strong id="donors">0</strong></article>
-    </section>
-    <section class="card tiktok">
-      <h2>Kết nối TikTok LIVE</h2>
-      <div class="two">
-        <label>Username (không cần @)<input id="tiktokUser" value="ennieiuoiw" placeholder="ten_kenh"></label>
-        <div class="btnrow"><button id="tiktokConnect">Kết nối</button><button class="secondary" id="tiktokDisconnect" disabled>Ngắt</button></div>
+
+    <!-- What gets pasted into TikTok LIVE Studio, first and one click away. -->
+    <section class="card">
+      <h2>Link cho Studio <small>Thêm nguồn Link, kích thước 1080 × 1920</small></h2>
+      <div class="link-row">
+        <span class="link-name">Hũ quà</span>
+        <input class="link-url" id="overlayUrl" readonly value="http://127.0.0.1:8787/overlay.html">
+        <button class="copy" data-copy="overlayUrl">Copy</button>
+        <a class="open" href="/overlay.html" target="_blank">Mở</a>
       </div>
-      <p class="hint"><b id="tiktokStatus">Chưa kết nối</b> <span id="tiktokError" class="err"></span></p>
-      <p class="hint">Cần đang livestream. Có thể đặt biến môi trường <code>EULER_API_KEY</code> nếu bị giới hạn ký.</p>
+      <div class="link-row">
+        <span class="link-name">Video tim đội</span>
+        <input class="link-url" id="heartUrl" readonly value="http://127.0.0.1:8787/heart.html">
+        <button class="copy" data-copy="heartUrl">Copy</button>
+        <a class="open" href="/heart.html?test" target="_blank" title="Mở và phát thử video một lần">Thử</a>
+      </div>
     </section>
-    <section class="columns">
-      <div class="card">
-        <h2>Giả lập quà tặng</h2>
-        <label>Tên người tặng<input id="nickname" value="Yinnz"></label>
-        <label>Tên quà<input id="giftName" value="Rose"></label>
-        <div class="two">
+
+    <section class="card">
+      <h2>TikTok LIVE <small id="tiktokStatus" class="pill">Chưa kết nối</small></h2>
+      <div class="row">
+        <input id="tiktokUser" value="ennieiuoiw" placeholder="Username, không cần @" aria-label="Username TikTok">
+        <button id="tiktokConnect">Kết nối</button>
+        <button class="secondary" id="tiktokDisconnect" disabled>Ngắt</button>
+      </div>
+      <p class="hint err" id="tiktokError"></p>
+    </section>
+
+    <div class="columns">
+      <section class="card">
+        <h2>Thử quà <small>không ảnh hưởng TikTok</small></h2>
+        <div class="presets" aria-label="Chọn nhanh">
+          <button class="chip" data-gift="Rose" data-coins="1">Hoa hồng</button>
+          <button class="chip" data-gift="Heart Me" data-coins="1">Tim đội</button>
+          <button class="chip" data-gift="Lion" data-coins="199">Quà to (199 xu)</button>
+        </div>
+        <div class="grid">
+          <label>Người tặng<input id="nickname" value="Yinnz"></label>
+          <label>Tên quà<input id="giftName" value="Rose"></label>
           <label>Xu / quà<input id="diamondCount" type="number" min="0" value="1"></label>
           <label>Số lượng<input id="repeatCount" type="number" min="1" value="1"></label>
         </div>
-        <button id="sendGift">Gửi quà thử nghiệm</button>
+        <button id="sendGift">Gửi quà thử</button>
         <p class="hint" id="giftNotice" role="status"></p>
-        <p class="hint">Simulator chỉ dùng để kiểm tra giao diện, chưa kết nối TikTok.</p>
-      </div>
-      <div class="card">
+      </section>
+
+      <section class="card">
         <h2>Top người tặng</h2>
         <ol id="leaderboard" class="leaderboard"><li class="empty">Chưa có dữ liệu</li></ol>
         <button class="secondary" id="reset">Reset phiên</button>
         <p class="hint" id="resetNotice" role="status"></p>
-      </div>
-    </section>
-    <footer><a href="/overlay.html" target="_blank">Mở overlay</a><span>OBS Browser Source: <code id="overlayUrl">http://127.0.0.1:8787/overlay.html</code></span></footer>
+      </section>
+    </div>
   </main>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/dashboard.js"></script>
