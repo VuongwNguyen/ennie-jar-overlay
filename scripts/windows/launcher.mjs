@@ -6,6 +6,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { createServer } from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -28,6 +29,55 @@ async function download(url, timeoutMs) {
   const response = await fetch(url, { headers: { "User-Agent": "GiftJar-updater" }, signal: AbortSignal.timeout(timeoutMs) });
   if (!response.ok) throw new Error(`${response.status} ${response.statusText} (${url})`);
   return response;
+}
+
+// Downloads into memory and shows how far it has got, since a slow line can take minutes.
+async function downloadBytes(url, size, timeoutMs) {
+  const response = await download(url, timeoutMs);
+  const chunks = [];
+  let received = 0, shown = 0;
+  for await (const chunk of response.body) {
+    chunks.push(chunk);
+    received += chunk.length;
+    const percent = size ? Math.floor((received / size) * 100) : 0;
+    if (percent >= shown + 10) {
+      shown = percent - (percent % 10);
+      say(`  ${shown}%`);
+    }
+  }
+  return Buffer.concat(chunks);
+}
+
+// Whether something else already holds the port, in which case the server cannot start whatever build it is.
+function portTaken() {
+  return new Promise(done => {
+    const probe = createServer();
+    probe.once("error", () => done(true));
+    probe.once("listening", () => probe.close(() => done(false)));
+    probe.listen(PORT, "127.0.0.1");
+  });
+}
+
+function unpack(zipFile, into) {
+  if (process.platform !== "win32") return spawnSync("tar", ["-xf", zipFile, "-C", into], { stdio: "inherit" }).status === 0;
+  const tar = path.join(process.env.SystemRoot || "C:\\Windows", "System32", "tar.exe");
+  if (spawnSync(tar, ["-xf", zipFile, "-C", into], { stdio: "inherit" }).status === 0) return true;
+  // Older Windows without tar.exe.
+  const quote = text => `'${text.replace(/'/g, "''")}'`;
+  return spawnSync("powershell", ["-NoProfile", "-Command", `Expand-Archive -LiteralPath ${quote(zipFile)} -DestinationPath ${quote(into)} -Force`], { stdio: "inherit" }).status === 0;
+}
+
+// The window was closed in the middle of installing: puts the previous files back where any are missing.
+async function repair() {
+  const backup = path.join(WORK, "backup");
+  if (!existsSync(backup)) return;
+  for (const part of PARTS) {
+    const current = path.join(ROOT, part), saved = path.join(backup, part);
+    if (!existsSync(current) && existsSync(saved)) {
+      await rename(saved, current);
+      say(`Da khoi phuc ${part} tu ban truoc.`);
+    }
+  }
 }
 
 async function isRunning() {
@@ -97,16 +147,14 @@ async function update() {
     await mkdir(WORK, { recursive: true });
     say(`Dang tai build ${latest} (${(zipAsset.size / 1048576).toFixed(1)} MB)...`);
     const expected = (await (await download(sumAsset.browser_download_url, 15000)).text()).trim().split(/\s+/)[0].toLowerCase();
-    const bytes = Buffer.from(await (await download(zipAsset.browser_download_url, 10 * 60_000)).arrayBuffer());
+    const bytes = await downloadBytes(zipAsset.browser_download_url, zipAsset.size, 10 * 60_000);
     const actual = createHash("sha256").update(bytes).digest("hex");
     if (actual !== expected) throw new Error("file tai ve bi hong (sai ma kiem tra)");
     await writeFile(zipFile, bytes);
 
     await rm(unpacked, { recursive: true, force: true });
     await mkdir(unpacked, { recursive: true });
-    const tar = process.platform === "win32" ? path.join(process.env.SystemRoot || "C:\\Windows", "System32", "tar.exe") : "tar";
-    const result = spawnSync(tar, ["-xf", zipFile, "-C", unpacked], { stdio: "inherit" });
-    if (result.status !== 0) throw new Error("khong giai nen duoc");
+    if (!unpack(zipFile, unpacked)) throw new Error("khong giai nen duoc");
     if (!existsSync(path.join(unpacked, "server", "src", "index.js")) || (await buildOf(unpacked)) !== latest) {
       throw new Error("file cap nhat thieu noi dung");
     }
@@ -168,7 +216,14 @@ if (await isRunning()) {
   openDashboard();
   process.exit(0);
 }
-const installed = await update();
+await repair().catch(error => say(`Khong khoi phuc duoc (${error.message}).`));
+let installed = null;
+if (await portTaken()) {
+  // Updating now would blame the new build for a failure that has nothing to do with it.
+  console.log(`Cong ${PORT} dang bi chuong trinh khac dung. Hay tat chuong trinh do roi mo lai.`);
+} else {
+  installed = await update();
+}
 let { code, early } = await startServer();
 if (installed && code !== 0 && early) {
   const previous = (await readJson(path.join(WORK, "previous.json")).catch(() => ({}))).build ?? 0;
