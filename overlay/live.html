@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ennie Live</title>
+  <!-- The one source for TikTok LIVE Studio: every part of the overlay on a single 1080x1920 stage, each in
+       its own frame. Where each part sits, how big it is, which is on top and which are shown is set on the
+       layout page (layout.html) and arrives here at once, without reloading the source.
+       live.html?preview is the copy shown on the layout page: the welcome frame and the heart clip stand
+       still on screen there, the clip without sound, and that copy never takes part in real welcomes. -->
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; background: transparent; overflow: hidden; }
+    .stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; transform-origin: 0 0; }
+    .layer { position: absolute; border: 0; background: transparent; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <div class="stage" id="stage"></div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/live.js"></script>
+</body>
+</html>

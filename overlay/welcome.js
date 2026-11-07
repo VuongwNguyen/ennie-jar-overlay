@@ -8,6 +8,15 @@
   const NS = "http://www.w3.org/2000/svg";
   const $ = id => document.getElementById(id);
   const onJar = Boolean($("jarWrap"));
+  const params = new URLSearchParams(location.search);
+  // On the single Studio source (live.html) the frame has a part of its own, so the jar leaves it out.
+  if (onJar && params.has("nowelcome")) return;
+  // ?layer: the frame fills the middle of its page, which is its box on live.html plus a margin around it
+  // for the bursts of light (BLEED in live.js). ?preview: a still sample on the layout page, which takes
+  // no part in real welcomes.
+  const LAYER_BLEED = 0.3;
+  const layer = !onJar && params.has("layer");
+  const PREVIEW = params.has("preview");
   if (!$("welcome")) {
     try {
       const page = new DOMParser().parseFromString(await (await fetch("/welcome.html")).text(), "text/html");
@@ -25,12 +34,17 @@
 
   // How wide the frame is on the jar overlay, as a share of the source's width: 0.6 leaves the streamer's
   // face clear on a 1080x1920 source. overlay.html?welcomesize=0.5 makes it smaller, 0.8 larger.
-  const SHARE = Math.min(1, Math.max(0.3, Number(new URLSearchParams(location.search).get("welcomesize")) || 0.6));
+  const SHARE = Math.min(1, Math.max(0.3, Number(params.get("welcomesize")) || 0.6));
 
   // On its own the frame takes most of the width of the source. On the jar it sits just above the jar
   // and the sticker on its rim, centred over the jar but kept on screen.
   function place() {
     const style = document.documentElement.style;
+    if (layer) {
+      const inner = 1 + 2 * LAYER_BLEED;
+      style.setProperty("--fit", Math.min(innerWidth / inner / DRAWING.width, innerHeight / inner / DRAWING.height));
+      return;
+    }
     if (!onJar) {
       style.setProperty("--fit", Math.min((innerWidth * 0.92) / 680, (innerHeight * 0.4) / 300));
       return;
@@ -344,14 +358,15 @@
     if (!busy) next();
   };
 
-  link.on("welcome", viewer => window.welcomeViewer(viewer));
+  if (!PREVIEW) link.on("welcome", viewer => window.welcomeViewer(viewer));
   // Lets the server know a page that can show the frame is open (again after any reconnect), but only
   // while it is visible. Hidden, the browser stops its animation, so a frame would never finish and the
   // queue would only grow: the page says goodbye, empties its queue and stops, until it is shown again.
-  const hello = () => { if (!document.hidden) link.emit("overlay-hello"); };
+  const hello = () => { if (!document.hidden && !PREVIEW) link.emit("overlay-hello"); };
   link.on("connect", hello);
   if (link.connected) hello();
   document.addEventListener("visibilitychange", () => {
+    if (PREVIEW) return;
     if (!document.hidden) return hello();
     link.emit("overlay-bye");
     waiting.length = 0;
@@ -363,7 +378,7 @@
     busy = false;
   });
 
-  const test = new URLSearchParams(location.search).get(onJar ? "welcome" : "test");
+  const test = params.get(onJar ? "welcome" : "test");
   // ?welcome=hold (?test=hold on its own) keeps one sample on screen, to see where it sits.
   if (test === "hold") {
     busy = true; // the sample stays; real welcomes wait behind it

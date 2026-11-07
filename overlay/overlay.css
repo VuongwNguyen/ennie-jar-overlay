@@ -16,8 +16,9 @@ body.overlay-page { background: transparent; color: #fff; overflow: hidden; }
 
 /* Laid out at design size, then scaled to fit the source by overlay.js (--scale). */
 .scene {
-  position: absolute; left: 0; top: 0;
-  width: calc(100vw / var(--scale, 1)); height: calc(100vh / var(--scale, 1));
+  /* --raise: sky above the jar's box on live.html, where gifts start falling (overlay.js). */
+  position: absolute; left: 0; top: var(--raise, 0px);
+  width: calc(100vw / var(--scale, 1)); height: calc((100vh - var(--raise, 0px)) / var(--scale, 1));
   transform: scale(var(--scale, 1)); transform-origin: 0 0;
   /* The jar sits in the bottom right corner of the frame, leaving the streamer's face clear. */
   display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-end;

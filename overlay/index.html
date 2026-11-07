@@ -30,7 +30,7 @@
 
     <!-- 2. Viewers who get the welcome frame when they join; the list is kept in data/welcome.json. -->
     <section class="card">
-      <h2><span class="step">2</span> Khung chào mừng <small>hiện trên hũ khi có người vào live; ưu tiên: chỉ định › tim đội › cấp quà</small></h2>
+      <h2><span class="step">2</span> Khung chào mừng <small>hiện khi có người vào live; ưu tiên: chỉ định › tim đội › cấp quà</small></h2>
       <h3 class="minor">Chỉ định theo @tên</h3>
       <form class="row welcome-add" id="welcomeForm">
         <input id="welcomeId" placeholder="@tên TikTok hoặc id" aria-label="@tên TikTok hoặc id">
@@ -77,6 +77,12 @@
       </div>
     </section>
 
+    <!-- Where each part sits on the Studio source: opens the layout page. -->
+    <section class="card layout-card">
+      <h2>Bố cục overlay <small>vị trí, kích thước, thứ tự lớp của hũ, khung chào mừng, video tim</small></h2>
+      <a class="layout-open" href="/layout.html" target="_blank">Mở trang chỉnh bố cục ↗</a>
+    </section>
+
     <!-- Testing without a live: gifts, a viewer joining, the heart clip and the welcome frame. -->
     <details class="card fold-card">
       <summary>Thử nghiệm <small>giả lập quà và người vào, không ảnh hưởng TikTok</small></summary>
@@ -99,13 +105,20 @@
       <p class="hint-links">
         Xem thử:
         <a class="open" href="/heart.html?test" target="_blank" title="Mở và phát video tim đội một lần">Video tim đội</a>
-        <a class="open" href="/overlay.html?welcome=hold" target="_blank" title="Mở hũ với một khung chào mừng đứng yên">Khung chào mừng</a>
+        <a class="open" href="/welcome.html?test=hold" target="_blank" title="Mở một khung chào mừng đứng yên">Khung chào mừng</a>
       </p>
     </details>
 
     <!-- Set up once in TikTok LIVE Studio. -->
     <details class="card fold-card">
-      <summary>Link cho Studio <small>thêm nguồn Link, kích thước 1080 × 1920</small></summary>
+      <summary>Link cho Studio <small>một nguồn Link duy nhất, kích thước 1080 × 1920</small></summary>
+      <div class="link-row">
+        <span class="link-name">Overlay chung</span>
+        <input class="link-url" id="liveUrl" readonly value="http://127.0.0.1:8787/live.html">
+        <button class="copy" data-copy="liveUrl">Copy</button>
+        <a class="open" href="/live.html" target="_blank">Mở</a>
+      </div>
+      <p class="hint">Link riêng lẻ bên dưới vẫn dùng được, nhưng không chỉnh được trên trang bố cục:</p>
       <div class="link-row">
         <span class="link-name">Hũ quà</span>
         <input class="link-url" id="overlayUrl" readonly value="http://127.0.0.1:8787/overlay.html">

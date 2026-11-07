@@ -99,6 +99,9 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .member-list li { grid-template-columns: 1fr auto auto auto; }
 
 .hint { margin: 0; font-size: 12px; color: #aaa3bd; }
+.link-row + .hint { margin: 12px 0 8px; }
+.layout-card h2 { margin-bottom: 8px; }
+.layout-open { display: inline-block; padding: 9px 14px; border-radius: 9px; background: #bd91e9; color: #1c1427; font-weight: 700; text-decoration: none; }
 .hint:empty { display: none; }
 .err { color: #ff9aa8; }
 

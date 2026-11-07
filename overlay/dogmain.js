@@ -20,8 +20,7 @@ if (mode === "toon") {
 }
 
 // The animated sticker (make_sticker.mjs) sits on the mouth of the jar, with its bone resting on the rim.
-// It stays outside the scaled scene and on whole pixels at its own size, because enlarging a small
-// picture breaks it up.
+// It stays outside the scaled scene and on whole pixels.
 if (!params.has("nosticker")) {
   const WIDTH = 384, HEIGHT = 256;
   const BONE_X = 190, BONE_BOTTOM = 238; // the bone in the picture
@@ -36,7 +35,9 @@ if (!params.has("nosticker")) {
     const scale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--scale")) || 1;
     const pixel = 1 / devicePixelRatio;
     const rimY = jar.top + RIM * scale;
-    const fit = Math.min(1, rimY / (BONE_BOTTOM * pixel), innerWidth / (WIDTH * pixel)); // only ever shrinks
+    // Grows and shrinks with the jar, so it keeps its size beside it however big the jar is made. At the
+    // jar's original size on a 1080 wide source (a scale of 1.6) it is shown pixel for pixel.
+    const fit = Math.min(scale / 1.6 / pixel, rimY / (BONE_BOTTOM * pixel), innerWidth / (WIDTH * pixel));
     const width = Math.round(WIDTH * fit) * pixel, height = Math.round(HEIGHT * fit) * pixel;
     const snap = value => Math.round(value / pixel) * pixel;
     const left = jar.left + JAR_CENTRE * scale - BONE_X * fit * pixel;

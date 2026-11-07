@@ -9,9 +9,9 @@
        heart.html?test plays the clip once after loading, to check where it sits. -->
   <style>
     html, body { margin: 0; width: 100%; height: 100%; background: transparent; overflow: hidden; }
-    /* Full source, transparent at the top, garden along the bottom. */
+    /* The whole clip in its box (the whole source by default), transparent at the top, garden along the bottom. */
     .heart-fx {
-      position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: cover; object-position: bottom;
+      position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: contain; object-position: bottom;
       pointer-events: none; visibility: hidden;
     }
     .heart-fx.show { visibility: visible; }

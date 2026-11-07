@@ -18,10 +18,21 @@ const particles = new Map();
 const DESIGN = { w: 675, h: 660 };
 const SIZE = Number(new URLSearchParams(location.search).get("size")) || 1;
 let scale = 1;
+// On live.html the page may reach higher than the jar's box, up to the ceiling the gifts fall from: the
+// top `raise` pixels are only sky, and the scene is fitted to the box below them.
+let raise = 0;
 function fitScene() {
-  scale = Math.min(innerWidth / DESIGN.w, innerHeight / DESIGN.h) * SIZE;
+  scale = Math.min(innerWidth / DESIGN.w, Math.max(1, innerHeight - raise) / DESIGN.h) * SIZE;
   document.documentElement.style.setProperty("--scale", scale);
+  document.documentElement.style.setProperty("--raise", `${raise}px`);
 }
+addEventListener("message", event => {
+  if (event.origin !== location.origin || event.data?.type !== "raise") return;
+  const px = Math.max(0, Number(event.data.px) || 0);
+  if (px === raise) return;
+  raise = px;
+  dispatchEvent(new Event("resize")); // refits the scene, the physics frame, the sticker and the rest
+});
 
 // Ground level with the jar's base plus walls at the edges of the visible frame,
 // so gifts that spill out stay on screen and pile up beside the jar.

@@ -116,6 +116,7 @@ fetch("/api/version").then(r => r.json()).then(({ build }) => {
 }).catch(() => {});
 
 // ---------- Links for Studio ----------
+$("liveUrl").value = `${location.origin}/live.html`;
 $("overlayUrl").value = `${location.origin}/overlay.html`;
 $("heartUrl").value = `${location.origin}/heart.html`;
 

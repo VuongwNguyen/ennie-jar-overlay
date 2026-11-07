@@ -33,6 +33,14 @@
 
   video.addEventListener("ended", hide);
   video.addEventListener("error", hide);
+  const params = new URLSearchParams(location.search);
+  // ?hold (the layout page's preview): one still, silent frame of the clip, to see where it sits.
+  if (params.has("hold")) {
+    video.muted = true;
+    video.addEventListener("loadeddata", () => { video.currentTime = Math.min(2.5, video.duration / 2 || 0); }, { once: true });
+    video.classList.add("show");
+    return;
+  }
   socket.on("gift", event => { if (matches(event)) play(); });
-  if (new URLSearchParams(location.search).has("test")) setTimeout(play, 1000);
+  if (params.has("test")) setTimeout(play, 1000);
 })();

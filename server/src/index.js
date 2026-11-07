@@ -181,21 +181,29 @@ let retryTimer = null;
 // The control page lists them (newest first) with why they were or were not welcomed. Kept in memory
 // only, and emptied each time a connection to a live starts (see onStatus).
 const recentMembers = [];
-// For each person seen in this connection: whether they qualified for the frame.
+// For each person seen in this connection: whether their welcome is taken care of (queued or shown),
+// and when they were last looked at.
 const seenThisConnection = new Map();
+// Someone who qualifies but was not welcomed (no overlay open, not shown in time, queue full) is looked
+// at again on later activity, at most this often, so a chatty viewer does not fill the list.
+const RETRY_WELCOME_MS = 30_000;
+const HANDLED = new Set(["queued", "welcomed"]);
 function considerWelcome(rawUser, source) {
   const user = withRememberedLevels(rawUser);
   // Nobody is left out for an unusual name: the id TikTok gives everyone comes first.
   const key = String(user?.id || user?.uniqueId || user?.nickname || "");
   if (!key) return;
   const match = welcomeFor(user);
-  const qualifiedBefore = seenThisConnection.get(key);
-  seenThisConnection.set(key, Boolean(qualifiedBefore || match));
-  // Joins are always listed and considered. Other activity only when it is the first sighting, or when
-  // this person did not qualify before but does now: a like often comes without badges, and their levels
-  // only show with a later chat or gift.
-  if (source !== "join" && qualifiedBefore !== undefined && (qualifiedBefore || !match)) return;
+  const before = seenThisConnection.get(key);
+  // Joins are always listed and considered. Other activity when it is the first sighting; when this
+  // person did not qualify before but does now (a like often comes without badges, and their levels only
+  // show with a later chat or gift); or when they qualified but their welcome never made it on screen.
+  if (source !== "join" && before) {
+    if (before.handled || !match) return;
+    if (before.qualified && Date.now() - before.at < RETRY_WELCOME_MS) return;
+  }
   const status = match ? welcome(user, match) : (user.fanLevel || user.gifterLevel ? "below" : "no-level");
+  seenThisConnection.set(key, { qualified: Boolean(match), handled: HANDLED.has(status), at: Date.now() });
   const seen = { type: "member", user, source, key, listed: Boolean(match), reason: match?.reason ?? "", status, at: Date.now() };
   recentMembers.unshift(seen);
   recentMembers.length = Math.min(recentMembers.length, 100);
@@ -207,6 +215,9 @@ const handleMember = event => considerWelcome(event.user, "join");
 function updateStatus(key, status) {
   const entry = recentMembers.find(item => item.key === key);
   if (entry) entry.status = status;
+  // A welcome that did not make it on screen lets the next sighting of this person try again.
+  const seen = seenThisConnection.get(key);
+  if (seen) seen.handled = HANDLED.has(status);
   io.emit("member-status", { key, status });
 }
 app.get("/api/members/recent", (_req, res) => res.json(recentMembers));
@@ -386,6 +397,74 @@ app.post("/api/welcome/rules", async (req, res) => {
   res.json(welcomeRules);
 });
 
+// Where each part sits on the single Studio source (live.html), set on the layout page (layout.html) and
+// kept in data/layout.json. Positions are in pixels of a 1080x1920 stage; the list runs from the bottom
+// layer to the top one.
+const layoutFile = path.join(dataDir, "layout.json");
+const STAGE = { w: 1080, h: 1920 };
+const LAYERS = {
+  // The jar sits at the bottom right of its box and gifts fall in from the top of the box, so the box
+  // runs from the top of the screen: a taller box drops them from higher up without making the jar larger
+  // (its size follows the width). Width and height change separately for this one.
+  // drop: the ceiling the gifts fall from, as a height on the stage (0 is the top of the screen). It may be
+  // above the box: the jar's page then reaches up to it, so gifts fall from there without the jar moving.
+  jar: { name: "Hũ quà", x: 320, y: 0, w: 760, h: 793, ratio: false, drop: 0 },
+  welcome: { name: "Khung chào mừng", x: 140, y: 880, w: 800, h: 346 },
+  heart: { name: "Video tim đội", x: 0, y: 0, w: 1080, h: 1920 }
+};
+const DEFAULT_LAYOUT = Object.entries(LAYERS).map(([id, box]) => ({ id, ratio: true, ...box, visible: true, locked: false }));
+let layout = structuredClone(DEFAULT_LAYOUT);
+function cleanLayout(input) {
+  const list = Array.isArray(input) ? input : [];
+  const num = (value, fallback, min, max) => {
+    const n = Math.round(Number(value));
+    return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fallback;
+  };
+  const seen = new Set(), out = [];
+  for (const item of list) {
+    const base = LAYERS[item?.id];
+    if (!base || seen.has(item.id)) continue;
+    seen.add(item.id);
+    out.push({
+      id: item.id,
+      name: String(item.name ?? base.name).trim().slice(0, 40) || base.name,
+      x: num(item.x, base.x, -STAGE.w, 2 * STAGE.w),
+      y: num(item.y, base.y, -STAGE.h, 2 * STAGE.h),
+      w: num(item.w, base.w, 20, 3 * STAGE.w),
+      h: num(item.h, base.h, 20, 3 * STAGE.h),
+      visible: item.visible !== false,
+      locked: item.locked === true,
+      // Keep the width and height in step when resizing (on by default).
+      ratio: item.ratio !== false,
+      ...("drop" in base ? { drop: num(item.drop, base.drop, -STAGE.h, 2 * STAGE.h) } : {})
+    });
+  }
+  // A part missing from the saved file (one added in a later build) goes on top, where it can be seen.
+  for (const item of DEFAULT_LAYOUT) if (!seen.has(item.id)) out.push(structuredClone(item));
+  return out;
+}
+async function loadLayout() {
+  try {
+    layout = cleanLayout(JSON.parse(await readFile(layoutFile, "utf8")));
+  } catch {
+    layout = structuredClone(DEFAULT_LAYOUT);
+  }
+}
+let layoutWrite = Promise.resolve();
+app.get("/api/layout", (_req, res) => res.json({ stage: STAGE, layers: layout, defaults: DEFAULT_LAYOUT }));
+app.post("/api/layout", async (req, res) => {
+  layout = cleanLayout(req.body?.layers);
+  io.emit("layout", layout);
+  const snapshot = JSON.stringify(layout, null, 2);
+  layoutWrite = layoutWrite.then(async () => {
+    await mkdir(dataDir, { recursive: true });
+    await writeFile(`${layoutFile}.tmp`, snapshot, "utf8");
+    await rename(`${layoutFile}.tmp`, layoutFile);
+  }).catch(err => console.error("Could not save the layout:", err));
+  await layoutWrite;
+  res.json(layout);
+});
+
 app.get("/api/welcome", (_req, res) => res.json(welcomeList));
 app.post("/api/welcome", async (req, res) => {
   const id = String(req.body?.id ?? "").trim().replace(/^@/, "").slice(0, 40);
@@ -478,6 +557,7 @@ state = await loadState();
 await persist();
 await loadWelcomeList();
 await loadWelcomeRules();
+await loadLayout();
 await loadLevels();
 httpServer.listen(PORT, HOST, () => {
   console.log(`Jar Overlay running: http://${HOST}:${PORT}`);

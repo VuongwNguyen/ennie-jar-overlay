@@ -136,8 +136,9 @@ export function createTikTokAdapter({ onGift, onMember, onUser, onStatus }) {
       const event = mapTikTokMember(data);
       if (event) onMember?.(event);
     });
-    // Anyone who chats, likes, follows or shares (SOCIAL covers follows and shares).
-    for (const [name, source] of [[WebcastEvent.CHAT, "chat"], [WebcastEvent.LIKE, "like"], [WebcastEvent.SOCIAL, "social"]]) {
+    // Anyone who chats, likes, follows or shares. The library sends follows and shares as their own
+    // "follow" and "share" events, and only other social messages as "social".
+    for (const [name, source] of [[WebcastEvent.CHAT, "chat"], [WebcastEvent.LIKE, "like"], ["follow", "social"], ["share", "social"], [WebcastEvent.SOCIAL, "social"]]) {
       conn.on(name, data => {
         if (connection !== conn) return;
         const user = mapTikTokUser(data?.user);
