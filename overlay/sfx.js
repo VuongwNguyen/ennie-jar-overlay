@@ -13,12 +13,25 @@
   const volume = params.has("preview") ? 0
     : params.has("sfx") ? Math.max(0, Math.min(1, Number(params.get("sfx")) || 0)) : 0.7;
   let ctx = null, dry = null, wet = null, noiseBuffer = null;
+  // Sound is put to sleep a few seconds after the last one ends: an open sound card keeps its hall reverb
+  // working all the time, even in silence, which costs the streaming machine for nothing.
+  const IDLE_MS = 5000;
+  let parked = false, idleTimer = 0;
+  function rest() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      if (pad || !ctx || ctx.state !== "running") return rest();
+      parked = true;
+      ctx.suspend().catch(() => {});
+    }, IDLE_MS);
+  }
 
   // Started on first use; a browser that does not allow sound yet stays silent rather than failing.
   function audio() {
     if (volume <= 0) return null;
     if (!ctx) {
       try { ctx = new AudioContext(); } catch { return null; }
+      parked = true; // a new one may start suspended; resumed just below
       const master = ctx.createGain();
       master.gain.value = volume;
       // Keeps the loud moments (the boom with many plinks) from clipping.
@@ -44,7 +57,14 @@
       dry.connect(master);
       wet.connect(reverb).connect(master);
     }
-    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    if (ctx.state === "suspended") {
+      // Suspended by the browser (sound not allowed yet), not by us: skip the sound rather than queue
+      // up notes that would wait for ever.
+      if (!parked) return null;
+      parked = false;
+      ctx.resume().catch(() => {});
+    }
+    rest();
     return ctx;
   }
 
@@ -325,8 +345,8 @@
       noise(t, 0.6, { from: 3500, to: 700, q: 0.8, peak: 0.4, attack: 0.002, pan: -0.5 });
       noise(t, 0.6, { from: 3400, to: 650, q: 0.8, peak: 0.4, attack: 0.002, pan: 0.5 });
       noise(t, 1.4, { type: "highpass", from: 7000, to: 3000, q: 0.6, peak: 0.12, attack: 0.005 });
-      for (let i = 0; i < 16; i++) bell(t + rand(0, 0.25), rand(2600, 5200), rand(0.15, 0.4), 0.04, rand(-0.9, 0.9));
-      for (let i = 0; i < 22; i++) bell(t + 0.3 + rand(0, 1.6), note(PENTATONIC[(Math.random() * PENTATONIC.length) | 0] + 12), 0.5, 0.025, rand(-0.9, 0.9));
+      for (let i = 0; i < 9; i++) bell(t + rand(0, 0.25), rand(2600, 5200), rand(0.15, 0.4), 0.05, rand(-0.9, 0.9));
+      for (let i = 0; i < 12; i++) bell(t + 0.3 + rand(0, 1.6), note(PENTATONIC[(Math.random() * PENTATONIC.length) | 0] + 12), 0.5, 0.025, rand(-0.9, 0.9));
     }),
     // The gifts hanging in the air for a moment: a held, glittering shimmer.
     hang: play((t, length) => {

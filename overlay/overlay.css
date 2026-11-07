@@ -30,26 +30,31 @@ body.overlay-page { background: transparent; color: #fff; overflow: hidden; }
 .jar-frame { position: fixed; inset: 0; clip-path: inset(var(--clip, 0px)); pointer-events: none; }
 /* The big gift effect (bigburst.js) uses the whole screen, above the jar. */
 .burst-layer { position: fixed; inset: 0; z-index: 40; pointer-events: none; overflow: hidden; }
-.burst-group { position: absolute; inset: 0; }
-.burst-glow { position: absolute; left: 0; top: 0; border-radius: 50%; background: radial-gradient(closest-side, #fffc, #ff9ccf99 40%, #ff5fa833 68%, transparent); }
-.burst-flash { position: absolute; inset: 0; background: radial-gradient(circle at var(--cx) var(--cy), #fff 0, #fffa 14%, #ffd6ec55 32%, transparent 60%); }
-.burst-ring { position: absolute; left: 0; top: 0; border-radius: 50%; border: 10px solid #ffe08a; box-shadow: 0 0 30px #ff8fc4, inset 0 0 24px #fff8; }
-.burst-spark { position: absolute; left: 0; top: 0; line-height: 1; text-shadow: 0 0 8px #fff; }
+/* Everything that moves here sits on its own layer, so the graphics card only moves it and fades it,
+   without drawing it again each frame; blurred shadows are left out, being the slowest thing to draw. */
+.burst-group { position: absolute; inset: 0; will-change: transform; }
+.burst-glow { position: absolute; left: 0; top: 0; border-radius: 50%; background: radial-gradient(closest-side, #fffc, #ff9ccf99 40%, #ff5fa833 68%, transparent); will-change: transform, opacity; }
+.burst-flash { position: absolute; inset: 0; background: radial-gradient(circle at var(--cx) var(--cy), #fff 0, #fffa 14%, #ffd6ec55 32%, transparent 60%); will-change: opacity; }
+.burst-ring { position: absolute; left: 0; top: 0; border-radius: 50%; border: 10px solid #ffe08a; will-change: transform, opacity; }
+.burst-spark { position: absolute; left: 0; top: 0; line-height: 1; will-change: transform, opacity; }
 /* Turning rays of light behind the heart, fading out towards their ends. */
 .burst-rays {
   position: absolute; left: 0; top: 0; border-radius: 50%;
   background: repeating-conic-gradient(from 0deg, #fff6c8aa 0deg 4deg, transparent 4deg 15deg, #ffc6e688 15deg 18deg, transparent 18deg 30deg);
   -webkit-mask: radial-gradient(closest-side, #000 18%, #0008 50%, transparent 100%);
   mask: radial-gradient(closest-side, #000 18%, #0008 50%, transparent 100%);
+  will-change: transform, opacity;
 }
-.burst-circle { position: absolute; left: 0; top: 0; filter: drop-shadow(0 0 6px #ff8fc7); }
-.burst-circle svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.burst-circle { position: absolute; left: 0; top: 0; will-change: transform, opacity; }
+.mc-layer { position: absolute; inset: 0; will-change: transform, opacity; }
+.mc-layer svg { width: 100%; height: 100%; display: block; overflow: visible; }
 /* The sender's name and the gift, under the heart. */
 .burst-banner {
   position: absolute; left: 0; top: 0; z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 2px;
   padding: 10px 28px 12px; border-radius: 999px; white-space: nowrap; text-shadow: none;
   background: linear-gradient(180deg, #ff8cc2, #e2448f); border: 3px solid #ffe08a;
-  box-shadow: 0 0 0 3px #fff6, 0 6px 22px #b3125c88, 0 0 30px #ff8fc7;
+  box-shadow: 0 0 0 3px #fff6, 0 4px 0 #b3125c88;
+  will-change: transform, opacity;
 }
 .burst-banner b { font: 800 34px/1.1 "Segoe UI", system-ui, sans-serif; color: #fff; text-shadow: 0 2px 0 #9c1458; max-width: 560px; overflow: hidden; text-overflow: ellipsis; }
 .burst-banner span { font: 700 22px/1.1 "Segoe UI", system-ui, sans-serif; color: #fff3c2; letter-spacing: .5px; }

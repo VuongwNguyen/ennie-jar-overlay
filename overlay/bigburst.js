@@ -14,7 +14,10 @@
   const sfx = new Proxy({}, { get: (_, name) => (...args) => { try { window.burstSfx?.[name]?.(...args); } catch { /* no sound */ } } });
   // With only a few gifts in the jar, copies of the big gift fill the heart out to this many pieces;
   // the copies fade away in the burst, so only real gifts go back into the jar.
-  const FILL_TO = 70;
+  const FILL_TO = 40;
+  // At most this many gifts fly up out of the jar, the ones on top of the pile; the rest stay where they
+  // are. A full jar holds hundreds, and moving them all at once is more than a streaming machine can draw.
+  const MAX_FLY = 60;
   const SPARKS = ["✦", "✧", "♥", "✿", "★"];
   const SPARK_COLOURS = ["#fff4c2", "#ffc6e6", "#ffd76a", "#ffffff", "#ff8fc7"];
 
@@ -94,12 +97,15 @@
     return { x: wrap.left + MOUTH.x * scale, y: wrap.top + MOUTH.y * scale };
   }
 
-  // A ring of light that flares out from x, y.
+  // A ring of light that flares out from x, y. It is drawn once at its biggest and shrunk to start, so
+  // the graphics card only has to scale it, not draw its blurred glow again on every frame.
   function ring(group, x, y, d, colour, to, duration, delay = 0) {
     const el = element("burst-ring", group);
+    const D = d * to;
     el.style.borderColor = colour;
-    gsap.fromTo(el, { width: d, height: d, x: x - d / 2, y: y - d / 2, scale: 0.15, opacity: 1 },
-      { scale: to, opacity: 0, duration, delay, ease: "power2.out", onComplete: () => el.remove() });
+    el.style.borderWidth = `${10 * to}px`;
+    gsap.fromTo(el, { width: D, height: D, x: x - D / 2, y: y - D / 2, scale: 0.15 / to, opacity: 1 },
+      { scale: 1, opacity: 0, duration, delay, ease: "power2.out", onComplete: () => el.remove() });
   }
   // A small sparkle, heart or star that flies from one point towards another and fades.
   function spark(group, from, to, { size = random(16, 34), duration = random(0.7, 1.1), delay = 0, ease = "power3.out" } = {}) {
@@ -134,43 +140,36 @@
       return `<polygon class="draw" points="${pts.join(" ")}" fill="none" stroke="#ffb3d9" stroke-width="1.3" stroke-linejoin="round"/>`;
     };
     const runeText = "ENNIE ✦ LOVE ♥ LUCKY ✧ GIFT ✦ ENNIE ♥ SWEET ✧ HEART ✦ STAR ♥ ";
-    el.innerHTML = `<svg viewBox="-100 -100 200 200" aria-hidden="true">
-      <defs>
-        <radialGradient id="${id}Glow"><stop offset="0" stop-color="#fff" stop-opacity=".0"/><stop offset=".55" stop-color="#ff8fc7" stop-opacity=".18"/><stop offset=".9" stop-color="#ffd6ec" stop-opacity=".35"/><stop offset="1" stop-color="#ffd6ec" stop-opacity="0"/></radialGradient>
-        <path id="${id}" d="M0 -86A86 86 0 1 1 0 86A86 86 0 1 1 0 -86"/>
-      </defs>
-      <circle class="mc-glow" r="100" fill="url(#${id}Glow)"/>
-      <g class="mc-outer">
+    // Each ring is its own picture on its own layer: the graphics card draws it once and only turns it,
+    // instead of the whole circle (and its glow) being drawn again on every frame.
+    const layer = (name, inner, defs = "") =>
+      `<div class="mc-layer mc-${name}"><svg viewBox="-100 -100 200 200" aria-hidden="true">${defs && `<defs>${defs}</defs>`}${inner}</svg></div>`;
+    el.innerHTML = [
+      layer("glow", `<circle r="100" fill="url(#${id}Glow)"/>`,
+        `<radialGradient id="${id}Glow"><stop offset="0" stop-color="#fff" stop-opacity=".0"/><stop offset=".55" stop-color="#ff8fc7" stop-opacity=".18"/><stop offset=".9" stop-color="#ffd6ec" stop-opacity=".35"/><stop offset="1" stop-color="#ffd6ec" stop-opacity="0"/></radialGradient>`),
+      layer("outer", `
         ${ring(99, 'class="draw" stroke="#ffe08a" stroke-width="1.2"')}
         ${ring(93, 'class="draw" stroke="#ffe08a" stroke-width="0.8"')}
-        ${ticks}
-      </g>
-      <g class="mc-runes">
+        ${ticks}`),
+      layer("runes", `
         <text font-size="7.2" font-weight="700" fill="#fff3c4" letter-spacing="1" style="font-family:'Segoe UI',system-ui,sans-serif">
           <textPath href="#${id}" textLength="536" lengthAdjust="spacing">${runeText}</textPath>
-        </text>
-      </g>
-      <g class="mc-mid">
+        </text>`, `<path id="${id}" d="M0 -86A86 86 0 1 1 0 86A86 86 0 1 1 0 -86"/>`),
+      layer("mid", `
         ${ring(79, 'class="draw" stroke="#ffb3d9" stroke-width="1.6"')}
         ${ring(75, 'stroke="#ff8fc7" stroke-width="2.4" stroke-dasharray="14 5 3 5" class="dashed"')}
         ${Array.from({ length: 12 }, (_, i) => `<path class="mc-heart" transform="rotate(${i * 30}) translate(0 -68) scale(.5)" d="${heartPath}" fill="#ff8fc7" stroke="#fff" stroke-width="1.2"/>`).join("")}
-        ${Array.from({ length: 6 }, (_, i) => `<path class="mc-gem" transform="rotate(${i * 60 + 15}) translate(0 -79)" d="M0-6L2.2 0 0 6-2.2 0Z" fill="#fff6c8" stroke="#ffe08a" stroke-width=".6"/>`).join("")}
-      </g>
-      <g class="mc-inner">
+        ${Array.from({ length: 6 }, (_, i) => `<path class="mc-gem" transform="rotate(${i * 60 + 15}) translate(0 -79)" d="M0-6L2.2 0 0 6-2.2 0Z" fill="#fff6c8" stroke="#ffe08a" stroke-width=".6"/>`).join("")}`),
+      layer("inner", `
         ${ring(60, 'class="draw" stroke="#fff3c4" stroke-width="1"')}
         ${star(58, 0)}${star(58, 60)}
         ${Array.from({ length: 6 }, (_, i) => `<path class="mc-gem" transform="rotate(${i * 60}) translate(0 -58)" d="M0-4.5L1.3-1.3 4.5 0 1.3 1.3 0 4.5-1.3 1.3-4.5 0-1.3-1.3Z" fill="#fff" />`).join("")}
         ${ring(44, 'stroke="#ffe08a" stroke-width="1.4" stroke-dasharray="0.1 4" stroke-linecap="round" class="dashed"')}
-        <path class="draw" transform="scale(4.2)" d="${heartPath}" fill="none" stroke="#ffb3d9" stroke-width=".35"/>
-      </g>
-      <g class="mc-orbs">
-        ${[0, 90, 180, 270].map((a, i) => `<g transform="rotate(${a})"><circle cy="${i % 2 ? -68 : -86}" r="3.4" fill="#fff"/><circle cy="${i % 2 ? -68 : -86}" r="7" fill="#ff8fc7" opacity=".35"/></g>`).join("")}
-      </g>
-    </svg>`;
+        <path class="draw" transform="scale(4.2)" d="${heartPath}" fill="none" stroke="#ffb3d9" stroke-width=".35"/>`),
+      layer("orbs", [0, 90, 180, 270].map((a, i) => `<g transform="rotate(${a})"><circle cy="${i % 2 ? -68 : -86}" r="3.4" fill="#fff"/><circle cy="${i % 2 ? -68 : -86}" r="7" fill="#ff8fc7" opacity=".35"/></g>`).join(""))
+    ].join("");
     gsap.set(el, { width: diameter, height: diameter, x: cx - diameter / 2, y: cy - diameter / 2, scale: 0.55, opacity: 0 });
     const part = name => el.querySelector(`.mc-${name}`);
-    const parts = ["outer", "runes", "mid", "inner", "orbs"].map(part);
-    for (const g of parts) gsap.set(g, { svgOrigin: "0 0" });
     // The lines that draw themselves in: each starts as a dash as long as the line, pushed out of sight.
     const lines = [...el.querySelectorAll(".draw")];
     for (const line of lines) {
@@ -187,7 +186,7 @@
         tl.from(el.querySelectorAll(".tick"), { opacity: 0, duration: 0.2, stagger: 0.008 }, at + 0.1);
         tl.from(el.querySelectorAll(".dashed"), { opacity: 0, duration: 0.5 }, at + 0.3);
         tl.from(el.querySelectorAll(".mc-heart, .mc-gem"), { scale: 0, transformOrigin: "50% 50%", duration: 0.35, stagger: 0.03, ease: "back.out(3)" }, at + 0.35);
-        tl.from(part("runes"), { opacity: 0, rotation: -40, svgOrigin: "0 0", duration: 0.9, ease: "power2.out" }, at + 0.3);
+        tl.from(part("runes"), { opacity: 0, rotation: -40, duration: 0.9, ease: "power2.out" }, at + 0.3);
         tl.from(part("orbs"), { opacity: 0, duration: 0.4 }, at + 0.6);
         tl.to(part("outer"), { rotation: 30, duration: 0.9, ease: "power2.out" }, at);
         tl.to(part("inner"), { rotation: -45, duration: 0.9, ease: "power2.out" }, at);
@@ -217,11 +216,11 @@
       },
       // The burst: the circle breaks apart, each ring flung out at its own speed, the middle one falling in.
       shatter(tl, at) {
-        tl.to(part("outer"), { scale: 2.3, opacity: 0, svgOrigin: "0 0", duration: 0.8, ease: "power2.out" }, at);
-        tl.to(part("runes"), { scale: 1.9, opacity: 0, rotation: "+=90", svgOrigin: "0 0", duration: 0.7, ease: "power2.out" }, at);
-        tl.to(part("mid"), { scale: 1.6, opacity: 0, rotation: "-=60", svgOrigin: "0 0", duration: 0.6, ease: "power2.out" }, at);
-        tl.to(part("inner"), { scale: 0.2, opacity: 0, rotation: "+=180", svgOrigin: "0 0", duration: 0.5, ease: "power2.in" }, at);
-        tl.to(part("orbs"), { scale: 2.6, opacity: 0, svgOrigin: "0 0", duration: 0.6, ease: "power3.out" }, at);
+        tl.to(part("outer"), { scale: 2.3, opacity: 0, duration: 0.8, ease: "power2.out" }, at);
+        tl.to(part("runes"), { scale: 1.9, opacity: 0, rotation: "+=90", duration: 0.7, ease: "power2.out" }, at);
+        tl.to(part("mid"), { scale: 1.6, opacity: 0, rotation: "-=60", duration: 0.6, ease: "power2.out" }, at);
+        tl.to(part("inner"), { scale: 0.2, opacity: 0, rotation: "+=180", duration: 0.5, ease: "power2.in" }, at);
+        tl.to(part("orbs"), { scale: 2.6, opacity: 0, duration: 0.6, ease: "power3.out" }, at);
         tl.to(glowEl, { opacity: 0, duration: 0.4 }, at);
       },
       // Where a point on the rim is on screen, for the motes rising off it.
@@ -254,6 +253,7 @@
     // It only falls a short way, then swerves off to the middle of the screen, growing as it goes.
     const core = makeGiftEl(event, 0);
     group.append(core);
+    core.style.willChange = "transform";
     const coreScale = (size * 0.55) / core._size;
     const mouth = mouthOnScreen();
     const top = jarFrame().top;
@@ -272,7 +272,7 @@
     intro.add(() => sfx.whoosh(SWERVE, jarPan), FALL);
     intro.add(() => sfx.chime(), FALL + SWERVE - 0.2);
     // The comet's tail: sparkles left behind along the way.
-    for (let t = 0.05; t < FALL + SWERVE; t += 0.05) {
+    for (let t = 0.1; t < FALL + SWERVE; t += 0.12) {
       intro.add(() => {
         const at = { x: gsap.getProperty(core, "x"), y: gsap.getProperty(core, "y") };
         spark(group, at, { x: at.x + random(-40, 40), y: at.y + random(-60, 10) }, { size: random(10, 22), duration: random(0.5, 0.8), ease: "power1.out" });
@@ -289,7 +289,7 @@
       // The circle and the rays keep turning, slowly, while the heart forms.
       magic.spin(timeline, 0, GATHER + 2.4);
       // Motes of light drift up off the rim of the circle while the heart forms.
-      for (let t = 0; t < GATHER + 2.2; t += 0.09) {
+      for (let t = 0; t < GATHER + 2.2; t += 0.25) {
         timeline.add(() => {
           const from = magic.rim(random(0, Math.PI * 2));
           spark(group, from, { x: from.x + random(-20, 20), y: from.y - random(60, 140) }, { size: random(8, 16), duration: random(0.9, 1.4), ease: "sine.out" });
@@ -299,8 +299,11 @@
 
       // The gifts in the jar leave its physics and take off from where they are.
       const pieces = [];
-      for (const [body, el] of [...particles]) {
-        const r = el.getBoundingClientRect();
+      const leaving = [...particles]
+        .sort(([a], [b]) => a.position.y - b.position.y)
+        .slice(0, MAX_FLY)
+        .map(([body, el]) => [body, el, el.getBoundingClientRect()]);
+      for (const [body, el, r] of leaving) {
         Matter.Composite.remove(engine.world, body);
         particles.delete(body);
         el.style.transform = "";
@@ -328,6 +331,7 @@
         });
         pieces.push({ el, back: false });
       }
+      for (const { el } of pieces) el.style.willChange = "transform";
       gsap.utils.shuffle(pieces);
       const { points, spacing } = heartPoints(pieces.length, cx, cy, size, size * 0.34);
       // Each piece is drawn as big as the space it has, so neighbours just touch.
@@ -337,7 +341,7 @@
       // swirl; a stream of sparkles is drawn from the jar's mouth to the big gift.
       timeline.to(glow, { scale: 1, opacity: 0.9, duration: GATHER + 0.4, ease: "power2.in" }, 0);
       timeline.add(() => sfx.swirl(GATHER, jarPan), 0);
-      for (let t = 0; t < GATHER; t += 0.06) {
+      for (let t = 0; t < GATHER; t += 0.15) {
         timeline.add(() => spark(group, { x: mouth.x + random(-30, 30) * scale, y: mouth.y }, centre, { size: random(10, 20), duration: random(0.6, 0.9), ease: "power2.in" }), t);
       }
       pieces.forEach(({ el, fresh }, i) => {
@@ -427,8 +431,8 @@
         ring(group, cx, cy, size * 0.8, "#ffe08a", 5, 1.0);
         ring(group, cx, cy, size * 0.8, "#ff8fc7", 4, 1.1, 0.08);
         ring(group, cx, cy, size * 0.8, "#ffffff", 3, 0.9, 0.16);
-        for (let i = 0; i < 48; i++) {
-          const angle = (i / 48) * Math.PI * 2 + random(-0.1, 0.1), dist = random(0.3, 0.6) * H;
+        for (let i = 0; i < 20; i++) {
+          const angle = (i / 20) * Math.PI * 2 + random(-0.1, 0.1), dist = random(0.3, 0.6) * H;
           spark(group, centre, { x: cx + Math.cos(angle) * dist, y: cy + Math.sin(angle) * dist }, { size: random(20, 48), duration: random(0.9, 1.4) });
         }
       }, BURST);
@@ -455,6 +459,7 @@
       timeline.add(() => sfx.hang(RETURN - BURST - 0.9), BURST + 0.9);
       timeline.add(() => sfx.rush(1.0, jarPan), RETURN);
       const going = [{ el: core }, ...pieces.filter(p => p.back)];
+      let into, gift;
       const stagger = Math.min(0.04, 1.5 / Math.max(1, going.length));
       let first = true, arrived = 0;
       const settle = () => {
@@ -465,14 +470,13 @@
       };
       going.forEach(({ el }, i) => {
         timeline.add(() => {
-          const into = mouthOnScreen();
+          if (!into) { into = mouthOnScreen(); gift = document.getElementById("giftLayer").getBoundingClientRect(); }
           const duration = random(0.8, 1.1);
           const land = () => {
             if (current?.group !== group) return; // reset while it was on its way
             if (first) { first = false; landed?.(); }
-            const gift = document.getElementById("giftLayer").getBoundingClientRect();
             const x = (gsap.getProperty(el, "x") - gift.left) / scale, y = (gsap.getProperty(el, "y") - gift.top) / scale;
-            gsap.set(el, { clearProps: "transform,opacity,zIndex" });
+            gsap.set(el, { clearProps: "transform,opacity,zIndex,willChange" });
             addGiftBody(el, x, y, { x: random(-1.2, 1.2), y: 3 }, random(-0.6, 0.6));
             // A little sparkle and a plink where it drops in (not for every one, or it would be a roar).
             if (i % 3 === 0 && i < 90) sfx.plink(jarPan);

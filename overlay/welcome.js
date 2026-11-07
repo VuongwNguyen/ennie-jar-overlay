@@ -256,11 +256,12 @@
       loops.push(gsap.to(id, { x: `+=${random(60, 120) * (i % 2 ? -1 : 1)}`, y: `+=${random(-40, 30)}`, duration: random(1.6, 2.4), ease: "sine.inOut", yoyo: true, repeat: -1 }));
       loops.push(gsap.fromTo(`${id}`, { scaleX: size }, { scaleX: size * 0.25, duration: 0.14, ease: "sine.inOut", yoyo: true, repeat: -1 }));
     });
-    // A steady drift of hearts and petals from above.
-    loops.push(gsap.delayedCall(0, function drift() {
-      bit(random(0, 660), random(-30, 60), false);
-      loops.push(gsap.delayedCall(0.12, drift));
-    }));
+    // A steady drift of hearts and petals from above: one timer, reused, so a frame held on screen (the
+    // layout page) does not pile up a list of finished timers.
+    const fall = () => bit(random(0, 660), random(-30, 60), false);
+    fall();
+    const drift = gsap.delayedCall(0.12, () => { fall(); drift.restart(true); });
+    loops.push(drift);
   }
   function stopLoops() {
     for (const loop of loops) loop.kill();
