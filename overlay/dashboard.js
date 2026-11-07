@@ -303,11 +303,79 @@ for (const button of document.querySelectorAll(".copy")) {
   });
 }
 
-// Quick picks fill in the test gift.
-for (const chip of document.querySelectorAll(".chip")) {
+// Quick picks fill in the test gift (only the chips that carry a gift, not the pager's).
+for (const chip of document.querySelectorAll(".chip[data-gift]")) {
   chip.addEventListener("click", () => {
     $("giftName").value = chip.dataset.gift;
     $("diamondCount").value = chip.dataset.coins;
     $("repeatCount").value = 1;
   });
 }
+
+// The gift price that sets off the heart burst on the jar (0 turns it off).
+const showEffects = settings => {
+  if (document.activeElement !== $("burstFrom")) $("burstFrom").value = settings.burstFrom;
+};
+fetch("/api/effects").then(res => res.json()).then(showEffects).catch(() => {});
+socket.on("effects", showEffects);
+$("effectsForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const burstFrom = Math.round(Number($("burstFrom").value));
+  if (!Number.isFinite(burstFrom) || burstFrom < 0) {
+    notify("effectsNotice", "Nhập số xu từ 0 trở lên.", true);
+    return;
+  }
+  try {
+    const { ok, body: saved } = await post("/api/effects", { burstFrom });
+    if (!ok) throw new Error("not saved");
+    showEffects(saved);
+    notify("effectsNotice", saved.burstFrom ? `Đã lưu: quà từ ${saved.burstFrom.toLocaleString("vi-VN")} xu sẽ nổ tim ✓` : "Đã tắt hiệu ứng nổ tim ✓");
+  } catch {
+    notify("effectsNotice", "Không lưu được, thử lại.", true);
+  }
+});
+
+// Reloads the overlay pages open in Studio. Nothing is deleted: they load the jar and the rest back.
+$("reloadOverlay").addEventListener("click", async () => {
+  try {
+    const { ok } = await post("/api/overlay/reload");
+    notify("reloadNotice", ok ? "Đã tải lại overlay, dữ liệu giữ nguyên ✓" : "Không tải lại được.", !ok);
+  } catch {
+    notify("reloadNotice", "Không liên lạc được với server.", true);
+  }
+});
+
+// ---------- Tabs ----------
+// Four tabs, by when they are used. The one open is remembered in this browser; the Live tab comes first.
+const TABS = ["live", "welcome", "overlay", "test"];
+let tab = "live";
+function openTab(name) {
+  tab = TABS.includes(name) ? name : "live";
+  for (const id of TABS) {
+    $(`tab-${id}`).setAttribute("aria-selected", String(id === tab));
+    $(`tab-${id}`).tabIndex = id === tab ? 0 : -1;
+    $(`pane-${id}`).hidden = id !== tab;
+  }
+  if (tab === "live") $("liveAlert").hidden = true;
+  try { localStorage.setItem("dashboardTab", tab); } catch { /* not kept, fine */ }
+}
+for (const id of TABS) $(`tab-${id}`).addEventListener("click", () => openTab(id));
+// Arrow keys move between tabs, as tab lists do.
+document.querySelector(".tabs").addEventListener("keydown", event => {
+  const step = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
+  if (!step) return;
+  const next = TABS[(TABS.indexOf(tab) + step + TABS.length) % TABS.length];
+  openTab(next);
+  $(`tab-${next}`).focus();
+});
+let savedTab = "live";
+try { savedTab = localStorage.getItem("dashboardTab") || "live"; } catch { /* default */ }
+openTab(savedTab);
+
+// A red dot on the Live tab when the connection to TikTok drops while another tab is open.
+let wasConnected = false;
+socket.on("tiktok-status", status => {
+  if (status.state === "connected") { wasConnected = true; $("liveAlert").hidden = true; return; }
+  if (status.state === "disconnected" && wasConnected && tab !== "live") $("liveAlert").hidden = false;
+  if (status.state === "disconnected") wasConnected = false;
+});

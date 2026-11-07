@@ -34,16 +34,18 @@ if (!params.has("nosticker")) {
     const jar = document.getElementById("jarWrap").getBoundingClientRect();
     const scale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--scale")) || 1;
     const pixel = 1 / devicePixelRatio;
+    // Kept inside the jar's visible frame (its box on live.html, reaching up to the gifts' ceiling).
+    const frame = window.jarFrame?.() ?? { left: 0, top: 0, right: innerWidth };
     const rimY = jar.top + RIM * scale;
     // Grows and shrinks with the jar, so it keeps its size beside it however big the jar is made. At the
     // jar's original size on a 1080 wide source (a scale of 1.6) it is shown pixel for pixel.
-    const fit = Math.min(scale / 1.6 / pixel, rimY / (BONE_BOTTOM * pixel), innerWidth / (WIDTH * pixel));
+    const fit = Math.min(scale / 1.6 / pixel, (rimY - frame.top) / (BONE_BOTTOM * pixel), (frame.right - frame.left) / (WIDTH * pixel));
     const width = Math.round(WIDTH * fit) * pixel, height = Math.round(HEIGHT * fit) * pixel;
     const snap = value => Math.round(value / pixel) * pixel;
     const left = jar.left + JAR_CENTRE * scale - BONE_X * fit * pixel;
     sticker.style.width = `${width}px`;
     sticker.style.height = `${height}px`;
-    sticker.style.left = `${snap(Math.max(0, Math.min(innerWidth - width, left)))}px`;
+    sticker.style.left = `${snap(Math.max(frame.left, Math.min(frame.right - width, left)))}px`;
     sticker.style.top = `${snap(rimY - BONE_BOTTOM * fit * pixel)}px`;
   };
   addEventListener("resize", () => requestAnimationFrame(place));

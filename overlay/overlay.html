@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/welcome.css">
 </head>
 <body class="overlay-page">
+  <div class="jar-frame">
   <main class="scene">
     <div class="jar-wrap" id="jarWrap">
       <div class="ambient" aria-hidden="true">
@@ -159,12 +160,16 @@
       <ol id="overlayLeaders"><li>Chưa có người tặng</li></ol>
     </section>
   </main>
+  </div>
+  <div class="burst-layer" id="burstLayer" aria-hidden="true"></div>
   <script type="importmap">{ "imports": { "three": "/vendor/three/three.module.js" } }</script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/vendor/matter.min.js"></script>
   <script src="/vendor/gsap.min.js"></script>
   <script src="/overlay.js"></script>
   <script src="/jardecor.js"></script>
+  <script src="/sfx.js"></script>
+  <script src="/bigburst.js"></script>
   <script src="/welcome.js"></script>
   <script type="module" src="/dogmain.js"></script>
 </body>

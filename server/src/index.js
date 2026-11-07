@@ -451,6 +451,39 @@ async function loadLayout() {
   }
 }
 let layoutWrite = Promise.resolve();
+// Effect settings, set on the control page and kept in data/effects.json: burstFrom is the price of one
+// gift, in coins, from which it sets off the heart burst on the jar (bigburst.js); 0 turns the burst off.
+const effectsFile = path.join(dataDir, "effects.json");
+const DEFAULT_EFFECTS = { burstFrom: 1000 };
+let effects = { ...DEFAULT_EFFECTS };
+const cleanEffects = input => {
+  const n = Math.round(Number(input?.burstFrom));
+  return { burstFrom: Number.isFinite(n) ? Math.max(0, Math.min(1_000_000, n)) : DEFAULT_EFFECTS.burstFrom };
+};
+async function loadEffects() {
+  try {
+    effects = cleanEffects(JSON.parse(await readFile(effectsFile, "utf8")));
+  } catch {
+    effects = { ...DEFAULT_EFFECTS };
+  }
+}
+app.get("/api/effects", (_req, res) => res.json(effects));
+app.post("/api/effects", async (req, res) => {
+  effects = cleanEffects(req.body);
+  io.emit("effects", effects);
+  await mkdir(dataDir, { recursive: true });
+  await writeFile(`${effectsFile}.tmp`, JSON.stringify(effects, null, 2), "utf8");
+  await rename(`${effectsFile}.tmp`, effectsFile);
+  res.json(effects);
+});
+
+// Reloads every open overlay page (live.html and the single ones), for when one looks stuck or should pick
+// up a change; nothing else is touched.
+app.post("/api/overlay/reload", (_req, res) => {
+  io.emit("overlay-reload");
+  res.json({ ok: true, overlays: overlaySockets.size });
+});
+
 app.get("/api/layout", (_req, res) => res.json({ stage: STAGE, layers: layout, defaults: DEFAULT_LAYOUT }));
 app.post("/api/layout", async (req, res) => {
   layout = cleanLayout(req.body?.layers);
@@ -545,6 +578,7 @@ io.on("connection", socket => {
   socket.emit("state", publicState());
   socket.emit("jar", { sessionId: state.sessionId, gifts: state.jar });
   socket.emit("tiktok-status", tiktok.getStatus());
+  socket.emit("effects", effects);
   // The overlay reports welcome frames as they appear, or when its queue was full and let one go.
   socket.on("welcome-shown", key => welcomeShown(cleanId(key)));
   socket.on("welcome-dropped", key => welcomeDropped(cleanId(key)));
@@ -558,6 +592,7 @@ await persist();
 await loadWelcomeList();
 await loadWelcomeRules();
 await loadLayout();
+await loadEffects();
 await loadLevels();
 httpServer.listen(PORT, HOST, () => {
   console.log(`Jar Overlay running: http://${HOST}:${PORT}`);

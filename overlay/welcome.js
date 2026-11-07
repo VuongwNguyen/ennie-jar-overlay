@@ -359,6 +359,9 @@
   };
 
   if (!PREVIEW) link.on("welcome", viewer => window.welcomeViewer(viewer));
+  // "Tải lại overlay" on the control page, for welcome.html as a source of its own (the jar page and
+  // live.html reload themselves).
+  if (!onJar) link.on("overlay-reload", () => { if (window.top === window) location.reload(); });
   // Lets the server know a page that can show the frame is open (again after any reconnect), but only
   // while it is visible. Hidden, the browser stops its animation, so a frame would never finish and the
   // queue would only grow: the page says goodbye, empties its queue and stops, until it is shown again.

@@ -18,19 +18,37 @@ const particles = new Map();
 const DESIGN = { w: 675, h: 660 };
 const SIZE = Number(new URLSearchParams(location.search).get("size")) || 1;
 let scale = 1;
-// On live.html the page may reach higher than the jar's box, up to the ceiling the gifts fall from: the
-// top `raise` pixels are only sky, and the scene is fitted to the box below them.
-let raise = 0;
+// On live.html this page covers the whole screen, so the big gift effect (bigburst.js) can use all of it,
+// and the jar is drawn in its box there (x, y, w, h), with the gifts' ceiling above it (top). The visible
+// frame is that box reaching up to the ceiling: anything outside it is cut off, as if the page were only
+// that big. On its own (overlay.html) the box and the frame are the whole page.
+let jarBox = null;
+{
+  // live.html gives the box in the address at first (?box=x,y,w,h,top), then by message when it changes.
+  const [x, y, w, h, top] = (new URLSearchParams(location.search).get("box") ?? "").split(",").map(Number);
+  if ([x, y, w, h, top].every(Number.isFinite) && w > 0 && h > 0) jarBox = { x, y, w, h, top };
+}
+function jarFrame() {
+  if (!jarBox) return { left: 0, top: 0, right: innerWidth, bottom: innerHeight };
+  return { left: jarBox.x, top: Math.min(jarBox.top, jarBox.y), right: jarBox.x + jarBox.w, bottom: jarBox.y + jarBox.h };
+}
+window.jarFrame = jarFrame;
 function fitScene() {
-  scale = Math.min(innerWidth / DESIGN.w, Math.max(1, innerHeight - raise) / DESIGN.h) * SIZE;
-  document.documentElement.style.setProperty("--scale", scale);
-  document.documentElement.style.setProperty("--raise", `${raise}px`);
+  const box = jarBox ?? { x: 0, y: 0, w: innerWidth, h: innerHeight };
+  scale = Math.min(box.w / DESIGN.w, Math.max(1, box.h) / DESIGN.h) * SIZE;
+  const root = document.documentElement.style, frame = jarFrame();
+  root.setProperty("--scale", scale);
+  root.setProperty("--box-x", `${box.x}px`);
+  root.setProperty("--box-y", `${box.y}px`);
+  root.setProperty("--box-w", `${box.w}px`);
+  root.setProperty("--box-h", `${box.h}px`);
+  root.setProperty("--clip", `${frame.top}px ${innerWidth - frame.right}px ${innerHeight - frame.bottom}px ${frame.left}px`);
 }
 addEventListener("message", event => {
-  if (event.origin !== location.origin || event.data?.type !== "raise") return;
-  const px = Math.max(0, Number(event.data.px) || 0);
-  if (px === raise) return;
-  raise = px;
+  if (event.origin !== location.origin || event.data?.type !== "box") return;
+  const { x, y, w, h, top } = event.data;
+  if (![x, y, w, h, top].every(Number.isFinite)) return;
+  jarBox = { x, y, w: Math.max(1, w), h: Math.max(1, h), top };
   dispatchEvent(new Event("resize")); // refits the scene, the physics frame, the sticker and the rest
 });
 
@@ -42,7 +60,8 @@ function buildFrame() {
   Composite.remove(engine.world, frameBodies);
   const r = $("giftLayer").getBoundingClientRect();
   // Screen pixels to physics units, which are the scene's unscaled pixels.
-  const left = -r.left / scale, right = (innerWidth - r.left) / scale;
+  const frame = jarFrame();
+  const left = (frame.left - r.left) / scale, right = (frame.right - r.left) / scale;
   const t = 60, tall = 4000;
   frameBodies = [
     Bodies.rectangle((left + right) / 2, JAR.h + t / 2, right - left + 2 * t, t, { isStatic: true }),
@@ -131,7 +150,7 @@ function removeParticle(body, el) {
 
 // Gifts enter from above the visible frame and fall into the jar.
 const FALL_G = 1.15 * 0.001; // px/ms², matches the engine gravity
-const spawnY = () => Math.min(-40, -$("giftLayer").getBoundingClientRect().top / scale - 60);
+const spawnY = () => Math.min(-40, (jarFrame().top - $("giftLayer").getBoundingClientRect().top) / scale - 60);
 const fallDelay = () => Math.sqrt((2 * -spawnY()) / FALL_G);
 
 const tierOf = coins => (coins >= MEGA_GIFT ? 2 : coins >= BIG_GIFT ? 1 : 0);
@@ -147,8 +166,8 @@ function giftSize(event) {
   return Math.min(GIFT_SIZE_MAX, GIFT_SIZE * (1 + 0.85 * Math.log10(price)));
 }
 
-// `at` places the gift directly in the jar (restoring a session) instead of dropping it from above.
-function dropGift(event, i, at) {
+// One gift's picture (or an emoji when it has none), sized for its price; el._size is that size.
+function makeGiftEl(event, i) {
   const emojis = /rose|hoa/i.test(event.gift.name) ? ["🌹", "🌹", "💗"] : ["💝", "✨", "🌸"];
   const size = giftSize(event);
   const el = document.createElement("span");
@@ -166,19 +185,33 @@ function dropGift(event, i, at) {
   } else {
     fallback();
   }
+  el._size = size;
+  return el;
+}
+
+// Puts a gift's picture into the jar's physics at x, y (in the jar's own units), moving at velocity v.
+function addGiftBody(el, x, y, v = { x: 0, y: 1 }, angle = 0) {
   $("giftLayer").append(el);
+  const body = Matter.Bodies.circle(x, y, el._size * 0.46, { restitution: 0.42, friction: 0.035, density: 0.001 });
+  Matter.Body.setVelocity(body, v);
+  Matter.Body.setAngle(body, angle);
+  Matter.Composite.add(engine.world, body);
+  particles.set(body, el);
+  // The update loop compares against these, so they must be numbers from the start.
+  el._x = x; el._y = y; el._a = angle;
+  el.style.transform = `translate(${x}px, ${y}px) rotate(${angle}rad)`;
+}
+
+// `at` places the gift directly in the jar (restoring a session) instead of dropping it from above.
+function dropGift(event, i, at) {
+  const el = makeGiftEl(event, i);
   if (engine) {
     const x = at?.x ?? CX + (Math.random() - 0.5) * 80;
     const y = at?.y ?? spawnY();
-    const body = Matter.Bodies.circle(x, y, size * 0.46, { restitution: 0.42, friction: 0.035, density: 0.001 });
-    if (!at) Matter.Body.setVelocity(body, { x: (Math.random() - 0.5) * 2, y: 1 });
-    else Matter.Body.setAngle(body, rand(-0.7, 0.7)); // so a restored pile does not look like a grid
-    Matter.Composite.add(engine.world, body);
-    particles.set(body, el);
-    // The update loop compares against these, so they must be numbers from the start.
-    el._x = x; el._y = y; el._a = 0;
-    el.style.transform = `translate(${x}px, ${y}px)`;
+    // A restored pile is turned a little, so it does not look like a grid.
+    addGiftBody(el, x, y, at ? { x: 0, y: 0 } : { x: (Math.random() - 0.5) * 2, y: 1 }, at ? rand(-0.7, 0.7) : 0);
   } else {
+    $("giftLayer").append(el);
     el.style.left = `${15 + Math.random() * 70}%`;
     el.style.top = `${10 + i * 9}%`;
   }
@@ -307,6 +340,12 @@ function pour(event) {
   for (let i = 0; i < count; i++) dropLater(event, i, i * 70);
 }
 
+// A gift of this many coins or more each (set on the control page, 1,000 by default; 0 for never) gathers
+// every gift on screen into a heart in the middle, which bursts and pours back into the jar (bigburst.js).
+let burstFrom = 1000;
+socket.on("effects", settings => { if (Number.isFinite(settings?.burstFrom)) burstFrom = settings.burstFrom; });
+const pricePerGift = event => event.gift.diamondCount || coinsOf(event) / Math.max(1, event.gift.repeatCount || 1);
+
 function addGift(event) {
   shownEvents.add(event.eventId);
   $("latestDonor").textContent = event.user.nickname;
@@ -314,6 +353,12 @@ function addGift(event) {
   window.dogThank?.(event.user.nickname, event.gift?.name, event.gift?.repeatCount);
   const coins = coinsOf(event);
   const tier = tierOf(coins);
+  if (burstFrom > 0 && pricePerGift(event) >= burstFrom && window.bigBurst && engine && !reduceMotion && !document.hidden) {
+    retrigger($("donorCard"), "pop");
+    retrigger($("coinPill"), "bump");
+    window.bigBurst(event, () => celebrateJar(coins, tier));
+    return;
+  }
   pour(event);
   celebrate(coins, tier);
 }
@@ -352,6 +397,7 @@ function restoreJar(events) {
 }
 
 function clearJar() {
+  window.bigBurstReset?.();
   for (const timer of pendingDrops) clearTimeout(timer);
   pendingDrops.clear();
   shownEvents.clear();
@@ -434,6 +480,8 @@ socket.on("gift", addGift);
 socket.on("member", event => window.dogGreet?.(event?.user?.nickname));
 socket.on("state", renderState);
 socket.on("jar", syncJar);
+// "Tải lại overlay" on the control page, when this page is a source of its own (live.html reloads itself).
+socket.on("overlay-reload", () => { if (window.top === window) location.reload(); });
 socket.on("session-reset", () => {
   $("latestDonor").textContent = "Chờ món quà đầu tiên";
   $("fxLayer").replaceChildren();

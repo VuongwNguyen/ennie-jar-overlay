@@ -135,11 +135,12 @@
     // In .jar-wrap coordinates, kept inside the frame whatever its size.
     const box = wrap.getBoundingClientRect();
     const s = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--scale")) || 1;
+    const frame = window.jarFrame?.() ?? { left: 0, top: 0, right: innerWidth, bottom: innerHeight };
     return {
-      left: Math.max(-box.left / s + 10, -250),
-      right: Math.min((innerWidth - box.left) / s - 10, 335),
-      top: Math.max(-box.top / s + 10, -90),
-      bottom: Math.min((innerHeight - box.top) / s - 20, 405)
+      left: Math.max((frame.left - box.left) / s + 10, -250),
+      right: Math.min((frame.right - box.left) / s - 10, 335),
+      top: Math.max((frame.top - box.top) / s + 10, -90),
+      bottom: Math.min((frame.bottom - box.top) / s - 20, 405)
     };
   }
   function wander(fly) {

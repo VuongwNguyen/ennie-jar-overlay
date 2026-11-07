@@ -42,5 +42,7 @@
     return;
   }
   socket.on("gift", event => { if (matches(event)) play(); });
+  // "Tải lại overlay" on the control page, when this page is a source of its own (live.html reloads itself).
+  socket.on("overlay-reload", () => { if (window.top === window) location.reload(); });
   if (params.has("test")) setTimeout(play, 1000);
 })();

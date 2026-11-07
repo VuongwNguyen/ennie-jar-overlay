@@ -144,7 +144,8 @@ export async function startSpriteDog() {
     const top = FLOOR - groundY * SIZE + headTop * SIZE + stage.hop - 6;
     // Kept inside the visible frame, which the jar's right edge is close to.
     const box = wrap.getBoundingClientRect(), s = sceneScale(), half = bubble.offsetWidth / 2;
-    const left = Math.min(Math.max(stage.x + offset, -box.left / s + half + 4), (innerWidth - box.left) / s - half - 4);
+    const frame = window.jarFrame?.() ?? { left: 0, right: innerWidth };
+    const left = Math.min(Math.max(stage.x + offset, (frame.left - box.left) / s + half + 4), (frame.right - box.left) / s - half - 4);
     bubble.style.transform = `translate(${(left - half).toFixed(1)}px, ${(top - bubble.offsetHeight).toFixed(1)}px)`;
     bubble.style.setProperty("--tail", `${(stage.x + offset - left + half).toFixed(1)}px`);
   }
@@ -152,9 +153,10 @@ export async function startSpriteDog() {
   const sceneScale = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--scale")) || 1;
   const range = () => {
     const box = wrap.getBoundingClientRect(), s = sceneScale();
+    const frame = window.jarFrame?.() ?? { left: 0, right: innerWidth };
     return {
-      left: Math.max(-box.left / s + halfBody, JAR_LEFT + halfBody),
-      right: Math.min((innerWidth - box.left) / s - halfBody, JAR_RIGHT - halfBody)
+      left: Math.max((frame.left - box.left) / s + halfBody, JAR_LEFT + halfBody),
+      right: Math.min((frame.right - box.left) / s - halfBody, JAR_RIGHT - halfBody)
     };
   };
   place();

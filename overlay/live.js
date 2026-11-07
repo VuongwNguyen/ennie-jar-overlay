@@ -11,11 +11,13 @@
   // The welcome frame may draw outside its box, by BLEED of the box on each side, so its bursts of light
   // are not cut off at the edge; welcome.html?layer fits the drawing to the box in the middle.
   const BLEED = { welcome: 0.3 };
-  function source(id) {
+  function source(id, layer) {
     const query = new URLSearchParams();
     if (id === "jar") {
       query.set("nowelcome", "");
-      for (const key of ["jar", "dog", "cat", "nosticker"]) if (params.has(key)) query.set(key, params.get(key));
+      // Where the jar's box is from the start, so it does not first fill the whole stage.
+      query.set("box", [layer.x, layer.y, layer.w, layer.h, Math.min(Number.isFinite(layer.drop) ? layer.drop : layer.y, layer.y)].join(","));
+      for (const key of ["jar", "dog", "cat", "nosticker", "sfx"]) if (params.has(key)) query.set(key, params.get(key));
     }
     if (id === "welcome") query.set("layer", "");
     if (preview) {
@@ -29,13 +31,16 @@
   }
 
   const frames = new Map();
-  // How far a part's page reaches above its box (only the jar's does, up to the gifts' ceiling).
-  function tellRaise(frame) {
-    try { frame.contentWindow?.postMessage({ type: "raise", px: Number(frame.dataset.raise) || 0 }, location.origin); } catch { /* not loaded */ }
+  // The jar's page covers the whole stage (for the big gift effect) and is told where its box is and how
+  // high the gifts' ceiling is (drop), in its own pixels, which are the stage's.
+  function tellBox(frame) {
+    const box = frame._box;
+    if (!box) return;
+    try { frame.contentWindow?.postMessage({ type: "box", ...box }, location.origin); } catch { /* not loaded */ }
   }
-  function frameFor(id) {
+  function frameFor(id, layer) {
     if (frames.has(id)) return frames.get(id);
-    const src = source(id);
+    const src = source(id, layer);
     if (!src) return null;
     const frame = document.createElement("iframe");
     frame.className = "layer";
@@ -43,7 +48,7 @@
     frame.allow = "autoplay";
     frame.setAttribute("aria-hidden", "true");
     frame.src = src;
-    frame.addEventListener("load", () => tellRaise(frame));
+    frame.addEventListener("load", () => tellBox(frame));
     stage.append(frame);
     frames.set(id, frame);
     return frame;
@@ -59,20 +64,19 @@
         frames.delete(layer.id);
         return;
       }
-      const frame = frameFor(layer.id);
+      const frame = frameFor(layer.id, layer);
       if (!frame) return;
-      const bleed = BLEED[layer.id] ?? 0;
-      // The jar's page reaches up to the ceiling the gifts fall from (drop), when that is above its box;
-      // the page is told how much it got, and keeps the jar in the box below it.
-      const raise = Number.isFinite(layer.drop) ? Math.max(0, layer.y - layer.drop) : 0;
       const style = frame.style;
-      style.left = `${layer.x - layer.w * bleed}px`;
-      style.top = `${layer.y - layer.h * bleed - raise}px`;
-      style.width = `${layer.w * (1 + 2 * bleed)}px`;
-      style.height = `${layer.h * (1 + 2 * bleed) + raise}px`;
-      if (frame.dataset.raise !== String(raise)) {
-        frame.dataset.raise = String(raise);
-        tellRaise(frame);
+      if (layer.id === "jar") {
+        Object.assign(style, { left: "0px", top: "0px", width: `${STAGE.w}px`, height: `${STAGE.h}px` });
+        const box = { x: layer.x, y: layer.y, w: layer.w, h: layer.h, top: Math.min(Number.isFinite(layer.drop) ? layer.drop : layer.y, layer.y) };
+        if (JSON.stringify(box) !== JSON.stringify(frame._box)) { frame._box = box; tellBox(frame); }
+      } else {
+        const bleed = BLEED[layer.id] ?? 0;
+        style.left = `${layer.x - layer.w * bleed}px`;
+        style.top = `${layer.y - layer.h * bleed}px`;
+        style.width = `${layer.w * (1 + 2 * bleed)}px`;
+        style.height = `${layer.h * (1 + 2 * bleed)}px`;
       }
       style.zIndex = String(index + 1); // first in the list is the bottom layer
     });
@@ -95,6 +99,9 @@
 
   const socket = io();
   socket.on("layout", layers => { if (!preview) apply(layers); });
+  // "Tải lại overlay" on the control page: the page and every part in it load afresh. Only the pages: the
+  // jar, the donors and everything else come back from the server as they were.
+  socket.on("overlay-reload", () => { if (!preview) location.reload(); });
   // Fetched again after every reconnect, in case it changed while the server was away.
   const load = () => fetch("/api/layout").then(res => res.json()).then(data => apply(data.layers)).catch(() => {});
   socket.on("connect", load);
