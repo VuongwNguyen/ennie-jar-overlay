@@ -98,3 +98,14 @@ data/session.json         Automatically created local session state
 ## Gói Windows cho người không rành kỹ thuật
 
 `bash scripts/build-windows.sh` tạo `dist/GiftJar-Windows.zip` (kèm Node portable). Người dùng chỉ giải nén và bấm đúp `start.bat`; kênh mặc định là `ennieiuoiw`. Xem `HUONG-DAN.txt` trong gói.
+
+### Tự động cập nhật
+
+Mỗi lần push lên `main`, GitHub Actions (`.github/workflows/release.yml`) chạy script trên và đăng một release `build-N` gồm:
+
+- `GiftJar-Windows.zip`: bản đầy đủ, để cài lần đầu.
+- `GiftJar-update.zip` và `GiftJar-update.zip.sha256`: bản cập nhật, không kèm Node.
+
+`start.bat` chạy `launcher.mjs` (nguồn ở `scripts/windows/launcher.mjs`). Trước khi bật server, launcher hỏi GitHub release mới nhất. Nếu số build lớn hơn `version.json`, nó tải `GiftJar-update.zip`, kiểm tra mã sha256 rồi thay `overlay/`, `server/`, `node_modules/` và vài file khác. `node/` và `data/` không bị đụng tới. Nếu server của bản mới dừng trong 30 giây đầu, launcher trả lại bản cũ và bỏ qua build đó. Không có mạng thì nó chạy bản đang có. Tắt cập nhật bằng biến `GIFTJAR_NO_UPDATE=1`.
+
+Push chỉ thay đổi `blender_pipeline/`, `poodle/` hoặc tài liệu sẽ không tạo build mới. Repo phải public để máy live tải được release mà không cần đăng nhập.

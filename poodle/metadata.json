@@ -1,0 +1,27 @@
+{
+  "name": "Poodle",
+  "version": "0.2.0",
+  "status": "prototype, awaiting approval",
+  "style": "stylized realism",
+  "made_with": "Blender 5.2.3 Python scripts in blender_pipeline/ (no third-party model, no generative model)",
+  "license": "Original work created for this project. Blender does not claim rights over its output.",
+  "files": {
+    "master_glb": "export/poodle.glb",
+    "web_glb": "export/poodle_web.glb",
+    "blender_source": "source/poodle_working.blend",
+    "build_scripts": "../blender_pipeline/"
+  },
+  "scale": "1 unit = 1 design unit; ground at y = 0; faces +z",
+  "clips": [
+    "Idle",
+    "Walk",
+    "Run",
+    "Sit",
+    "SitDown",
+    "StandUp",
+    "TailWag",
+    "HeadTilt",
+    "Jump"
+  ],
+  "rebuild": "blender --background --factory-startup --python blender_pipeline/build.py -- poodle high (or web)"
+}

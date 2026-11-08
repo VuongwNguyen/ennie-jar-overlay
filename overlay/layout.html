@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gift Jar · Bố cục</title>
+  <link rel="stylesheet" href="/layout.css">
+</head>
+<!-- Where each part of the overlay sits on the single Studio source (live.html), laid out like a design
+     tool: layers on the left, the 1080x1920 frame in the middle with the real overlay in it, and the
+     selected layer's position and size on the right. Every change is saved and shown on Studio at once. -->
+<body class="editor">
+  <header class="topbar">
+    <a class="back" href="/" title="Về bảng điều khiển">‹ Bảng điều khiển</a>
+    <strong class="title">Bố cục overlay</strong>
+    <div class="tools">
+      <button class="icon" id="undo" title="Hoàn tác (Ctrl+Z)" disabled>↶</button>
+      <button class="icon" id="redo" title="Làm lại (Ctrl+Shift+Z)" disabled>↷</button>
+      <span class="sep"></span>
+      <button class="icon" id="zoomOut" title="Thu nhỏ (Ctrl + lăn chuột)">−</button>
+      <button class="zoom" id="zoomFit" title="Vừa màn hình (Shift+1)">100%</button>
+      <button class="icon" id="zoomIn" title="Phóng to (Ctrl + lăn chuột)">+</button>
+      <span class="sep"></span>
+      <label class="bg-pick" title="Nền phía sau để canh chỉnh, chỉ hiện ở trang này">
+        Nền
+        <select id="bgMode">
+          <option value="checker">Ô caro</option>
+          <option value="dark">Tối</option>
+          <option value="light">Sáng</option>
+          <option value="image">Ảnh của tôi</option>
+        </select>
+      </label>
+      <input type="file" id="bgFile" accept="image/*" hidden>
+    </div>
+    <span class="save" id="saveState" role="status">Đã lưu</span>
+  </header>
+
+  <aside class="panel left">
+    <h2>Lớp <small>trên cùng ở đầu</small></h2>
+    <ul class="layers" id="layerList"></ul>
+    <div class="order">
+      <button class="icon" id="toFront" title="Lên trên cùng (Ctrl+Shift+])">⤒</button>
+      <button class="icon" id="forward" title="Lên một lớp (Ctrl+])">↑</button>
+      <button class="icon" id="backward" title="Xuống một lớp (Ctrl+[)">↓</button>
+      <button class="icon" id="toBack" title="Xuống dưới cùng (Ctrl+Shift+[)">⤓</button>
+    </div>
+    <div class="help">
+      <b>Mẹo</b>
+      <p>Kéo khung để di chuyển, kéo các chấm vuông để đổi cỡ. Giữ <kbd>Shift</kbd> để giữ tỉ lệ hoặc đi thẳng hàng, <kbd>Alt</kbd> để đổi cỡ từ tâm, <kbd>Ctrl</kbd> để tắt hít.</p>
+      <p>Các lớp chồng lên nhau: bấm lại lần nữa (không kéo) để chọn lớp nằm bên dưới.</p>
+      <p>Phím mũi tên dịch 1 px, thêm <kbd>Shift</kbd> dịch 10 px. <kbd>Esc</kbd> bỏ chọn.</p>
+    </div>
+  </aside>
+
+  <main class="canvas" id="canvas">
+    <div class="board" id="board">
+      <div class="frame-label" id="frameLabel">Studio · 1080 × 1920</div>
+      <div class="artboard" id="artboard">
+        <div class="clip">
+          <div class="backdrop" id="backdrop"></div>
+          <iframe class="preview" id="preview" src="/live.html?preview" title="Xem trước overlay"></iframe>
+        </div>
+        <div class="handles" id="handles"></div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="panel right" id="props">
+    <h2 id="propsTitle">Thuộc tính</h2>
+    <p class="empty" id="propsEmpty">Chọn một lớp để chỉnh.</p>
+    <div id="propsBody" hidden>
+      <h3>Canh theo khung</h3>
+      <div class="align">
+        <button class="icon" data-align="left" title="Sát trái">⇤</button>
+        <button class="icon" data-align="hcenter" title="Giữa theo chiều ngang">↔</button>
+        <button class="icon" data-align="right" title="Sát phải">⇥</button>
+        <button class="icon" data-align="top" title="Sát trên">⤒</button>
+        <button class="icon" data-align="vcenter" title="Giữa theo chiều dọc">↕</button>
+        <button class="icon" data-align="bottom" title="Sát dưới">⤓</button>
+      </div>
+      <h3>Vị trí và kích thước</h3>
+      <div class="fields">
+        <label><span class="scrub" data-field="x">X</span><input type="number" id="fx" step="1"></label>
+        <label><span class="scrub" data-field="y">Y</span><input type="number" id="fy" step="1"></label>
+        <label><span class="scrub" data-field="w">W</span><input type="number" id="fw" step="1" min="20"></label>
+        <label><span class="scrub" data-field="h">H</span><input type="number" id="fh" step="1" min="20"></label>
+      </div>
+      <div class="drop-row" id="dropRow" hidden>
+        <label title="Độ cao quà bắt đầu rơi, tính từ mép trên khung (0 là sát mép trên). Kéo đường gạch hồng phía trên hũ cũng được."><span class="scrub" data-field="drop">Trần</span><input type="number" id="fdrop" step="1"></label>
+        <button class="secondary" id="dropTop" title="Cho quà rơi từ sát mép trên màn hình">Sát mép trên</button>
+      </div>
+      <label class="check"><input type="checkbox" id="ratio"> Giữ tỉ lệ khi đổi cỡ</label>
+      <label class="scale-row" title="100% là cỡ ban đầu của lớp">Cỡ <input type="range" id="scale" min="10" max="300" step="1"> <output id="scaleOut">100%</output></label>
+      <h3>Hiển thị</h3>
+      <label class="check"><input type="checkbox" id="visible"> Hiện trên live</label>
+      <label class="check"><input type="checkbox" id="locked"> Khoá (không kéo nhầm)</label>
+      <div class="prop-actions">
+        <button class="secondary" id="fillStage" title="Phủ kín khung 1080 × 1920">Phủ kín khung</button>
+        <button class="secondary" id="resetLayer" title="Đưa lớp này về vị trí và cỡ ban đầu">Về mặc định</button>
+      </div>
+    </div>
+    <div class="studio">
+      <h3>Link cho Studio</h3>
+      <p>Chỉ cần một nguồn Link, kích thước 1080 × 1920.</p>
+      <div class="copy-row"><input id="liveUrl" readonly><button id="copyLive">Copy</button></div>
+      <button class="link-btn" id="resetAll">Đưa tất cả về mặc định</button>
+    </div>
+  </aside>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/layout.js"></script>
+</body>
+</html>

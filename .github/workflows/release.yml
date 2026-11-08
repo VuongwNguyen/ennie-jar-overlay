@@ -1,0 +1,50 @@
+# Builds the Windows package on every push to main and publishes it as a GitHub release.
+# start.bat on the streaming PC downloads GiftJar-update.zip from the latest release when it starts.
+name: Release
+
+on:
+  push:
+    branches: [main]
+    # Changes that do not reach the packaged app do not make a new build.
+    paths-ignore:
+      - "blender_pipeline/**"
+      - "poodle/**"
+      - "video/**"
+      - "README.md"
+      - ".gitignore"
+      - ".gitattributes"
+      - "start.sh"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build
+        run: bash scripts/build-windows.sh
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+          BUILD_COMMIT: ${{ github.sha }}
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: build-${{ github.run_number }}
+        run: |
+          git log -1 --format=%B > notes.txt
+          gh release create "$TAG" \
+            dist/GiftJar-Windows.zip dist/GiftJar-update.zip dist/GiftJar-update.zip.sha256 \
+            --target "$GITHUB_SHA" --title "Bản $TAG" --notes-file notes.txt

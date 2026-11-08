@@ -4,3 +4,8 @@ data/
 Thumbs.db
 dist/
 .cache/
+__pycache__/
+# Blender output: the app uses the copies in overlay/models, and the pipeline can render these again.
+cat/
+poodle/export/
+poodle/qa/

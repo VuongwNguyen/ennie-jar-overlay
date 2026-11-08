@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ennie Heart</title>
+  <!-- A second overlay on its own, separate from the jar (overlay.html): the team heart clip, played by heartfx.js.
+       Add it as its own source, so it can be layered, sized and given its own volume apart from the jar.
+       heart.html?test plays the clip once after loading, to check where it sits. -->
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; background: transparent; overflow: hidden; }
+    /* The whole clip in its box (the whole source by default), transparent at the top, garden along the bottom. */
+    .heart-fx {
+      position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: contain; object-position: bottom;
+      pointer-events: none; visibility: hidden;
+    }
+    .heart-fx.show { visibility: visible; }
+  </style>
+</head>
+<body>
+  <video id="heartFx" class="heart-fx" src="/media/ennie_heart.webm" preload="auto" playsinline aria-hidden="true"></video>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/heartfx.js"></script>
+</body>
+</html>

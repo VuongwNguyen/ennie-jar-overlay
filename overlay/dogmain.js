@@ -1,0 +1,61 @@
+// Picks which dog the overlay shows. The pre-rendered poodle with real fur is the default; add ?dog=3d,
+// ?dog=toon, ?dog=glb or ?dog=svg to the URL for the others. Each version is only loaded when asked for.
+// Add ?cat=1 to sit the fluffy kitten on top of the jar.
+const params = new URLSearchParams(location.search);
+const mode = params.get("dog");
+
+if (mode === "toon") {
+  import("/dogtoon.js")
+    .then(toon => toon.startToonDog())
+    .catch(error => console.warn("dog: cartoon puppy failed, keeping the SVG dog", error));
+} else if (mode) {
+  import("/dog3d.js");
+} else {
+  import("/dogsprite.js")
+    .then(sprite => sprite.startSpriteDog())
+    .catch(error => {
+      console.warn("dog: pre-rendered poodle failed, using the 3D dog", error);
+      import("/dog3d.js");
+    });
+}
+
+// The animated sticker (make_sticker.mjs) sits on the mouth of the jar, with its bone resting on the rim.
+// It stays outside the scaled scene and on whole pixels.
+if (!params.has("nosticker")) {
+  const WIDTH = 384, HEIGHT = 256;
+  const BONE_X = 190, BONE_BOTTOM = 238; // the bone in the picture
+  const JAR_CENTRE = 155, RIM = 34; // the mouth of the jar, in .jar-wrap coordinates
+  const sticker = new Image();
+  sticker.className = "ennie-sticker";
+  sticker.alt = "";
+  sticker.src = "/models/ennie.png";
+  document.body.append(sticker);
+  const place = () => {
+    const jar = document.getElementById("jarWrap").getBoundingClientRect();
+    const scale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--scale")) || 1;
+    const pixel = 1 / devicePixelRatio;
+    // Kept inside the jar's visible frame (its box on live.html, reaching up to the gifts' ceiling).
+    const frame = window.jarFrame?.() ?? { left: 0, top: 0, right: innerWidth };
+    const rimY = jar.top + RIM * scale;
+    // Grows and shrinks with the jar, so it keeps its size beside it however big the jar is made. At the
+    // jar's original size on a 1080 wide source (a scale of 1.6) it is shown pixel for pixel.
+    const fit = Math.min(scale / 1.6 / pixel, (rimY - frame.top) / (BONE_BOTTOM * pixel), (frame.right - frame.left) / (WIDTH * pixel));
+    const width = Math.round(WIDTH * fit) * pixel, height = Math.round(HEIGHT * fit) * pixel;
+    const snap = value => Math.round(value / pixel) * pixel;
+    const left = jar.left + JAR_CENTRE * scale - BONE_X * fit * pixel;
+    sticker.style.width = `${width}px`;
+    sticker.style.height = `${height}px`;
+    sticker.style.left = `${snap(Math.max(frame.left, Math.min(frame.right - width, left)))}px`;
+    sticker.style.top = `${snap(rimY - BONE_BOTTOM * fit * pixel)}px`;
+  };
+  addEventListener("resize", () => requestAnimationFrame(place));
+  requestAnimationFrame(place);
+}
+
+if (params.has("cat")) {
+  const cat = new Image();
+  cat.className = "jar-cat";
+  cat.alt = "";
+  cat.src = "/models/cat.png";
+  document.getElementById("jarWrap").append(cat);
+}

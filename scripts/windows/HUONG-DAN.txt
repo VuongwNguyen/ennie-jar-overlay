@@ -5,7 +5,11 @@
 
 2. Bấm đúp vào file "start.bat".
    - Một cửa sổ đen hiện ra: GIỮ NGUYÊN, đừng tắt khi đang live.
-   - Trình duyệt tự mở trang điều khiển.
+   - Chương trình tự kiểm tra bản mới trên GitHub và tự cập nhật trước khi chạy.
+     Quà và top người tặng vẫn được giữ. Không có mạng thì nó chạy bản đang có.
+     Nếu bản mới không chạy được, nó tự quay lại bản cũ.
+   - Trình duyệt tự mở trang điều khiển. Cạnh chữ "Gift Jar" có số build
+     (ví dụ "build 6"), để biết máy đang chạy bản nào.
    - Chương trình tự kết nối vào kênh TikTok @ennieiuoiw khi kênh đang live.
      Nếu chưa live, nó tự thử lại mỗi 30 giây.
    - Nếu Windows hỏi "Windows protected your PC": chọn "More info" rồi "Run anyway".
@@ -20,6 +24,12 @@
    Nếu dùng TikTok LIVE Studio thay cho OBS (chưa được kiểm tra):
    - Add source > Link (hoặc Browser), dán cùng URL trên, kích thước 1080 x 1920.
    - Nếu nguồn hiện thành ô rất nhỏ, hãy dùng OBS + Virtual Camera.
+
+4. Video tim đội (nguồn thứ hai, tách riêng với hũ quà):
+   - Thêm một nguồn Link/Browser nữa, URL: http://127.0.0.1:8787/heart.html
+   - Kích thước 1080 x 1920, đặt phủ cả khung hình. Nền trong suốt, chỉ hiện khi có quà "Tim đội".
+   - Đặt nguồn này trên hoặc dưới hũ quà tùy ý; âm lượng chỉnh riêng được.
+   - Thử vị trí: mở http://127.0.0.1:8787/heart.html?test (video chạy một lần sau 1 giây).
 
 Thử nghiệm khi chưa live: trên trang điều khiển, bấm "Gửi quà thử nghiệm".
 Reset số liệu mỗi buổi live: bấm "Reset phiên".

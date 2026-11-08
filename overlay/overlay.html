@@ -3,12 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Gift Jar Overlay</title>
+  <title>Ennie Overlay</title>
   <link rel="stylesheet" href="/overlay.css">
+  <!-- The welcome frame for picked viewers, shown above the jar (welcome.js takes it from welcome.html). -->
+  <link rel="stylesheet" href="/welcome.css">
 </head>
 <body class="overlay-page">
+  <div class="jar-frame">
   <main class="scene">
-    <div class="heading"><span class="sparkle">✦</span><span>GIFT JAR</span><span class="sparkle">✦</span></div>
     <div class="jar-wrap" id="jarWrap">
       <div class="ambient" aria-hidden="true">
         <i style="left:4%;top:18%">✦</i><i style="left:92%;top:30%;animation-delay:.8s">✧</i>
@@ -19,40 +21,132 @@
       <svg class="jar-svg" viewBox="-14 -14 300 390" width="300" height="390" aria-hidden="true">
         <defs>
           <linearGradient id="glassFill" x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".3" stop-color="#d7b9ff" stop-opacity=".05"/>
-            <stop offset=".7" stop-color="#fff" stop-opacity=".07"/><stop offset="1" stop-color="#bda4e5" stop-opacity=".18"/>
+            <stop offset="0" stop-color="#fff" stop-opacity=".1"/><stop offset=".14" stop-color="#fff" stop-opacity="0"/>
+            <stop offset=".86" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".1"/>
           </linearGradient>
-          <radialGradient id="innerGlow" cx=".5" cy="1" r=".8">
-            <stop offset="0" stop-color="#ffb3dd" stop-opacity=".8"/><stop offset="1" stop-color="#ffb3dd" stop-opacity="0"/>
-          </radialGradient>
+          <!-- The pastel colour of the glass, from overlay.css (--jar-tint-*), also used in front of the gifts. -->
+          <linearGradient id="jarTint" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" class="jar-tint-top"/><stop offset="1" class="jar-tint-bottom"/>
+          </linearGradient>
         </defs>
+        <path id="bodyBack" fill="url(#jarTint)" fill-opacity=".5"/>
         <path id="bodyFill" fill="url(#glassFill)"/>
-        <path id="bodyGlow" class="glow" fill="url(#innerGlow)"/>
       </svg>
       <div id="giftLayer" class="gift-layer"></div>
       <svg class="jar-svg front" viewBox="-14 -14 300 390" width="300" height="390" aria-hidden="true">
         <defs>
           <linearGradient id="sweepGrad" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".28"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
           <linearGradient id="ribbonGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ffc0e2"/><stop offset="1" stop-color="#ee86bd"/></linearGradient>
-          <linearGradient id="lipGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#d9c0f7" stop-opacity=".45"/></linearGradient>
+          <linearGradient id="lipGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset="1" class="jar-tint-bottom" stop-opacity=".85"/></linearGradient>
+          <linearGradient id="glassBody" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0" class="jar-tint-bottom" stop-opacity=".55"/><stop offset=".2" class="jar-tint-top" stop-opacity=".14"/>
+            <stop offset=".8" class="jar-tint-top" stop-opacity=".14"/><stop offset="1" class="jar-tint-bottom" stop-opacity=".55"/>
+          </linearGradient>
+          <!-- Highlights fade out at both ends, as reflections on curved glass do. -->
+          <linearGradient id="shineGrad" x1="0" x2="0" y1="0" y2="1" gradientUnits="objectBoundingBox">
+            <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".25" stop-color="#fff" stop-opacity=".75"/>
+            <stop offset=".7" stop-color="#fff" stop-opacity=".6"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+          </linearGradient>
           <clipPath id="jarClip"><path id="clipBody"/></clipPath>
+          <!-- A 3D puppy built from shaded spheres: each curl is a small lit ball, and the shade depends on where it sits on the form. -->
+          <radialGradient id="furL" cx=".42" cy=".38" fx=".3" fy=".24" r=".72"><stop offset="0" stop-color="#d2a382"/><stop offset=".45" stop-color="#9f6f52"/><stop offset="1" stop-color="#6a4432"/></radialGradient>
+          <radialGradient id="furM" cx=".42" cy=".38" fx=".3" fy=".24" r=".72"><stop offset="0" stop-color="#b08164"/><stop offset=".5" stop-color="#7c5340"/><stop offset="1" stop-color="#4c2e21"/></radialGradient>
+          <radialGradient id="furD" cx=".42" cy=".38" fx=".3" fy=".24" r=".72"><stop offset="0" stop-color="#875a43"/><stop offset=".5" stop-color="#5a3829"/><stop offset="1" stop-color="#341d16"/></radialGradient>
+          <radialGradient id="furT" cx=".42" cy=".38" fx=".3" fy=".24" r=".75"><stop offset="0" stop-color="#f6dcc2"/><stop offset=".55" stop-color="#dcb08c"/><stop offset="1" stop-color="#a97a58"/></radialGradient>
+          <radialGradient id="eyeBall" cx=".5" cy=".62" r=".6"><stop offset="0" stop-color="#6d3f2a"/><stop offset=".55" stop-color="#2a140e"/><stop offset="1" stop-color="#120806"/></radialGradient>
+          <radialGradient id="noseBall" cx=".5" cy=".6" r=".65"><stop offset="0" stop-color="#4f2c22"/><stop offset="1" stop-color="#170b08"/></radialGradient>
+          <linearGradient id="tongueGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#f77f9f"/><stop offset="1" stop-color="#ffb4c6"/></linearGradient>
+          <radialGradient id="bowBall" cx=".45" cy=".35" fx=".36" fy=".22" r=".75"><stop offset="0" stop-color="#ffe0f1"/><stop offset=".5" stop-color="#ff9ccf"/><stop offset="1" stop-color="#d9559c"/></radialGradient>
+          <linearGradient id="collarGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ffb3da"/><stop offset="1" stop-color="#d9559c"/></linearGradient>
+          <radialGradient id="bellBall" cx=".45" cy=".35" fx=".34" fy=".24" r=".72"><stop offset="0" stop-color="#fff5c4"/><stop offset=".5" stop-color="#f6c64f"/><stop offset="1" stop-color="#b37a1c"/></radialGradient>
+          <radialGradient id="dogShade"><stop offset="0" stop-color="#1b0d12" stop-opacity=".5"/><stop offset="1" stop-color="#1b0d12" stop-opacity="0"/></radialGradient>
+          <g id="dogEars"><circle cx="-47.7" cy="19.8" r="8.5" fill="url(#furM)"/><circle cx="-47.8" cy="4.3" r="8.5" fill="url(#furL)"/><circle cx="-43.9" cy="-8.2" r="8.5" fill="url(#furL)"/><circle cx="-37.9" cy="-12.1" r="8.5" fill="url(#furL)"/><circle cx="-32.5" cy="-5.5" r="8.5" fill="url(#furL)"/><circle cx="-30.3" cy="8.5" r="8.5" fill="url(#furM)"/><circle cx="-32.5" cy="23.4" r="8.5" fill="url(#furD)"/><circle cx="-38.1" cy="32.4" r="8.5" fill="url(#furD)"/><circle cx="-44.6" cy="31.4" r="8.5" fill="url(#furD)"/><circle cx="-44" cy="13.6" r="8.5" fill="url(#furM)"/><circle cx="-41.6" cy="0.3" r="8.5" fill="url(#furL)"/><circle cx="-38.1" cy="10.5" r="8.5" fill="url(#furM)"/><circle cx="-40.4" cy="23.9" r="8.5" fill="url(#furD)"/><circle cx="32.3" cy="19.8" r="8.5" fill="url(#furM)"/><circle cx="32.2" cy="4.3" r="8.5" fill="url(#furL)"/><circle cx="36.1" cy="-8.2" r="8.5" fill="url(#furL)"/><circle cx="42.1" cy="-12.1" r="8.5" fill="url(#furL)"/><circle cx="47.5" cy="-5.5" r="8.5" fill="url(#furL)"/><circle cx="49.7" cy="8.5" r="8.5" fill="url(#furM)"/><circle cx="47.5" cy="23.4" r="8.5" fill="url(#furD)"/><circle cx="41.9" cy="32.4" r="8.5" fill="url(#furD)"/><circle cx="35.4" cy="31.4" r="8.5" fill="url(#furD)"/><circle cx="36" cy="13.6" r="8.5" fill="url(#furM)"/><circle cx="38.4" cy="0.3" r="8.5" fill="url(#furL)"/><circle cx="41.9" cy="10.5" r="8.5" fill="url(#furM)"/><circle cx="39.6" cy="23.9" r="8.5" fill="url(#furD)"/></g>
+          <g id="dogHeadBall"><circle cx="5.1" cy="-28.9" r="9.5" fill="url(#furL)"/><circle cx="15.4" cy="-26.1" r="9.5" fill="url(#furM)"/><circle cx="23.7" cy="-20.1" r="9.5" fill="url(#furM)"/><circle cx="29.2" cy="-11.7" r="9.5" fill="url(#furD)"/><circle cx="31" cy="-1.7" r="9.5" fill="url(#furD)"/><circle cx="29.1" cy="8.5" r="9.5" fill="url(#furD)"/><circle cx="23.6" cy="17.8" r="9.5" fill="url(#furD)"/><circle cx="15.2" cy="24.9" r="9.5" fill="url(#furD)"/><circle cx="5" cy="29" r="9.5" fill="url(#furD)"/><circle cx="-5.7" cy="29.6" r="9.5" fill="url(#furD)"/><circle cx="-15.7" cy="26.6" r="9.5" fill="url(#furD)"/><circle cx="-23.7" cy="20.3" r="9.5" fill="url(#furM)"/><circle cx="-28.8" cy="11.4" r="9.5" fill="url(#furM)"/><circle cx="-30.4" cy="1.2" r="9.5" fill="url(#furL)"/><circle cx="-28.3" cy="-9.2" r="9.5" fill="url(#furL)"/><circle cx="-22.8" cy="-18.6" r="9.5" fill="url(#furL)"/><circle cx="-14.6" cy="-25.6" r="9.5" fill="url(#furL)"/><circle cx="-4.6" cy="-29.6" r="9.5" fill="url(#furL)"/><circle cx="-10.3" cy="15.5" r="9.5" fill="url(#furM)"/><circle cx="-17.4" cy="8.6" r="9.5" fill="url(#furM)"/><circle cx="-20.4" cy="-0.3" r="9.5" fill="url(#furL)"/><circle cx="-18.7" cy="-9.2" r="9.5" fill="url(#furL)"/><circle cx="-12.7" cy="-16" r="9.5" fill="url(#furL)"/><circle cx="-3.8" cy="-19.2" r="9.5" fill="url(#furL)"/><circle cx="5.9" cy="-17.9" r="9.5" fill="url(#furL)"/><circle cx="14.2" cy="-12.4" r="9.5" fill="url(#furM)"/><circle cx="19.2" cy="-4.1" r="9.5" fill="url(#furM)"/><circle cx="19.7" cy="5.2" r="9.5" fill="url(#furD)"/><circle cx="15.7" cy="13.4" r="9.5" fill="url(#furD)"/><circle cx="8.1" cy="18.6" r="9.5" fill="url(#furD)"/><circle cx="-1.4" cy="19.5" r="9.5" fill="url(#furD)"/><circle cx="1" cy="-11.9" r="9.5" fill="url(#furL)"/><circle cx="9.8" cy="-8" r="9.5" fill="url(#furM)"/><circle cx="11.9" cy="1.3" r="9.5" fill="url(#furD)"/><circle cx="5.7" cy="8.9" r="9.5" fill="url(#furD)"/><circle cx="-4.3" cy="9.2" r="9.5" fill="url(#furM)"/><circle cx="-10.7" cy="2.1" r="9.5" fill="url(#furL)"/><circle cx="-9" cy="-6.7" r="9.5" fill="url(#furL)"/><circle cx="-0.9" cy="0.7" r="9.5" fill="url(#furL)"/></g>
+          <g id="dogMuzzleBall"><circle cx="-7.9" cy="8.9" r="6" fill="url(#furT)"/><circle cx="-1.2" cy="5.4" r="6" fill="url(#furT)"/><circle cx="6.6" cy="6.1" r="6" fill="url(#furT)"/><circle cx="11" cy="10.3" r="6" fill="url(#furT)"/><circle cx="9.4" cy="15.7" r="6" fill="url(#furT)"/><circle cx="2.8" cy="19" r="6" fill="url(#furT)"/><circle cx="-5.2" cy="18.5" r="6" fill="url(#furT)"/><circle cx="-10.1" cy="14.5" r="6" fill="url(#furT)"/><circle cx="-3.7" cy="13.8" r="6" fill="url(#furT)"/><circle cx="0.1" cy="12.1" r="6" fill="url(#furT)"/><circle cx="0.7" cy="15.7" r="6" fill="url(#furT)"/></g>
+          <g id="dogEyes">
+            <circle cx="-13" cy="2" r="6.4" fill="url(#eyeBall)"/><circle cx="-14.8" cy="-.4" r="2.3" fill="#fff"/><circle cx="-10.8" cy="5" r="1.1" fill="#fff" opacity=".85"/>
+            <circle cx="13" cy="2" r="6.4" fill="url(#eyeBall)"/><circle cx="11.2" cy="-.4" r="2.3" fill="#fff"/><circle cx="15.2" cy="5" r="1.1" fill="#fff" opacity=".85"/>
+          </g>
+          <g id="dogSnout">
+            <ellipse cx="-20" cy="13" rx="5" ry="3" fill="#ff86a8" opacity=".35"/><ellipse cx="20" cy="13" rx="5" ry="3" fill="#ff86a8" opacity=".35"/>
+            <ellipse cx="0" cy="9" rx="5.2" ry="4" fill="url(#noseBall)"/><ellipse cx="-1.7" cy="7.5" rx="1.7" ry="1" fill="#fff" opacity=".85"/>
+            <path d="M-2.8 18.6 Q-3.6 25 0 25.6 Q3.6 25 2.8 18.6 Q0 19.8 -2.8 18.6Z" fill="url(#tongueGrad)"/>
+            <path d="M0 13 V16.4 M-6 15.4 Q-3 19.6 0 16.4 Q3 19.6 6 15.4" fill="none" stroke="#6b3d2a" stroke-width="1.3" stroke-linecap="round"/>
+          </g>
+          <!-- Rounded lobes with a light top edge, so the bow looks puffy. -->
+          <g id="dogBow" transform="translate(25 -35) rotate(18) scale(.66) translate(-136 -28)">
+            <path d="M133 33 C129 40 124 45 120 52 L128 49 L132 56 C135 48 136 42 136 34Z M139 33 C143 40 148 45 152 52 L144 49 L140 56 C137 48 136 42 136 34Z" fill="#e572ae"/>
+            <use href="#bowShape" fill="url(#bowBall)" stroke="#d9559c" stroke-width="1.6"/>
+            <circle cx="136" cy="28" r="8" fill="url(#bowBall)" stroke="#d9559c" stroke-width="1.6"/>
+          </g>
+          <g id="dogBody3d"><circle cx="28" cy="76" r="8" fill="url(#furD)"/><circle cx="35" cy="70" r="8" fill="url(#furM)"/><circle cx="41" cy="76" r="7" fill="url(#furD)"/><circle cx="37" cy="63" r="7" fill="url(#furL)"/><circle cx="25.3" cy="48.3" r="9" fill="url(#furD)"/><circle cx="25.3" cy="56.8" r="9" fill="url(#furD)"/><circle cx="22.3" cy="64.9" r="9" fill="url(#furD)"/><circle cx="16.4" cy="71.4" r="9" fill="url(#furD)"/><circle cx="8.6" cy="75.7" r="9" fill="url(#furD)"/><circle cx="-0.4" cy="77.1" r="9" fill="url(#furD)"/><circle cx="-9.3" cy="75.6" r="9" fill="url(#furD)"/><circle cx="-17.1" cy="71.3" r="9" fill="url(#furM)"/><circle cx="-22.9" cy="64.6" r="9" fill="url(#furM)"/><circle cx="-25.8" cy="56.4" r="9" fill="url(#furL)"/><circle cx="-25.6" cy="47.6" r="9" fill="url(#furL)"/><circle cx="-22.2" cy="39.2" r="9" fill="url(#furL)"/><circle cx="-16.1" cy="32.4" r="9" fill="url(#furL)"/><circle cx="-8" cy="27.8" r="9" fill="url(#furL)"/><circle cx="1.1" cy="26.2" r="9" fill="url(#furL)"/><circle cx="10.1" cy="27.6" r="9" fill="url(#furM)"/><circle cx="17.8" cy="32" r="9" fill="url(#furM)"/><circle cx="23.3" cy="38.9" r="9" fill="url(#furM)"/><circle cx="-14.1" cy="45.9" r="9" fill="url(#furL)"/><circle cx="-10" cy="38.5" r="9" fill="url(#furL)"/><circle cx="-3.1" cy="34.7" r="9" fill="url(#furL)"/><circle cx="4.7" cy="35.4" r="9" fill="url(#furL)"/><circle cx="11.3" cy="40.5" r="9" fill="url(#furM)"/><circle cx="14.8" cy="48.7" r="9" fill="url(#furM)"/><circle cx="14.2" cy="57.9" r="9" fill="url(#furD)"/><circle cx="9.8" cy="65.6" r="9" fill="url(#furD)"/><circle cx="2.6" cy="69.7" r="9" fill="url(#furD)"/><circle cx="-5.4" cy="69.2" r="9" fill="url(#furD)"/><circle cx="-12" cy="64.2" r="9" fill="url(#furM)"/><circle cx="-15.4" cy="56" r="9" fill="url(#furL)"/><circle cx="5.9" cy="56.8" r="9" fill="url(#furD)"/><circle cx="-0.3" cy="59" r="9" fill="url(#furM)"/><circle cx="-5.4" cy="53.5" r="9" fill="url(#furL)"/><circle cx="-4.1" cy="45.5" r="9" fill="url(#furL)"/><circle cx="2.3" cy="43.1" r="9" fill="url(#furL)"/><circle cx="7.2" cy="48.7" r="9" fill="url(#furM)"/></g>
+          <g id="dogLegs3d"><circle cx="-11.3" cy="72.6" r="8.5" fill="url(#furD)"/><circle cx="-12.1" cy="59.9" r="8.5" fill="url(#furL)"/><circle cx="-10.2" cy="49.2" r="8.5" fill="url(#furL)"/><circle cx="-8.1" cy="54.9" r="8.5" fill="url(#furL)"/><circle cx="-8.5" cy="69" r="8.5" fill="url(#furM)"/><circle cx="10.7" cy="72.6" r="8.5" fill="url(#furD)"/><circle cx="9.9" cy="59.9" r="8.5" fill="url(#furL)"/><circle cx="11.8" cy="49.2" r="8.5" fill="url(#furL)"/><circle cx="13.9" cy="54.9" r="8.5" fill="url(#furL)"/><circle cx="13.5" cy="69" r="8.5" fill="url(#furM)"/><circle cx="-12" cy="79" r="11" fill="url(#furL)"/><circle cx="12" cy="79" r="11" fill="url(#furL)"/></g>
+          <path id="bowShape" d="M136 28 C118 10 100 16 104 28 C100 40 118 44 136 28Z M136 28 C154 10 172 16 168 28 C172 40 154 44 136 28Z"/>
         </defs>
-        <g clip-path="url(#jarClip)"><rect class="sweep" x="-80" y="-20" width="60" height="420" fill="url(#sweepGrad)"/></g>
-        <path id="bodyEdge" fill="none" stroke="#f5eaff" stroke-opacity=".65" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
-        <path id="hlLeft" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="9" stroke-linecap="round" class="soft"/>
-        <path id="hlRight" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="5" stroke-linecap="round" class="soft"/>
-        <rect x="60" y="-10" width="152" height="14" rx="7" fill="url(#lipGrad)" stroke="#f5eaff" stroke-opacity=".7" stroke-width="2"/>
-        <rect x="66" y="22" width="140" height="13" rx="3" fill="url(#ribbonGrad)" stroke="#ffe3f3" stroke-width="1.5"/>
-        <path d="M136 28 C118 10 100 16 104 28 C100 40 118 44 136 28Z M136 28 C154 10 172 16 168 28 C172 40 154 44 136 28Z" fill="url(#ribbonGrad)" stroke="#ffe3f3" stroke-width="1.5"/>
-        <path d="M133 32 L122 58 L131 53 L136 62Z M139 32 L150 58 L141 53 L136 62Z" fill="#ee86bd" stroke="#ffe3f3" stroke-width="1.2"/>
-        <circle cx="136" cy="28" r="6" fill="#f79bcb" stroke="#ffe3f3" stroke-width="1.5"/>
-        <g class="tag">
-          <path d="M70 35 L52 54" stroke="#ffe3f3" stroke-width="1.6" fill="none"/>
-          <rect x="34" y="52" width="34" height="32" rx="9" fill="#fff0f8" stroke="#ee86bd" stroke-width="2"/>
-          <text x="51" y="75" text-anchor="middle" font-size="20" fill="#ee86bd" style="text-shadow:none">♡</text>
+        <!-- Coloured glass over the gifts inside: nearly clear in the middle and deeper toward the walls,
+             where light passes through more glass. It keeps them apart from the gifts outside. -->
+        <path id="bodyTint" fill="url(#glassBody)"/>
+        <g clip-path="url(#jarClip)">
+          <!-- The thickness of the glass, a soft band just inside the walls (half of this stroke is clipped away). -->
+          <path id="bodyInner" class="jar-inner" fill="none" stroke-width="20" stroke-opacity=".5" stroke-linejoin="round"/>
+          <path id="bodyInnerLight" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="7" stroke-linejoin="round"/>
+          <rect class="sweep" x="-80" y="-20" width="60" height="420" fill="url(#sweepGrad)"/>
+        </g>
+        <!-- A soft edge rather than a hard line: a faint wide glow, a thin pastel line and a fine highlight. -->
+        <path id="bodyEdgeHalo" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="11" stroke-linejoin="round" stroke-linecap="round"/>
+        <path id="bodyEdgeOuter" class="jar-edge-outer" fill="none" stroke-opacity=".6" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <path id="bodyEdge" class="jar-edge" fill="none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        <path id="bodyEdgeShine" fill="none" stroke="#fff" stroke-opacity=".95" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+        <!-- Reflections of a window: a long streak and a short one on the left, a faint one on the right. -->
+        <path id="hlLeft" fill="none" stroke="url(#shineGrad)" stroke-width="9" stroke-linecap="round"/>
+        <path id="hlLeftThin" fill="none" stroke="url(#shineGrad)" stroke-width="3.5" stroke-linecap="round"/>
+        <path id="hlRight" fill="none" stroke="url(#shineGrad)" stroke-opacity=".6" stroke-width="5" stroke-linecap="round"/>
+        <!-- The rim: rounded glass with a highlight along the top. -->
+        <rect x="14" y="-8" width="244" height="14" rx="7" class="jar-lip" fill="url(#lipGrad)" stroke-opacity=".6" stroke-width="2"/>
+        <rect x="26" y="-5.5" width="150" height="3" rx="1.5" fill="#fff" fill-opacity=".85"/>
+        <rect x="22" y="16" width="228" height="11" rx="3" fill="url(#ribbonGrad)" stroke="#ffe3f3" stroke-width="1.5"/>
+        <!-- The knot where the name tag's string is tied. -->
+        <circle cx="35" cy="24" r="4" fill="#f79bcb" stroke="#ffe3f3" stroke-width="1.5"/>
+        <!-- Big side bow with long tails. -->
+        <g transform="translate(212 22) rotate(8) scale(1.45) translate(-136 -28)">
+          <path d="M133 32 C126 48 118 58 112 72 L123 66 L129 76 C133 60 136 46 136 34Z M139 32 C146 48 154 58 160 72 L149 66 L143 76 C139 60 136 46 136 34Z" fill="#ee86bd" stroke="#ffe3f3" stroke-width="1.1"/>
+          <use href="#bowShape" fill="url(#ribbonGrad)" stroke="#ffe3f3" stroke-width="1.3"/>
+          <circle cx="136" cy="28" r="6" fill="#f79bcb" stroke="#ffe3f3" stroke-width="1.3"/>
+        </g>
+        <!-- Small bow and pearls in the lower left corner. -->
+        <g fill="#fff6fb" stroke="#ffc6e6" stroke-width="1">
+          <circle cx="60" cy="356" r="5"/><circle cx="48" cy="350" r="6"/><circle cx="37" cy="342" r="5"/><circle cx="27" cy="332" r="6"/><circle cx="18" cy="320" r="5"/>
+        </g>
+        <g transform="translate(16 306) rotate(-16) scale(.62) translate(-136 -28)">
+          <use href="#bowShape" fill="url(#ribbonGrad)" stroke="#ffe3f3" stroke-width="1.6"/>
+          <circle cx="136" cy="28" r="6" fill="#f79bcb" stroke="#ffe3f3" stroke-width="1.6"/>
+        </g>
+        <!-- Shown only when the 3D dog cannot run (see dog3d.js); its eyes blink (see .dog-eyes). -->
+        <ellipse class="svg-dog" cx="232" cy="375" rx="52" ry="8" fill="url(#dogShade)"/>
+        <g class="svg-dog" transform="translate(228 289) scale(.95)">
+          <use href="#dogBody3d"/>
+          <use href="#dogLegs3d"/>
+          <path d="M-20 25 Q0 37 20 25" fill="none" stroke="url(#collarGrad)" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="0" cy="36" r="5.4" fill="url(#bellBall)"/><path d="M-3.4 37.4 H3.4" stroke="#8a5a12" stroke-width="1" stroke-linecap="round"/>
+          <g transform="translate(0 -14) rotate(-8)">
+            <use href="#dogHeadBall"/>
+            <use href="#dogEars"/>
+            <use href="#dogMuzzleBall"/>
+            <g class="dog-eyes"><use href="#dogEyes"/></g>
+            <use href="#dogSnout"/>
+            <use href="#dogBow"/>
+          </g>
         </g>
       </svg>
-      <div class="cork"></div>
+      <canvas id="dogCanvas" class="dog-canvas" aria-hidden="true"></canvas>
+      <!-- Top 3 donors hang from the ribbon: first place highest, close to the mouth, then second and third on longer strings. -->
+      <div class="donor-tags" aria-hidden="true">
+        <div class="donor-tag" data-rank="2" style="--x:66px;--len:60px;animation-delay:-1.2s"><span class="donor-frame">♡</span></div>
+        <div class="donor-tag first" data-rank="1" style="--x:118px;--len:24px"><span class="donor-frame">♡</span></div>
+        <div class="donor-tag" data-rank="3" style="--x:170px;--len:84px;animation-delay:-2.6s"><span class="donor-frame">♡</span></div>
+      </div>
+      <!-- The name tag flutters outside the jar on a string tied to the neck. -->
+      <div class="heading"><span>Ennie</span><svg class="heading-icon" viewBox="-30 -30 60 60" aria-hidden="true"><g transform="rotate(14)" fill="#ff8fc4" stroke="#fff" stroke-width="3.5" paint-order="stroke"><ellipse cx="-19" cy="-5" rx="6.5" ry="8.5" transform="rotate(-24 -19 -5)"/><ellipse cx="-7" cy="-17" rx="6.5" ry="9"/><ellipse cx="7" cy="-17" rx="6.5" ry="9"/><ellipse cx="19" cy="-5" rx="6.5" ry="8.5" transform="rotate(24 19 -5)"/><path d="M0 -3 C9 -3 17 7 17 14 C17 21 10 22 6 20 C3 19 -3 19 -6 20 C-10 22 -17 21 -17 14 C-17 7 -9 -3 0 -3Z"/></g></svg></div>
       <div class="jar-foot"></div>
       <div id="fxLayer" class="fx-layer"></div>
     </div>
@@ -66,8 +160,17 @@
       <ol id="overlayLeaders"><li>Chưa có người tặng</li></ol>
     </section>
   </main>
+  </div>
+  <div class="burst-layer" id="burstLayer" aria-hidden="true"></div>
+  <script type="importmap">{ "imports": { "three": "/vendor/three/three.module.js" } }</script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/vendor/matter.min.js"></script>
+  <script src="/vendor/gsap.min.js"></script>
   <script src="/overlay.js"></script>
+  <script src="/jardecor.js"></script>
+  <script src="/sfx.js"></script>
+  <script src="/bigburst.js"></script>
+  <script src="/welcome.js"></script>
+  <script type="module" src="/dogmain.js"></script>
 </body>
 </html>
