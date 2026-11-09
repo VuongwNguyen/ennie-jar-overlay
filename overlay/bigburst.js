@@ -1,6 +1,6 @@
 // The big gift effect, about 11 seconds. When someone sends a gift of 1,000 coins or more each (overlay.js
 // decides), the big gift falls in from the top like a comet, swerves off to the middle of the screen and
-// opens a magic circle and turning rays of light. Every gift on screen hops up out of the jar and swirls in
+// opens turning rays of light. Every gift on screen hops up out of the jar and swirls in
 // to it, forming a heart around it; light ripples across the heart and the sender's name appears under it.
 // The heart beats three times, trembles, and bursts in a flash with rings of light and sparkles, flinging
 // the gifts out; then they arc back into the jar, the new gift's with them, spilling over when it is full.
@@ -117,120 +117,6 @@
       { x: to.x, y: to.y, scale: random(0.8, 1.2), rotation: random(-200, 200), opacity: 0, duration, delay, ease, onComplete: () => el.remove() });
   }
 
-  // The magic circle behind the heart, drawn in SVG around its middle (-100 to 100). From the outside in:
-  // a double rim with 72 ticks; a band of glowing runes; a dashed ring and a solid one with twelve hearts
-  // and six diamonds; a six-pointed star with small stars at its points, inside a circle; a dotted ring;
-  // and a heart outline round the big gift. Four orbs of light run round it. The rings turn at their own
-  // speeds, in turns, and the lines draw themselves in when it opens.
-  let circles = 0;
-  function magicCircle(group, cx, cy, diameter) {
-    const id = `runes${++circles}`;
-    const el = element("burst-circle", group);
-    const ring = (r, attrs = "") => `<circle r="${r}" fill="none" ${attrs}/>`;
-    const heartPath = "M0 6C-2.5 1.6-8 2.2-8-2.2C-8-6-2.5-7.4 0-3.3C2.5-7.4 8-6 8-2.2C8 2.2 2.5 1.6 0 6Z";
-    const ticks = Array.from({ length: 72 }, (_, i) => {
-      const long = i % 6 === 0;
-      return `<line class="tick" x1="0" y1="-93" x2="0" y2="${long ? -99 : -96}" transform="rotate(${i * 5})" stroke="${long ? "#ffe08a" : "#fff3c4"}" stroke-width="${long ? 1.4 : 0.7}"/>`;
-    }).join("");
-    const star = (r, turn) => {
-      const pts = [0, 1, 2].map(k => {
-        const a = ((k * 120 + turn) * Math.PI) / 180;
-        return `${(Math.sin(a) * r).toFixed(2)},${(-Math.cos(a) * r).toFixed(2)}`;
-      });
-      return `<polygon class="draw" points="${pts.join(" ")}" fill="none" stroke="#ffb3d9" stroke-width="1.3" stroke-linejoin="round"/>`;
-    };
-    const runeText = "ENNIE ✦ LOVE ♥ LUCKY ✧ GIFT ✦ ENNIE ♥ SWEET ✧ HEART ✦ STAR ♥ ";
-    // Each ring is its own picture on its own layer: the graphics card draws it once and only turns it,
-    // instead of the whole circle (and its glow) being drawn again on every frame.
-    const layer = (name, inner, defs = "") =>
-      `<div class="mc-layer mc-${name}"><svg viewBox="-100 -100 200 200" aria-hidden="true">${defs && `<defs>${defs}</defs>`}${inner}</svg></div>`;
-    el.innerHTML = [
-      layer("glow", `<circle r="100" fill="url(#${id}Glow)"/>`,
-        `<radialGradient id="${id}Glow"><stop offset="0" stop-color="#fff" stop-opacity=".0"/><stop offset=".55" stop-color="#ff8fc7" stop-opacity=".18"/><stop offset=".9" stop-color="#ffd6ec" stop-opacity=".35"/><stop offset="1" stop-color="#ffd6ec" stop-opacity="0"/></radialGradient>`),
-      layer("outer", `
-        ${ring(99, 'class="draw" stroke="#ffe08a" stroke-width="1.2"')}
-        ${ring(93, 'class="draw" stroke="#ffe08a" stroke-width="0.8"')}
-        ${ticks}`),
-      layer("runes", `
-        <text font-size="7.2" font-weight="700" fill="#fff3c4" letter-spacing="1" style="font-family:'Segoe UI',system-ui,sans-serif">
-          <textPath href="#${id}" textLength="536" lengthAdjust="spacing">${runeText}</textPath>
-        </text>`, `<path id="${id}" d="M0 -86A86 86 0 1 1 0 86A86 86 0 1 1 0 -86"/>`),
-      layer("mid", `
-        ${ring(79, 'class="draw" stroke="#ffb3d9" stroke-width="1.6"')}
-        ${ring(75, 'stroke="#ff8fc7" stroke-width="2.4" stroke-dasharray="14 5 3 5" class="dashed"')}
-        ${Array.from({ length: 12 }, (_, i) => `<path class="mc-heart" transform="rotate(${i * 30}) translate(0 -68) scale(.5)" d="${heartPath}" fill="#ff8fc7" stroke="#fff" stroke-width="1.2"/>`).join("")}
-        ${Array.from({ length: 6 }, (_, i) => `<path class="mc-gem" transform="rotate(${i * 60 + 15}) translate(0 -79)" d="M0-6L2.2 0 0 6-2.2 0Z" fill="#fff6c8" stroke="#ffe08a" stroke-width=".6"/>`).join("")}`),
-      layer("inner", `
-        ${ring(60, 'class="draw" stroke="#fff3c4" stroke-width="1"')}
-        ${star(58, 0)}${star(58, 60)}
-        ${Array.from({ length: 6 }, (_, i) => `<path class="mc-gem" transform="rotate(${i * 60}) translate(0 -58)" d="M0-4.5L1.3-1.3 4.5 0 1.3 1.3 0 4.5-1.3 1.3-4.5 0-1.3-1.3Z" fill="#fff" />`).join("")}
-        ${ring(44, 'stroke="#ffe08a" stroke-width="1.4" stroke-dasharray="0.1 4" stroke-linecap="round" class="dashed"')}
-        <path class="draw" transform="scale(4.2)" d="${heartPath}" fill="none" stroke="#ffb3d9" stroke-width=".35"/>`),
-      layer("orbs", [0, 90, 180, 270].map((a, i) => `<g transform="rotate(${a})"><circle cy="${i % 2 ? -68 : -86}" r="3.4" fill="#fff"/><circle cy="${i % 2 ? -68 : -86}" r="7" fill="#ff8fc7" opacity=".35"/></g>`).join(""))
-    ].join("");
-    gsap.set(el, { width: diameter, height: diameter, x: cx - diameter / 2, y: cy - diameter / 2, scale: 0.55, opacity: 0 });
-    const part = name => el.querySelector(`.mc-${name}`);
-    // The lines that draw themselves in: each starts as a dash as long as the line, pushed out of sight.
-    const lines = [...el.querySelectorAll(".draw")];
-    for (const line of lines) {
-      const length = line.getTotalLength?.() || 600;
-      gsap.set(line, { strokeDasharray: length, strokeDashoffset: length });
-    }
-    const glowEl = el.querySelector(".mc-glow");
-
-    return {
-      // Opening: the circle grows in, its lines draw round, the ticks and runes light up one after another.
-      open(tl, at) {
-        tl.to(el, { scale: 1, opacity: 1, duration: 0.7, ease: "back.out(1.5)" }, at);
-        lines.forEach((line, i) => tl.to(line, { strokeDashoffset: 0, duration: 0.9, ease: "power2.inOut" }, at + i * 0.07));
-        tl.from(el.querySelectorAll(".tick"), { opacity: 0, duration: 0.2, stagger: 0.008 }, at + 0.1);
-        tl.from(el.querySelectorAll(".dashed"), { opacity: 0, duration: 0.5 }, at + 0.3);
-        tl.from(el.querySelectorAll(".mc-heart, .mc-gem"), { scale: 0, transformOrigin: "50% 50%", duration: 0.35, stagger: 0.03, ease: "back.out(3)" }, at + 0.35);
-        tl.from(part("runes"), { opacity: 0, rotation: -40, duration: 0.9, ease: "power2.out" }, at + 0.3);
-        tl.from(part("orbs"), { opacity: 0, duration: 0.4 }, at + 0.6);
-        tl.to(part("outer"), { rotation: 30, duration: 0.9, ease: "power2.out" }, at);
-        tl.to(part("inner"), { rotation: -45, duration: 0.9, ease: "power2.out" }, at);
-      },
-      // While the heart forms: each ring turns its own way, the orbs chase round, the glow breathes.
-      spin(tl, at, duration) {
-        tl.to(part("outer"), { rotation: "+=50", duration, ease: "none" }, at);
-        tl.to(part("runes"), { rotation: "-=70", duration, ease: "none" }, at);
-        tl.to(part("mid"), { rotation: "+=90", duration, ease: "none" }, at);
-        tl.to(part("inner"), { rotation: "-=120", duration, ease: "none" }, at);
-        tl.to(part("orbs"), { rotation: "+=900", duration, ease: "none" }, at);
-        tl.to(glowEl, { opacity: 0.5, duration: 0.9, yoyo: true, repeat: Math.max(1, Math.round((duration * 0.45) / 0.9) - 1), ease: "sine.inOut" }, at);
-      },
-      // A heartbeat: the circle swells a little and flares.
-      pulse(tl, at, strength) {
-        tl.to(el, { scale: 1.04 + strength * 0.025, duration: 0.14, ease: "power2.out" }, at)
-          .to(el, { scale: 1, duration: 0.3, ease: "power1.in" }, at + 0.14)
-          .fromTo(glowEl, { opacity: 1 }, { opacity: 0.6, duration: 0.45, ease: "power1.out" }, at);
-      },
-      // Gathering strength: the rings spin up hard, against each other.
-      charge(tl, at, duration) {
-        tl.to(part("mid"), { rotation: "+=300", duration, ease: "power2.in" }, at);
-        tl.to(part("inner"), { rotation: "-=420", duration, ease: "power2.in" }, at);
-        tl.to(part("runes"), { rotation: "+=200", duration, ease: "power2.in" }, at);
-        tl.to(part("orbs"), { rotation: "+=1080", duration, ease: "power2.in" }, at);
-        tl.to(el, { scale: 1.08, duration, ease: "power2.in" }, at);
-      },
-      // The burst: the circle breaks apart, each ring flung out at its own speed, the middle one falling in.
-      shatter(tl, at) {
-        tl.to(part("outer"), { scale: 2.3, opacity: 0, duration: 0.8, ease: "power2.out" }, at);
-        tl.to(part("runes"), { scale: 1.9, opacity: 0, rotation: "+=90", duration: 0.7, ease: "power2.out" }, at);
-        tl.to(part("mid"), { scale: 1.6, opacity: 0, rotation: "-=60", duration: 0.6, ease: "power2.out" }, at);
-        tl.to(part("inner"), { scale: 0.2, opacity: 0, rotation: "+=180", duration: 0.5, ease: "power2.in" }, at);
-        tl.to(part("orbs"), { scale: 2.6, opacity: 0, duration: 0.6, ease: "power3.out" }, at);
-        tl.to(glowEl, { opacity: 0, duration: 0.4 }, at);
-      },
-      // Where a point on the rim is on screen, for the motes rising off it.
-      rim(angle) {
-        const r = (diameter / 2) * 0.95 * (gsap.getProperty(el, "scale") || 1);
-        return { x: cx + Math.sin(angle) * r, y: cy - Math.cos(angle) * r };
-      }
-    };
-  }
-
   function play({ event, landed }, finished) {
     const W = innerWidth, H = innerHeight, cx = W / 2, cy = H / 2;
     const centre = { x: cx, y: cy };
@@ -239,11 +125,10 @@
     // Stage and timing, slow enough to follow: about 11 seconds from the fall to the last gift back in.
     const FALL = 0.9, SWERVE = 1.4, GATHER = 2.2;
 
-    // Behind the heart: turning rays of light and a magic circle, which appear when the big gift arrives.
+    // Behind the heart: turning rays of light, which appear when the big gift arrives.
     const rays = element("burst-rays", group);
     const raysSize = size * 3.6;
     gsap.set(rays, { width: raysSize, height: raysSize, x: cx - raysSize / 2, y: cy - raysSize / 2, scale: 0, opacity: 0 });
-    const magic = magicCircle(group, cx, cy, size * 2.7);
     // The glow that gathers behind the heart.
     const glow = element("burst-glow", group);
     const glowSize = size * 3.2;
@@ -278,23 +163,14 @@
         spark(group, at, { x: at.x + random(-40, 40), y: at.y + random(-60, 10) }, { size: random(10, 22), duration: random(0.5, 0.8), ease: "power1.out" });
       }, t);
     }
-    // Arriving: a soft ring, and the circle and rays open behind it.
+    // Arriving: a soft ring, and the rays open behind it.
     intro.add(() => ring(group, cx, cy, size * 0.6, "#ffe08a", 2.2, 0.8), FALL + SWERVE - 0.1);
-    magic.open(intro, FALL + SWERVE - 0.2);
     intro.to(rays, { scale: 1, opacity: 0.55, duration: 0.8, ease: "power2.out" }, FALL + SWERVE - 0.2);
 
     function gather() {
       const timeline = gsap.timeline();
       current = { timeline, group };
-      // The circle and the rays keep turning, slowly, while the heart forms.
-      magic.spin(timeline, 0, GATHER + 2.4);
-      // Motes of light drift up off the rim of the circle while the heart forms.
-      for (let t = 0; t < GATHER + 2.2; t += 0.25) {
-        timeline.add(() => {
-          const from = magic.rim(random(0, Math.PI * 2));
-          spark(group, from, { x: from.x + random(-20, 20), y: from.y - random(60, 140) }, { size: random(8, 16), duration: random(0.9, 1.4), ease: "sine.out" });
-        }, t);
-      }
+      // The rays keep turning, slowly, while the heart forms.
       timeline.to(rays, { rotation: "-=120", duration: 8, ease: "none" }, 0);
 
       // The gifts in the jar leave its physics and take off from where they are.
@@ -406,7 +282,6 @@
           .to(glow, { opacity: 1, scale: 1.05 + i * 0.06, duration: 0.14, ease: "power2.out" }, at)
           .to(glow, { opacity: 0.85, scale: 1, duration: 0.3, ease: "power1.in" }, at + 0.14);
         timeline.add(() => { ring(group, cx, cy, size * 0.9, "#ffc6e6", 1.6 + i * 0.25, 0.6); sfx.beat(i); }, at);
-        magic.pulse(timeline, at, i);
       });
 
       // 4. Gathering strength: the heart trembles, the rays spin up and the big gift swells.
@@ -414,7 +289,6 @@
       timeline.to(group, { keyframes: Array.from({ length: 8 }, (_, i) => ({ x: random(-5, 5) * (1 + i * 0.3), y: random(-5, 5) * (1 + i * 0.3), duration: 0.06 })) }, CHARGE);
       timeline.to(rays, { opacity: 0.95, scale: 1.15, rotation: "+=180", duration: 0.5, ease: "power2.in" }, CHARGE);
       timeline.add(() => sfx.charge(0.5), CHARGE);
-      magic.charge(timeline, CHARGE, 0.5);
       timeline.to(core, { scale: coreScale * 1.3, duration: 0.5, ease: "power2.in" }, CHARGE);
       timeline.to(banner, { opacity: 0, scale: 0.6, duration: 0.3, ease: "power1.in" }, CHARGE + 0.2);
 
@@ -438,7 +312,6 @@
       }, BURST);
       timeline.to(glow, { scale: 1.8, opacity: 0, duration: 0.7, ease: "power2.out" }, BURST);
       timeline.to(rays, { scale: 2, opacity: 0, duration: 0.8, ease: "power2.out" }, BURST);
-      magic.shatter(timeline, BURST);
       // The big gift shrinks back to a gift's size and goes back into the jar with the others.
       timeline.to(core, { scale: scale * 1.4, rotation: "+=180", duration: 0.6, ease: "back.in(1.4)" }, BURST);
       pieces.forEach(({ el, back }, i) => {

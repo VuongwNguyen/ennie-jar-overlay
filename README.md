@@ -1,83 +1,114 @@
-# TikTok Jar Overlay — Local Web Application
+# TikTok Jar Overlay — Ennie Live
 
-A cross-platform local overlay starter for OBS. The first milestone includes a dashboard, a gift simulator, a transparent browser overlay, basic Matter.js physics, and local JSON session persistence.
+Overlay chạy local cho TikTok LIVE Studio và OBS. Quà của người xem rơi vào một chiếc hũ thủy tinh có vật lý (Matter.js). Kèm theo là chú chó poodle Ennie cảm ơn người tặng, khung chào mừng người vào live và hiệu ứng tim cho quà lớn. Mọi thứ nằm trên một nguồn Browser Source duy nhất, kích thước 1080 × 1920.
 
-## Requirements
+## Yêu cầu
 
-- Node.js 22 or newer
-- OBS Studio with Browser Source support
-- Windows, Linux, or macOS
+- Node.js 22 trở lên
+- TikTok LIVE Studio hoặc OBS Studio (Browser Source)
+- Windows, Linux hoặc macOS
 
-## Run
+## Chạy
 
 ```bash
 npm install
-npm start
+npm start          # hoặc ./start.sh trên Linux/macOS (tự mở trang điều khiển)
 ```
 
-Open the control dashboard:
+Các trang (mặc định `http://127.0.0.1:8787`):
 
-- http://127.0.0.1:8787/
+| Trang | Dùng để |
+| --- | --- |
+| `/` | Trang điều khiển: kết nối TikTok, danh sách người trong live, quy tắc chào mừng, hiệu ứng quà lớn, giả lập |
+| `/live.html` | **Nguồn duy nhất cho Studio/OBS**: gộp hũ, khung chào mừng và video tim trên một sân khấu 1080 × 1920 |
+| `/layout.html` | Kéo thả bố cục các lớp (vị trí, kích thước, thứ tự, ẩn/hiện, khóa). Thay đổi áp dụng ngay, không cần tải lại nguồn |
+| `/overlay.html`, `/welcome.html`, `/heart.html` | Từng phần riêng lẻ, dùng khi muốn tách thành nguồn riêng |
 
-Add an OBS Browser Source:
+Thêm Browser Source: URL `http://127.0.0.1:8787/live.html`, rộng 1080, cao 1920, nền trong suốt. Dừng server bằng `Ctrl+C`.
 
-- URL: `http://127.0.0.1:8787/overlay.html`
-- Width: `1080`
-- Height: `1920`
-- Enable browser source transparency / leave the page background transparent.
+Kiểm tra nhanh: `http://127.0.0.1:8787/api/health`.
 
-Stop the server with `Ctrl+C`.
+### Tham số trên URL
+
+- `live.html` chuyển tiếp xuống hũ các tham số `jar=blue|lavender|mint` (màu kính), `dog`, `cat=1` (mèo ngồi trên hũ), `nosticker`, `sfx`.
+- `dog=3d|toon|glb|svg` chọn kiểu chú chó khác. Mặc định là poodle dựng sẵn bằng Blender.
+- `size=1.2` phóng to hoặc thu nhỏ hũ trong `overlay.html`.
 
 ## Kết nối TikTok LIVE
 
-Trên dashboard, nhập username kênh đang livestream rồi bấm **Kết nối**. Adapter (`server/src/tiktok.js`) dùng thư viện không chính thức `tiktok-live-connector`, đổi sự kiện quà về dạng chuẩn bên dưới và đi qua cùng pipeline với simulator.
+Trên trang điều khiển, nhập username kênh đang live rồi bấm **Kết nối**. Adapter (`server/src/tiktok.js`) dùng thư viện không chính thức `tiktok-live-connector`, đổi sự kiện TikTok về dạng chuẩn rồi đưa qua cùng pipeline với trình giả lập.
 
-- Khi khởi động, server tự kết nối tới `ennieiuoiw` và thử lại mỗi 30 giây nếu kênh chưa live hoặc bị rớt. Đổi kênh bằng `TIKTOK_USERNAME=ten_kenh npm start`, tắt bằng `TIKTOK_USERNAME= npm start`. Bấm **Ngắt** trên dashboard sẽ dừng tự kết nối.
-- Quà streak (`giftType 1`) chỉ được tính một lần, ở sự kiện cuối `repeatEnd: true`.
-- Nếu bị giới hạn ký (rate limit), đặt `EULER_API_KEY` trước khi chạy `npm start`.
+- Khi khởi động, server tự kết nối tới `ennieiuoiw` và thử lại mỗi 30 giây nếu kênh chưa live hoặc bị rớt. Đổi kênh bằng `TIKTOK_USERNAME=ten_kenh npm start`, tắt bằng `TIKTOK_USERNAME= npm start`. Bấm **Ngắt** sẽ dừng tự kết nối.
+- Quà streak chỉ được tính một lần, ở sự kiện cuối (`repeatEnd`).
+- Nếu bị giới hạn ký (rate limit), đặt `EULER_API_KEY` trước khi chạy.
 - Thư viện này không phải API chính thức của TikTok và có thể ngừng hoạt động khi TikTok thay đổi.
 
-## Test
+## Các tính năng
 
-1. Open the dashboard.
-2. Enter a donor name and gift details.
-3. Click **Gửi quà thử nghiệm**.
-4. Watch the overlay update in the browser or OBS.
-5. Use **Reset phiên** to clear the current session.
+### Hũ quà
+- Quà rơi từ trần hũ theo vật lý. Quà từ 199 xu trở lên được vẽ to hơn, tối đa 140px.
+- Hũ rung và có hiệu ứng lấp lánh theo mức quà (thường, từ 100 xu, từ 1000 xu).
+- Top 3 người tặng hiện avatar trên các thẻ treo.
+- Phiên được lưu ở `data/session.json`; mở lại overlay thì hũ được dựng lại. **Reset phiên** xóa sạch.
 
-Health check: `http://127.0.0.1:8787/api/health`
+### Hiệu ứng quà lớn
+Quà có giá mỗi món từ ngưỡng đặt trên trang điều khiển (mặc định 1000 xu, `0` là tắt) sẽ gom mọi quà trên màn hình thành hình trái tim ở giữa, nổ ra rồi đổ lại vào hũ (`bigburst.js`). Ngưỡng lưu ở `data/effects.json`.
 
-## Project structure
+### Chào mừng người vào live
+Khi ai đó vào live, hoặc lần đầu được thấy qua chat, like, quà, follow, share, họ được xét để hiện khung chào mừng (`welcome.html`). Thứ tự xét:
+
+1. Được chỉ định theo @tên hoặc id (ưu tiên cao nhất).
+2. Cấp tim đội (fan club) lớn hơn ngưỡng đặt (mặc định trên 10).
+3. Cấp quà (gifter) lớn hơn ngưỡng đặt (mặc định trên 15).
+
+Mỗi nhóm có danh hiệu riêng. Fan cấp từ 20 trở lên và Super Fan không có sự kiện "member", nên adapter đọc từ banner vào live. TikTok không gửi cấp khi người ta vào live, nên cấp được nhớ lại mỗi khi thấy ở quà hoặc chat (`data/levels.json`). Danh sách trên trang điều khiển cho biết từng người được chào hay không và vì sao. Các trạng thái: đang chờ, đã chào, không có overlay, hàng đợi đầy, không kịp hiện.
+
+Giới hạn chống spam (tối đa 3 lần trong 10 phút, cách nhau 15 giây cho mỗi người) hiện đang tắt trong `server/src/index.js`, hàm `welcome()`.
+
+### Chú chó Ennie
+Chú chó đi lại trên hũ, cảm ơn người tặng và chào người vào live qua bong bóng thoại. Có âm thanh nhỏ (`sfx.js`), tự ngủ khi không có hoạt động.
+
+### Bố cục
+`layout.html` chỉnh ba lớp: `jar`, `welcome`, `heart`. Hũ có thêm thông số `drop`, là độ cao trần mà quà rơi xuống, có thể cao hơn khung hũ. Bố cục lưu ở `data/layout.json`. Nút **Tải lại overlay** trên trang điều khiển tải lại mọi overlay đang mở.
+
+### Giả lập
+Trang điều khiển có mục **Giả lập** để gửi quà thử và người vào live thử (giả làm người vào, chat, like, social hoặc quà), không ảnh hưởng TikTok.
+
+## Cấu trúc
 
 ```text
-server/src/index.js       Local HTTP + Socket.IO server and normalized event core
-overlay/index.html        Control dashboard
-overlay/overlay.html      Transparent OBS overlay
-server/src/tiktok.js      TikTok LIVE adapter
-overlay/dashboard.js      Dashboard interactions
-overlay/overlay.js        Overlay rendering and physics
-overlay/styles.css        Shared styling
-data/session.json         Automatically created local session state
+server/src/index.js        Server HTTP + Socket.IO, trạng thái phiên, quy tắc chào mừng, bố cục, API
+server/src/tiktok.js       Adapter TikTok LIVE (quà, người vào, chat/like/follow/share, cấp bậc)
+overlay/index.html         Trang điều khiển (dashboard.js)
+overlay/live.html          Nguồn duy nhất cho Studio/OBS (live.js)
+overlay/layout.html        Trang bố cục (layout.js, layout.css)
+overlay/overlay.html       Hũ quà (overlay.js, bigburst.js, jardecor.js, sfx.js)
+overlay/welcome.html       Khung chào mừng (welcome.js)
+overlay/heart.html         Video tim đội (heartfx.js)
+overlay/dog*.js            Các kiểu chú chó (sprite, toon, glb, 3D)
+overlay/models, media      Ảnh sprite, mô hình GLB, video
+blender_pipeline/, poodle/ Dựng mô hình và render chú chó bằng Blender
+scripts/                   Đóng gói Windows và launcher tự cập nhật
+data/                      Tự tạo khi chạy: session, levels, welcome, welcome-rules, layout, effects (.json)
 ```
 
-## Cross-platform design
+## API chính
 
-- No OS-specific APIs are used by the app.
-- OBS loads the same local URL on Windows, Linux, and macOS.
-- TikTok integration is intentionally behind a normalized event contract. The simulator works without TikTok.
-- The server binds to `127.0.0.1` by default. Do not expose it to your LAN or the public internet without adding authentication and security controls.
+`GET /api/health`, `GET /api/state`, `GET /api/version`, `POST /api/simulate/gift`, `POST /api/simulate/member`, `POST /api/session/reset`, `GET|POST /api/tiktok/*`, `GET|POST /api/welcome`, `GET|POST /api/welcome/rules`, `GET|POST /api/layout`, `GET|POST /api/effects`, `POST /api/overlay/reload`, `GET /api/members/recent`.
 
-## Normalized gift event contract
+## Hợp đồng sự kiện quà
+
+Mọi nguồn quà phải phát ra dạng chuẩn này:
 
 ```js
 {
   type: "gift",
   eventId: "unique-event-id",
-  user: { id: "viewer-id", nickname: "Viewer", avatar: "" },
+  user: { id: "viewer-id", uniqueId: "handle", nickname: "Viewer", avatar: "", fanLevel: 0, gifterLevel: 0 },
   gift: {
     id: "gift-id",
     name: "Rose",
-    image: "https://.../rose.png", // optional
+    image: "https://.../rose.png", // tùy chọn
     diamondCount: 1,
     repeatCount: 1,
     repeatEnd: true
@@ -86,14 +117,11 @@ data/session.json         Automatically created local session state
 }
 ```
 
-`diamondCount * repeatCount` is the current demo's coin calculation. A real TikTok adapter must verify gift streak semantics and platform-specific values before using this calculation in production.
+Số xu của một quà là `diamondCount * repeatCount`. Sự kiện trùng `eventId` bị bỏ qua, quà streak chưa kết thúc (`repeatEnd: false`) không được tính.
 
-## Current limitations
+## Bảo mật
 
-- The jar artwork is CSS-based placeholder styling, not final production art.
-- Donor avatars are stored in the event contract but not yet rendered.
-- The simulator is for local functional testing only.
-- This is an MVP scaffold, not a security-audited production release.
+Server chỉ lắng nghe `127.0.0.1` và không có xác thực. Các API đổi cấu hình đều mở. Đừng đưa ra mạng LAN hoặc internet khi chưa thêm xác thực.
 
 ## Gói Windows cho người không rành kỹ thuật
 
