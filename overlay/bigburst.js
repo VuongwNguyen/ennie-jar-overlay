@@ -14,7 +14,7 @@
   const sfx = new Proxy({}, { get: (_, name) => (...args) => { try { window.burstSfx?.[name]?.(...args); } catch { /* no sound */ } } });
   // With only a few gifts in the jar, copies of the big gift fill the heart out to this many pieces;
   // the copies fade away in the burst, so only real gifts go back into the jar.
-  const FILL_TO = 40;
+  const FILL_TO = 70;
   // At most this many gifts fly up out of the jar, the ones on top of the pile; the rest stay where they
   // are. A full jar holds hundreds, and moving them all at once is more than a streaming machine can draw.
   const MAX_FLY = 60;
@@ -104,6 +104,7 @@
     const D = d * to;
     el.style.borderColor = colour;
     el.style.borderWidth = `${10 * to}px`;
+    el.style.boxShadow = `0 0 ${30 * to}px #ff8fc4, inset 0 0 ${24 * to}px #fff8`;
     gsap.fromTo(el, { width: D, height: D, x: x - D / 2, y: y - D / 2, scale: 0.15 / to, opacity: 1 },
       { scale: 1, opacity: 0, duration, delay, ease: "power2.out", onComplete: () => el.remove() });
   }
@@ -157,7 +158,7 @@
     intro.add(() => sfx.whoosh(SWERVE, jarPan), FALL);
     intro.add(() => sfx.chime(), FALL + SWERVE - 0.2);
     // The comet's tail: sparkles left behind along the way.
-    for (let t = 0.1; t < FALL + SWERVE; t += 0.12) {
+    for (let t = 0.05; t < FALL + SWERVE; t += 0.05) {
       intro.add(() => {
         const at = { x: gsap.getProperty(core, "x"), y: gsap.getProperty(core, "y") };
         spark(group, at, { x: at.x + random(-40, 40), y: at.y + random(-60, 10) }, { size: random(10, 22), duration: random(0.5, 0.8), ease: "power1.out" });
@@ -217,7 +218,7 @@
       // swirl; a stream of sparkles is drawn from the jar's mouth to the big gift.
       timeline.to(glow, { scale: 1, opacity: 0.9, duration: GATHER + 0.4, ease: "power2.in" }, 0);
       timeline.add(() => sfx.swirl(GATHER, jarPan), 0);
-      for (let t = 0; t < GATHER; t += 0.15) {
+      for (let t = 0; t < GATHER; t += 0.06) {
         timeline.add(() => spark(group, { x: mouth.x + random(-30, 30) * scale, y: mouth.y }, centre, { size: random(10, 20), duration: random(0.6, 0.9), ease: "power2.in" }), t);
       }
       pieces.forEach(({ el, fresh }, i) => {
@@ -305,8 +306,8 @@
         ring(group, cx, cy, size * 0.8, "#ffe08a", 5, 1.0);
         ring(group, cx, cy, size * 0.8, "#ff8fc7", 4, 1.1, 0.08);
         ring(group, cx, cy, size * 0.8, "#ffffff", 3, 0.9, 0.16);
-        for (let i = 0; i < 20; i++) {
-          const angle = (i / 20) * Math.PI * 2 + random(-0.1, 0.1), dist = random(0.3, 0.6) * H;
+        for (let i = 0; i < 48; i++) {
+          const angle = (i / 48) * Math.PI * 2 + random(-0.1, 0.1), dist = random(0.3, 0.6) * H;
           spark(group, centre, { x: cx + Math.cos(angle) * dist, y: cy + Math.sin(angle) * dist }, { size: random(20, 48), duration: random(0.9, 1.4) });
         }
       }, BURST);
