@@ -7,6 +7,7 @@ import { randomUUID } from "node:crypto";
 import { readFile, writeFile, mkdir, rename } from "node:fs/promises";
 import { createTikTokAdapter } from "./tiktok.js";
 import { createGiftLog } from "./gift-log.js";
+import { vietnameseGiftName } from "./gift-names.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "../../");
@@ -88,7 +89,7 @@ function normalizeGift(input = {}) {
     },
     gift: {
       id: String(gift.id || "gift"),
-      name: String(gift.name || "Quà tặng"),
+      name: String(vietnameseGiftName(gift.id, gift.name) || "Quà tặng"),
       image: typeof gift.image === "string" && /^https?:\/\//i.test(gift.image) ? gift.image : "",
       diamondCount,
       repeatCount,
