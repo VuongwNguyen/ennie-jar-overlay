@@ -167,8 +167,13 @@ function giftSize(event) {
 }
 
 // One gift's picture (or an emoji when it has none), sized for its price; el._size is that size.
+// TikTok's Rose is gift 5655 whatever language the live page is in ("Rose", "Hoa hồng"…). Gifts saved
+// in the jar before the id was kept, and test gifts from the control page ("demo"), have no real id,
+// so those still go by the name.
+const ROSE_ID = "5655";
+const isRose = gift => (/^\d+$/.test(gift.id ?? "") ? gift.id === ROSE_ID : /rose|hoa hồng/i.test(gift.name || ""));
 function makeGiftEl(event, i) {
-  const emojis = /rose|hoa/i.test(event.gift.name) ? ["🌹", "🌹", "💗"] : ["💝", "✨", "🌸"];
+  const emojis = isRose(event.gift) ? ["🌹", "🌹", "💗"] : ["💝", "✨", "🌸"];
   const size = giftSize(event);
   const el = document.createElement("span");
   el.className = "gift-particle";

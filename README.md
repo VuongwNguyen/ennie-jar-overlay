@@ -50,6 +50,8 @@ Trên trang điều khiển, nhập username kênh đang live rồi bấm **Kế
 - Hũ rung và có hiệu ứng lấp lánh theo mức quà (thường, từ 100 xu, từ 1000 xu).
 - Top 3 người tặng hiện avatar trên các thẻ treo.
 - Phiên được lưu ở `data/session.json`; mở lại overlay thì hũ được dựng lại. **Reset phiên** xóa sạch.
+- Sổ quà `data/gift-log.jsonl` (luôn bật): mỗi quà tới server là một dòng, có giờ, người tặng, mã quà, xu và kết quả (`credited`, `duplicate`, `streak-in-progress`). Sổ cũng ghi mỗi lần kết nối TikTok đổi trạng thái và mỗi lần reset phiên. Reset phiên không xoá sổ. Quá 4 MB thì file được đổi tên thành `gift-log.1.jsonl` (chỉ giữ một bản cũ). Dùng để tra khi có người báo đã tặng mà hũ không ghi.
+- Mất kết nối TikTok thì tự thử lại sau 3s, 6s, 12s, rồi cứ 30s một lần. Kết nối lại được thì đếm lại từ đầu.
 
 ### Hiệu ứng quà lớn
 Quà có giá mỗi món từ ngưỡng đặt trên trang điều khiển (mặc định 1000 xu, `0` là tắt) sẽ gom mọi quà trên màn hình thành hình trái tim ở giữa, nổ ra rồi đổ lại vào hũ (`bigburst.js`). Ngưỡng lưu ở `data/effects.json`.

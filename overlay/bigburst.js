@@ -104,7 +104,7 @@
     const D = d * to;
     el.style.borderColor = colour;
     el.style.borderWidth = `${10 * to}px`;
-    el.style.boxShadow = `0 0 ${30 * to}px #ff8fc4, inset 0 0 ${24 * to}px #fff8`;
+    el.style.boxShadow = `0 0 ${15 * to}px #ff8fc4`;
     gsap.fromTo(el, { width: D, height: D, x: x - D / 2, y: y - D / 2, scale: 0.15 / to, opacity: 1 },
       { scale: 1, opacity: 0, duration, delay, ease: "power2.out", onComplete: () => el.remove() });
   }
@@ -306,8 +306,8 @@
         ring(group, cx, cy, size * 0.8, "#ffe08a", 5, 1.0);
         ring(group, cx, cy, size * 0.8, "#ff8fc7", 4, 1.1, 0.08);
         ring(group, cx, cy, size * 0.8, "#ffffff", 3, 0.9, 0.16);
-        for (let i = 0; i < 48; i++) {
-          const angle = (i / 48) * Math.PI * 2 + random(-0.1, 0.1), dist = random(0.3, 0.6) * H;
+        for (let i = 0; i < 30; i++) {
+          const angle = (i / 30) * Math.PI * 2 + random(-0.1, 0.1), dist = random(0.3, 0.6) * H;
           spark(group, centre, { x: cx + Math.cos(angle) * dist, y: cy + Math.sin(angle) * dist }, { size: random(20, 48), duration: random(0.9, 1.4) });
         }
       }, BURST);
