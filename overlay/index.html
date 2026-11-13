@@ -87,7 +87,6 @@
             <input type="number" id="ruleGifterAbove" min="0" max="100" aria-label="Cấp quà lớn hơn">
             <span>danh hiệu</span> <input id="ruleGifterBadge" maxlength="16" aria-label="Danh hiệu cho cấp quà">
           </label>
-          <button>Lưu</button>
         </form>
         <p class="hint" id="rulesNotice" role="status"></p>
       </div>
@@ -111,9 +110,41 @@
           <label class="effects-label" for="burstFrom">Quà từ</label>
           <input type="number" id="burstFrom" min="0" step="1" aria-describedby="effectsNotice">
           <span class="effects-unit">xu (0 = tắt)</span>
-          <button>Lưu</button>
         </form>
         <p class="hint" id="effectsNotice" role="status"></p>
+      </div>
+      <!-- The jar game (server/src/jar-game.js, overlay/jargame.js): which gift is Phe Phá and which is Phe Giữ,
+           kept in data/jar-game.json. How strong a turn is follows the sample steps shown in the table. -->
+      <div class="card">
+        <!-- The switch turns the game on or off at once; its settings below only show while it is on. -->
+        <div class="game-head">
+          <h2>Trò chơi trên hũ <small>Phe Phá / Phe Giữ</small></h2>
+          <label class="game-on"><span id="gameOnLabel">Tắt</span><input type="checkbox" role="switch" class="switch" id="gameOn" aria-label="Bật trò chơi trên hũ"></label>
+        </div>
+        <p class="hint" id="gameNotice" role="status"></p>
+        <div class="game-body" id="gameBody" hidden>
+        <!-- Each level has its own gift for either side; the coin range of a level stays as it is. -->
+        <p class="hint level-hint">Mỗi mức chọn một món quà riêng cho từng phe, giá món quà nằm trong khoảng xu của mức đó. Mức nào để trống thì bỏ qua. Quà chỉ kích hoạt trò chơi khi đang có ván; ngoài ván quà rơi vào hũ như thường, hết ván thì quà bị tha tự về lại hũ.</p>
+        <table class="game-tiers" id="gameTiers" aria-label="Quà theo từng mức"></table>
+        <!-- A round like a PK (pk.html): a clock, the two sides' coins, a dare drawn at random from the list. -->
+        <div class="game-round">
+          <div class="game-round-row">
+            <label>⏱ Mỗi ván<input type="number" id="gameMinutes" min="0.5" max="30" step="0.5" aria-label="Số phút mỗi ván"></label>
+            <span class="effects-unit">phút</span>
+            <button type="button" id="roundStart">▶ Bắt đầu ván</button>
+            <button type="button" class="secondary" id="roundStop">■ Dừng ván</button>
+          </div>
+          <div class="round-line">
+            <p class="round-status" id="roundStatus">Chưa có ván nào.</p>
+            <button type="button" class="secondary" id="openDonors">👥 Người đóng góp</button>
+          </div>
+          <label class="game-dares">🎯 Danh sách kèo <small>mỗi dòng một kèo, mỗi ván bốc ngẫu nhiên một kèo; Phe Phá thắng thì Ennie trả</small>
+            <textarea id="gameDares" rows="5" aria-label="Danh sách kèo"></textarea>
+          </label>
+        </div>
+        <div class="presets game-tests" id="gameTests" aria-label="Thử trò chơi"><span>Thử:</span></div>
+        <p class="hint">Nút thử không đổi tổng xu và top người tặng.</p>
+        </div>
       </div>
       <details class="card fold-card">
         <summary>Link riêng lẻ (cũ) <small>không chỉnh được trên trang bố cục</small></summary>
@@ -136,7 +167,7 @@
         <h2>Giả lập <small>không ảnh hưởng TikTok</small></h2>
         <div class="presets" aria-label="Chọn nhanh">
           <button class="chip" data-gift="Rose" data-coins="1">Hoa hồng</button>
-          <button class="chip" data-gift="Heart Me" data-coins="1">Tim đội</button>
+          <button class="chip" data-gift="Heart Me" data-coins="1">Thả tim cho tôi (tim đội)</button>
           <button class="chip" data-gift="Lion" data-coins="199">Quà to (199 xu)</button>
           <button class="chip" data-gift="Universe" data-coins="1000" title="Quà đủ mức gom tim (đặt ở thẻ Overlay)">Quà nổ tim (1.000 xu)</button>
         </div>
@@ -159,6 +190,18 @@
       </div>
     </section>
   </main>
+  <!-- Everyone who gave in the round under way or the last one, on both sides, for Ennie to read out and thank. -->
+  <dialog class="donors-dialog" id="donorsDialog" aria-labelledby="donorsTitle">
+    <div class="donors-head">
+      <h2 id="donorsTitle">👥 Người đóng góp</h2>
+      <button type="button" class="ghost" id="closeDonors" aria-label="Đóng">✕</button>
+    </div>
+    <p class="donors-summary" id="donorsSummary"></p>
+    <div class="donors-cols">
+      <section class="donors-col raid"><h3 id="donorsRaidHead">😈 Phe Phá</h3><ol id="donorsRaid"></ol></section>
+      <section class="donors-col guard"><h3 id="donorsGuardHead">💗 Phe Giữ</h3><ol id="donorsGuard"></ol></section>
+    </div>
+  </dialog>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/dashboard.js"></script>
 </body>

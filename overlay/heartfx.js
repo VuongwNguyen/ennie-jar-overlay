@@ -1,15 +1,15 @@
 // Plays the Ennie-and-heart clip (media/ennie_heart.webm) when someone sends the team heart gift.
 // Runs in heart.html, an overlay of its own beside the jar (overlay.html), with its own connection.
-// TikTok calls that gift "Heart Me" ("Tim đội" in the Vietnamese app). The clip is 1080x1920 with a
+// TikTok calls that gift "Heart Me" ("Thả tim cho tôi" in the Vietnamese app; viewers call it "tim đội"). The clip is 1080x1920 with a
 // transparent top, so it covers the whole source and only the garden at the bottom shows.
 // While it plays, more of the same gift are ignored rather than queued: the gift costs 1 coin and
 // often arrives dozens of times in a row, so a queue would keep the clip on screen for minutes.
 (() => {
   // Matched by the gift's id, which is the same in every language. The server shows gift names in
   // Vietnamese (server/src/gift-names.js), so a test gift from the control page, which has no real id,
-  // arrives as "Tim đội"; the English name is kept too, should a gift come through untranslated.
+  // arrives as "Thả tim cho tôi"; the English name is kept too, should a gift come through untranslated.
   const TRIGGER_ID = "7934";
-  const TRIGGER_NAMES = ["heart me", "tim đội"];
+  const TRIGGER_NAMES = ["heart me", "thả tim cho tôi", "tim đội"];
   const video = document.getElementById("heartFx");
   if (!video) return;
   const socket = io();

@@ -25,7 +25,7 @@
       if (id === "welcome") query.set("test", "hold");
       if (id === "heart") query.set("hold", "");
     }
-    const page = { jar: "/overlay.html", welcome: "/welcome.html", heart: "/heart.html" }[id];
+    const page = { jar: "/overlay.html", welcome: "/welcome.html", heart: "/heart.html", pk: "/pk.html" }[id];
     const search = query.toString().replace(/=(&|$)/g, "$1");
     return page && (search ? `${page}?${search}` : page);
   }

@@ -56,6 +56,10 @@ Trên trang điều khiển, nhập username kênh đang live rồi bấm **Kế
 ### Hiệu ứng quà lớn
 Quà có giá mỗi món từ ngưỡng đặt trên trang điều khiển (mặc định 1000 xu, `0` là tắt) sẽ gom mọi quà trên màn hình thành hình trái tim ở giữa, nổ ra rồi đổ lại vào hũ (`bigburst.js`). Ngưỡng lưu ở `data/effects.json`.
 
+Trò chơi trên hũ (thẻ Overlay trên trang điều khiển): chọn một món quà cho **Phe Phá** và một món cho **Phe Giữ** rồi bật. Tặng quà Phe Phá thì một Ennie khác chạy vào, nhảy lên miệng hũ, tha quà đi rồi chạy ra; quà lớn thì cả đàn ba Ennie kéo tới. Tặng quà Phe Giữ thì mưa tim rơi xuống và trả lại những món đã bị tha. Mạnh hay yếu theo bộ mức mẫu (1, 10, 100, 1.000 xu). Quà vẫn được tính vào tổng xu và top như thường, chỉ hình trong hũ là bị tha. Cài đặt lưu ở `data/jar-game.json`, số món đang bị tha lưu cùng phiên (`server/src/jar-game.js`, `overlay/jargame.js`).
+
+Ván PK trên hũ: bấm **Bắt đầu ván** trên trang điều khiển, đồng hồ đếm ngược theo số phút đặt sẵn, xu của hai phe cộng dồn trên bảng PK (`pk.html`, phần "Trò chơi trên hũ" trong trang bố cục). Phe Phá dẫn thì bảng và Ennie ở góc kêu cứu. Hết giờ, phe nhiều xu hơn thắng; Phe Phá thắng thì Ennie trả kèo bốc ngẫu nhiên từ danh sách kèo lúc đầu ván, và top 3 phe thắng được vinh danh. **Dừng ván** là huỷ, không tính thắng thua.
+
 ### Chào mừng người vào live
 Khi ai đó vào live, hoặc lần đầu được thấy qua chat, like, quà, follow, share, họ được xét để hiện khung chào mừng (`welcome.html`). Thứ tự xét:
 

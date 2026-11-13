@@ -5,7 +5,7 @@
 // here moves.
 (() => {
   const $ = id => document.getElementById(id);
-  const ICONS = { jar: "🍯", welcome: "✨", heart: "💗" };
+  const ICONS = { jar: "🍯", welcome: "✨", heart: "💗", pk: "⚔️" };
   const MIN = 20;
   let stage = { w: 1080, h: 1920 };
   let layers = []; // bottom layer first, as on the server

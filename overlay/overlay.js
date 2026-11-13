@@ -213,6 +213,8 @@ function addGiftBody(el, x, y, v = { x: 0, y: 1 }, angle = 0) {
 // `at` places the gift directly in the jar (restoring a session) instead of dropping it from above.
 function dropGift(event, i, at) {
   const el = makeGiftEl(event, i);
+  // Which gift this piece is, so the jar game (jargame.js) can put it back after Ennie has taken it.
+  el._event = event; el._i = i;
   if (engine) {
     const x = at?.x ?? CX + (Math.random() - 0.5) * 80;
     const y = at?.y ?? spawnY();
@@ -391,12 +393,17 @@ function restSlots() {
   return slots;
 }
 
+// Pieces Ennie has taken out of the jar in the jar game (jargame.js), latest last, to rain back in for Phe Giữ.
+const stolenPieces = [];
+
 // Refills an empty jar without effects: these gifts were already celebrated.
 // What fits is placed inside, oldest first; the rest falls in from above and spills as it did live.
 // Large gifts would not fit a slot without pushing their neighbours away, so they fall in as well.
-function restoreJar(events) {
+// The newest `stolen` pieces stay out: Ennie has taken them in the jar game.
+function restoreJar(events, stolen = 0) {
   const slots = restSlots();
   const items = events.flatMap(event => Array.from({ length: particleCount(event) }, (_, i) => ({ event, i })));
+  stolenPieces.push(...items.splice(items.length - Math.min(items.length, Math.max(0, stolen))));
   let placed = 0, falling = 0;
   for (const { event, i } of items) {
     if (placed < slots.length && giftSize(event) <= SLOT_FIT) dropGift(event, i, slots[placed++]);
@@ -409,17 +416,18 @@ function clearJar() {
   for (const timer of pendingDrops) clearTimeout(timer);
   pendingDrops.clear();
   shownEvents.clear();
+  stolenPieces.length = 0;
   for (const [body, el] of [...particles]) removeParticle(body, el);
   $("giftLayer").replaceChildren();
 }
 
 // Sent on every (re)connect, so skip what is already shown and catch up on anything missed.
-function syncJar({ sessionId, gifts }) {
+function syncJar({ sessionId, gifts, stolen }) {
   if (jarSession && jarSession !== sessionId) clearJar();
   jarSession = sessionId;
   const missing = gifts.filter(event => !shownEvents.has(event.eventId));
   for (const event of missing) shownEvents.add(event.eventId);
-  if (!particles.size) restoreJar(missing);
+  if (!particles.size) restoreJar(missing, stolen);
   else for (const event of missing) pour(event);
 }
 

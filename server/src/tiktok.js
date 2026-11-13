@@ -125,7 +125,9 @@ export function mapTikTokUnauthorizedMember(data) {
 const SAME_JOIN_MS = 5000;
 
 // onUser(user, source) hears everyone who chats, sends likes, follows or shares.
-export function createTikTokAdapter({ onGift, onMember, onUser, onStatus }) {
+// wantsGiftList() says whether TikTok's gift list is wanted; it is then fetched once connected and handed to
+// onGiftList(list), for the prices and pictures of gifts (gift-catalog.js).
+export function createTikTokAdapter({ onGift, onMember, onUser, onStatus, wantsGiftList, onGiftList }) {
   let connection = null;
   let status = { state: "disconnected", username: "", error: "" };
 
@@ -200,6 +202,11 @@ export function createTikTokAdapter({ onGift, onMember, onUser, onStatus }) {
       await conn.connect();
       if (connection !== conn) return status;
       setStatus({ state: "connected", error: "" });
+      if (onGiftList && wantsGiftList?.()) {
+        conn.fetchAvailableGifts()
+          .then(list => onGiftList(list))
+          .catch(err => console.log(`TikTok gift list: ${err?.message || err}`));
+      }
     } catch (err) {
       if (connection === conn) connection = null;
       setStatus({ state: "disconnected", error: err?.message || "Không kết nối được" });

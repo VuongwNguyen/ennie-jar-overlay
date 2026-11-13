@@ -49,6 +49,105 @@ input {
 }
 input:focus { outline: none; border-color: var(--pink); box-shadow: 0 0 0 3px var(--pink-soft); }
 input[readonly] { background: var(--soft); }
+select {
+  width: 100%; padding: 9px 10px; border: 1px solid var(--line-strong); border-radius: 9px;
+  background: #fff; color: var(--text); font: inherit;
+}
+select:focus { outline: none; border-color: var(--pink); box-shadow: 0 0 0 3px var(--pink-soft); }
+/* The jar game card. */
+.game-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.game-head h2 { margin: 0; }
+.game-head .game-on { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; cursor: pointer; }
+.game-body { margin-top: 10px; }
+.game-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; }
+.game-form label { display: grid; gap: 4px; color: var(--muted); font-size: 12px; }
+/* An on/off switch drawn from a checkbox. */
+input.switch {
+  appearance: none; -webkit-appearance: none; position: relative; flex: none; width: 46px; height: 26px; margin: 0; padding: 0;
+  border: 0; border-radius: 13px; background: var(--line-strong); cursor: pointer; transition: background .2s;
+}
+input.switch::after {
+  content: ""; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px #0003; transition: transform .2s;
+}
+input.switch:checked { background: var(--pink); }
+input.switch:checked::after { transform: translateX(20px); }
+input.switch:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--pink-soft); }
+input.switch:disabled { opacity: .5; cursor: wait; }
+.game-tiers { width: 100%; margin-top: 10px; border-collapse: collapse; font-size: 12px; }
+.game-tiers th, .game-tiers td { padding: 5px 6px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.game-tiers td { vertical-align: middle; }
+.game-tiers .level-gift { width: 34%; }
+/* A level's gift: a button with the gift's picture, name and price, which opens the picker. */
+.gift-pick {
+  width: 100%; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; text-align: left;
+  padding: 5px 8px; border: 1px solid var(--line-strong); border-radius: 9px; background: #fff; color: var(--text);
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.gift-pick:hover { border-color: var(--pink); background: #fff; color: var(--text); }
+.gift-pick.empty { grid-template-columns: 1fr; color: var(--muted); font-weight: 400; padding: 9px 8px; }
+.gift-pick small { color: var(--muted); font-weight: 600; white-space: nowrap; }
+.gift-pick .gift-name, .gift-tile .gift-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gift-pic { width: var(--pic, 28px); height: var(--pic, 28px); flex: none; display: grid; place-items: center; font-size: calc(var(--pic, 28px) * .6); }
+.gift-pic img { width: 100%; height: 100%; object-fit: contain; }
+.gift-picker {
+  position: absolute; z-index: 50; max-height: 430px; display: flex; flex-direction: column; box-sizing: border-box;
+  background: #fff; border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: 0 12px 30px #1f233033; overflow: hidden;
+}
+.picker-top { padding: 10px; display: grid; gap: 8px; border-bottom: 1px solid var(--line); }
+.picker-top input { padding: 7px 10px; }
+.picker-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.picker-filters .chip.on { background: var(--pink); color: #fff; border-color: var(--pink); }
+.picker-grid { padding: 8px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+.gift-tile {
+  display: grid; justify-items: center; gap: 2px; padding: 6px 4px; min-width: 0; border: 1px solid var(--line); border-radius: 10px;
+  background: #fff; color: var(--text); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.gift-tile:hover:not(:disabled) { border-color: var(--pink); background: var(--pink-soft); color: var(--text); }
+.gift-tile.picked { border: 2px solid var(--pink); background: var(--pink-soft); }
+.gift-tile:disabled { opacity: .4; cursor: not-allowed; }
+.gift-tile .gift-name { max-width: 100%; }
+.gift-tile small { color: var(--muted); font-weight: 600; }
+.gift-tile.clear { align-content: center; color: var(--muted); }
+.picker-note { margin: 0; padding: 0 10px 8px; font-size: 12px; color: var(--muted); }
+.picker-note:empty { display: none; }
+.game-tiers .level-gift small { display: block; margin-top: 3px; color: var(--muted); }
+.level-hint { margin-top: 0; }
+.game-tiers th { color: var(--muted); font-weight: 600; }
+.game-tests { margin-top: 10px; align-items: center; }
+.game-round { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.game-round-row { display: grid; grid-template-columns: 110px auto auto auto 1fr; gap: 8px; align-items: end; }
+.game-round-row label, .game-dares { display: grid; gap: 4px; color: var(--muted); font-size: 12px; }
+.game-round-row .effects-unit { padding-bottom: 10px; }
+.game-dares small { font-weight: 400; }
+textarea {
+  width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid var(--line-strong); border-radius: 9px;
+  background: #fff; color: var(--text); font: inherit; resize: vertical;
+}
+textarea:focus { outline: none; border-color: var(--pink); box-shadow: 0 0 0 3px var(--pink-soft); }
+.round-status { margin: 0; font-size: 13px; font-weight: 600; }
+.round-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+#openDonors { padding: 6px 12px; font-size: 13px; }
+/* The contributors dialog: both sides side by side, each list scrolling on its own. */
+.donors-dialog { width: min(760px, calc(100vw - 32px)); max-height: min(720px, calc(100vh - 40px)); padding: 16px; border: 0; border-radius: 16px; box-shadow: 0 20px 50px #1f233040; color: var(--text); }
+.donors-dialog[open] { display: flex; flex-direction: column; gap: 8px; }
+.donors-dialog::backdrop { background: #1f233066; }
+.donors-head { display: flex; align-items: center; justify-content: space-between; }
+.donors-head h2 { margin: 0; font-size: 18px; }
+.donors-summary { margin: 0; font-size: 13px; color: var(--muted); }
+.donors-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; min-height: 0; flex: 1; }
+.donors-col { display: flex; flex-direction: column; min-height: 0; border-radius: 12px; padding: 10px 12px; }
+.donors-col.raid { background: #f5eeff; border: 1px solid #c9a8f0; }
+.donors-col.guard { background: var(--pink-soft); border: 1px solid #f3c2da; }
+.donors-col h3 { margin: 0 0 6px; font-size: 15px; }
+.donors-col ol { margin: 0; padding-left: 26px; overflow-y: auto; max-height: 52vh; }
+.donors-col li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid #0000000d; font-size: 14px; }
+.donors-col li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.donors-col li em { font-style: normal; color: var(--muted); white-space: nowrap; }
+.donors-col li.none { display: block; color: var(--muted); border: 0; }
+@media (max-width: 560px) { .donors-cols { grid-template-columns: 1fr; } }
+.round-status.live { color: var(--pink-dark); }
+.game-tests span { font-size: 12px; color: var(--muted); }
 button {
   border: 0; border-radius: 9px; padding: 9px 14px; background: var(--pink); color: #fff;
   font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap;
@@ -137,6 +236,8 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   .welcome-add { grid-template-columns: 1fr auto; }
   .welcome-add #welcomeBadge { grid-column: 1; }
   .effects-form { grid-template-columns: auto 1fr; }
+  .game-form { grid-template-columns: 1fr; }
+  .game-round-row { grid-template-columns: 1fr auto; }
   .rule { grid-template-columns: auto 1fr 70px; }
   .rule > span:nth-of-type(2), .rule > input:last-child { grid-column: 2 / -1; }
 }

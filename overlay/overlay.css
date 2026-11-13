@@ -127,6 +127,21 @@ body.overlay-page { background: transparent; color: #fff; overflow: hidden; }
 /* The drop shadow only goes down, not sideways: the picture is flipped when she turns around. */
 .dog-sprite { position: absolute; left: 0; top: 0; width: 190px; height: 190px; z-index: 10; pointer-events: none; will-change: transform; filter: drop-shadow(0 4px 4px rgba(60, 20, 40, .32)); }
 .dog-sprite-shadow { position: absolute; left: 0; top: 0; height: 20px; z-index: 10; pointer-events: none; background: radial-gradient(closest-side, rgba(45, 15, 35, .55), rgba(45, 15, 35, .24) 62%, transparent); }
+/* The jar game (jargame.js): Ennie raiding the jar for Phe Phá, in front of the jar and the dog in the corner,
+   the gifts she carries, the hearts for Phe Giữ, and the words that go with them. */
+.jg-dog { position: absolute; left: 0; top: 0; z-index: 11; pointer-events: none; will-change: transform; filter: drop-shadow(0 4px 4px rgba(60, 20, 40, .32)); }
+.jg-shadow { position: absolute; left: 0; top: 0; height: 18px; z-index: 10; pointer-events: none; background: radial-gradient(closest-side, rgba(45, 15, 35, .5), rgba(45, 15, 35, .2) 62%, transparent); }
+.jg-carry { position: absolute; left: 0; top: 0; z-index: 12; pointer-events: none; }
+.gift-particle.jg-piece { z-index: 12; }
+.jg-heart { position: absolute; left: 0; top: 0; z-index: 11; pointer-events: none; line-height: 1; text-shadow: 0 2px 6px #ff5fa866; }
+.jg-banner {
+  position: absolute; left: 155px; top: 58px; z-index: 13; pointer-events: none; white-space: nowrap;
+  padding: 6px 14px; border-radius: 16px; font-size: 17px; font-weight: 800; line-height: 1.2; text-shadow: none;
+  background: #fffafd; border: 2.5px solid #ee86bd; color: #c43d84; box-shadow: 0 3px 8px #24152d40;
+}
+.jg-banner.raid { background: #f8f1ff; border-color: #a57ad8; color: #6e3fae; }
+.jg-count { position: absolute; left: 0; top: 0; z-index: 13; pointer-events: none; white-space: nowrap; font-size: 20px; font-weight: 900; color: #fff; -webkit-text-stroke: 1px #c43d84; paint-order: stroke; text-shadow: 0 2px 6px #c43d8466; }
+.jg-count.raid { -webkit-text-stroke-color: #6e3fae; text-shadow: 0 2px 6px #6e3fae66; }
 /* The speech bubble over the walking dog's head (dogsprite.js), greeting viewers who join.
    --tail is where the dog's head is, measured from the bubble's left edge. */
 .dog-bubble { position: absolute; left: 0; top: 0; z-index: 12; pointer-events: none; display: none; --tail: 50%; }

@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ennie PK</title>
+  <!-- The PK panel of the jar game (pk.js), a part of its own on live.html: Phe Phá against Phe Giữ, the clock,
+       the dare, the cry for help when Phe Phá leads, and the honours when time is up. Hidden between rounds.
+       pk.html?preview shows a made-up round, to place it on the layout page. -->
+  <style>
+    @font-face { font-family: "Pacifico"; src: url("/vendor/pacifico.woff2") format("woff2"); font-display: swap; }
+    :root {
+      --raid: #8f5ad6; --raid-deep: #6a35b0; --raid-soft: #efe4ff;
+      --guard: #ff6fb1; --guard-deep: #d63f87; --guard-soft: #ffe3f1;
+      --ink: #5a2a4a;
+    }
+    html, body { margin: 0; width: 100%; height: 100%; background: transparent; overflow: hidden; }
+    body { font-family: "Segoe UI", system-ui, sans-serif; color: var(--ink); }
+    /* Drawn at 800 x 300 and scaled to fit the part's box (pk.js sets --fit). */
+    .pk {
+      position: absolute; left: 50%; top: 50%; width: 800px; height: 300px;
+      transform: translate(-50%, -50%) scale(var(--fit, 1)); transform-origin: 50% 50%;
+      opacity: 0; transition: opacity .4s;
+    }
+    .pk.on { opacity: 1; }
+    .board {
+      position: absolute; inset: 0 0 30px 0; padding: 14px 18px; box-sizing: border-box; border-radius: 28px;
+      background: linear-gradient(180deg, #fffafdee, #fff1f8ee); border: 3px solid #ffd0e8;
+      box-shadow: 0 8px 22px #3b1a3240, inset 0 2px 0 #fff;
+    }
+    .head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; height: 76px; }
+    .side { display: flex; flex-direction: column; line-height: 1.05; }
+    .side b { font-size: 26px; font-weight: 900; letter-spacing: .5px; }
+    /* One gift of the side at a time, flipping to the next every few seconds (pk.js), so every gift gets seen. */
+    .flip { display: flex; align-items: center; gap: 7px; height: 34px; margin-top: 5px; }
+    .side.guard .flip { justify-content: flex-end; }
+    .flip .card { display: flex; align-items: center; gap: 7px; padding: 2px 12px 2px 4px; border-radius: 17px; background: #fff; box-shadow: 0 2px 6px #3b1a3226; white-space: nowrap; transform-origin: 50% 50%; }
+    .side.raid .flip .card { border: 2px solid var(--raid); }
+    .side.guard .flip .card { border: 2px solid var(--guard); flex-direction: row-reverse; padding: 2px 4px 2px 12px; }
+    /* The flip only uncovers and covers the card from its middle line (clip-path), never scaling or fading it: a
+       transform or fade inside the scaled panel is drawn small and blown up, which blurs the text for a moment.
+       This way the text is always drawn at full size and stays sharp, even while it flips. */
+    .flip .card.in { animation: flip-in .3s ease-out; }
+    .flip .card.out { animation: flip-out .18s ease-in forwards; }
+    @keyframes flip-in { from { clip-path: inset(50% -10px 50% -10px); } to { clip-path: inset(-10px -10px -10px -10px); } }
+    @keyframes flip-out { from { clip-path: inset(-10px -10px -10px -10px); } to { clip-path: inset(50% -10px 50% -10px); } }
+    .flip .pic { width: 28px; height: 28px; display: grid; place-items: center; font-size: 18px; }
+    .flip .pic img { width: 100%; height: 100%; object-fit: contain; }
+    .flip b { font-size: 18px !important; letter-spacing: 0 !important; color: var(--ink) !important; }
+    .flip em { font-style: normal; font-size: 14px; font-weight: 800; opacity: .75; }
+    .side.raid b { color: var(--raid-deep); }
+    .side.guard { text-align: right; }
+    .side.guard b { color: var(--guard-deep); }
+    .clock {
+      min-width: 112px; padding: 4px 16px; border-radius: 22px; text-align: center; box-sizing: border-box;
+      background: #fff; border: 3px solid #ffc0de; font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--ink);
+    }
+    .clock.hurry { border-color: #ff4f7b; color: #e2245a; animation: tick 1s infinite; }
+    /* Pulses by colour and glow only: a scaling pulse would blur the numbers (see .flip). */
+    @keyframes tick { 50% { background: #ffe3ec; box-shadow: 0 0 0 6px #ff4f7b40; } }
+    .bar {
+      position: relative; height: 54px; margin-top: 10px; border-radius: 27px; overflow: hidden;
+      background: var(--guard); box-shadow: inset 0 3px 6px #0002;
+    }
+    .fill-raid { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; background: linear-gradient(90deg, var(--raid-deep), var(--raid)); transition: width .6s cubic-bezier(.2, .9, .3, 1.2); }
+    .fill-guard { position: absolute; inset: 0; background: linear-gradient(90deg, var(--guard), var(--guard-deep)); }
+    .spark { position: absolute; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; font-size: 34px; line-height: 46px; text-align: center; transition: left .6s cubic-bezier(.2, .9, .3, 1.2); filter: drop-shadow(0 0 6px #fff); }
+    .score { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; font-size: 30px; font-weight: 900; color: #fff; text-shadow: 0 2px 4px #0005; font-variant-numeric: tabular-nums; }
+    .score.raid { left: 20px; }
+    .score.guard { right: 20px; }
+    .mvps { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 10px; height: 40px; }
+    .mvp { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 16px; font-weight: 700; }
+    .mvp.guard { flex-direction: row-reverse; text-align: right; }
+    .mvp .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mvp em { font-style: normal; font-size: 13px; opacity: .75; display: block; }
+    .avatar { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; overflow: hidden; background: #fff; font-size: 20px; }
+    .mvp.raid .avatar { border: 3px solid var(--raid); }
+    .mvp.guard .avatar { border: 3px solid var(--guard); }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .dare { margin-top: 10px; height: 36px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 18px; background: #fff7d6; border: 2px dashed #f4c95d; font-size: 18px; font-weight: 800; color: #9a5a12; white-space: nowrap; overflow: hidden; }
+    .dare span { overflow: hidden; text-overflow: ellipsis; }
+    /* The cry for help, over the bottom of the board while Phe Phá leads. */
+    .help {
+      position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%); white-space: nowrap;
+      padding: 8px 22px; border-radius: 22px; background: #ff4f7b; color: #fff; font-size: 22px; font-weight: 900;
+      box-shadow: 0 6px 14px #e2245a66; opacity: 0; pointer-events: none;
+    }
+    .help.on { opacity: 1; animation: help 1.4s ease-in-out infinite; }
+    .help.on.hurry { animation-duration: .7s; background: #e2245a; }
+    @keyframes help { 0%, 100% { opacity: 1; box-shadow: 0 6px 14px #e2245a66; } 50% { opacity: 1; box-shadow: 0 0 0 8px #ff4f7b55, 0 6px 18px #e2245a88; } }
+    /* The result, in place of the board for a while once time is up. */
+    .result { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 12px 18px; box-sizing: border-box; border-radius: 28px; text-align: center; }
+    .pk.done .result { display: flex; }
+    .pk.done .board, .pk.done .help { display: none; }
+    .result.raid { background: linear-gradient(180deg, #f6eeffee, #e6d4ffee); border: 3px solid var(--raid); }
+    .result.guard { background: linear-gradient(180deg, #fff3faee, #ffd9ecee); border: 3px solid var(--guard); }
+    .result.draw { background: linear-gradient(180deg, #fffdf2ee, #fff0c8ee); border: 3px solid #f4c95d; }
+    .result h1 { margin: 0; font-family: "Pacifico", cursive; font-weight: 400; font-size: 40px; line-height: 1.2; }
+    .result.raid h1 { color: var(--raid-deep); }
+    .result.guard h1 { color: var(--guard-deep); }
+    .result.draw h1 { color: #9a5a12; }
+    .result p { margin: 0; font-size: 20px; font-weight: 800; }
+    .honours { display: flex; gap: 22px; margin-top: 6px; }
+    .honour { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 150px; font-weight: 800; font-size: 15px; }
+    .honour .avatar { width: 58px; height: 58px; font-size: 26px; border: 3px solid #f4c95d; position: relative; }
+    .honour.first .avatar { width: 70px; height: 70px; border-color: #f2b632; box-shadow: 0 0 14px #f4c95d; }
+    .honour .name { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .honour em { font-style: normal; font-size: 13px; opacity: .75; }
+    .honour .rank { font-size: 20px; line-height: 1; }
+    /* After the honours: everyone who gave, on both sides, scrolling by itself when the list is long. */
+    .result.thanks { background: linear-gradient(180deg, #fffafdee, #fff1f8ee); border: 3px solid #ffd0e8; justify-content: flex-start; gap: 6px; }
+    .result.thanks h1 { font-size: 30px; color: #d63f87; }
+    .thank-cols { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr); gap: 12px; width: 100%; flex: 1; min-height: 0; overflow: hidden; }
+    .thank-col { display: flex; flex-direction: column; min-height: 0; overflow: hidden; border-radius: 16px; padding: 6px 10px; }
+    .thank-col.raid { background: var(--raid-soft); border: 2px solid var(--raid); }
+    .thank-col.guard { background: var(--guard-soft); border: 2px solid var(--guard); }
+    .thank-col h2 { margin: 0 0 4px; font-size: 16px; font-weight: 900; text-align: left; }
+    .thank-col.raid h2 { color: var(--raid-deep); }
+    .thank-col.guard h2 { color: var(--guard-deep); }
+    .thank-col ol { list-style: none; margin: 0; padding: 0; overflow: hidden; flex: 1; min-height: 0; }
+    .thank-col li { display: flex; justify-content: space-between; gap: 8px; font-size: 15px; font-weight: 700; line-height: 1.5; text-align: left; }
+    .thank-col li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .thank-col li em { font-style: normal; opacity: .7; white-space: nowrap; }
+    .thank-col .none { opacity: .6; font-weight: 600; }
+    /* A new round's dare, shown with a countdown before the clock starts. */
+    .result.preview { background: linear-gradient(180deg, #fffdf2ee, #fff0c8ee); border: 3px solid #f4c95d; gap: 4px; }
+    .result.preview h1 { font-size: 32px; color: #d63f87; }
+    .result.preview .label { font-size: 17px; font-weight: 800; color: #9a5a12; }
+    .result.preview .dare-big { font-size: 30px; font-weight: 900; color: #5a2a4a; line-height: 1.2; max-width: 740px; }
+    .result.preview .count { font-size: 18px; font-weight: 800; color: #d63f87; }
+    .result.preview .count b { display: inline-block; min-width: 1.2em; font-size: 26px; }
+    /* The guide, while the game is on and no round is under way. */
+    .guide { position: absolute; inset: 0; display: none; flex-direction: column; gap: 10px; padding: 14px 18px; box-sizing: border-box; border-radius: 28px;
+      background: linear-gradient(180deg, #fffafdee, #fff1f8ee); border: 3px solid #ffd0e8; box-shadow: 0 8px 22px #3b1a3240, inset 0 2px 0 #fff; }
+    .pk.guiding .guide { display: flex; }
+    .pk.guiding .board, .pk.guiding .help, .pk.guiding .result { display: none; }
+    .guide { gap: 6px; padding: 10px 14px; }
+    .guide h1 { margin: 0; text-align: center; font-family: "Pacifico", cursive; font-weight: 400; font-size: 24px; line-height: 1.2; color: #d63f87; }
+    .teams { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; min-height: 0; }
+    .team { display: flex; flex-direction: column; gap: 3px; padding: 6px 10px; border-radius: 18px; min-height: 0; }
+    .team.raid { background: var(--raid-soft); border: 2.5px solid var(--raid); }
+    .team.guard { background: var(--guard-soft); border: 2.5px solid var(--guard); }
+    .team h2 { margin: 0; font-size: 17px; font-weight: 900; line-height: 1.2; }
+    .team.raid h2 { color: var(--raid-deep); }
+    .team.guard h2 { color: var(--guard-deep); }
+    .team ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+    .team li { display: grid; grid-template-columns: 30px auto 1fr; align-items: center; gap: 7px; height: 30px; }
+    .team .pic { width: 30px; height: 30px; border-radius: 9px; background: #fff; display: grid; place-items: center; font-size: 17px; overflow: hidden; animation: bob 1.6s ease-in-out infinite; }
+    .team li:nth-child(2) .pic { animation-delay: -.4s; }
+    .team li:nth-child(3) .pic { animation-delay: -.8s; }
+    .team li:nth-child(4) .pic { animation-delay: -1.2s; }
+    .team .pic img { width: 88%; height: 88%; object-fit: contain; }
+    @keyframes bob { 50% { transform: translateY(-3px) rotate(-4deg); } }
+    .team b { font-size: 16px; font-weight: 900; white-space: nowrap; }
+    .team .does { font-size: 14px; font-weight: 700; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
+    .guide p { margin: 0; text-align: center; font-size: 14px; font-weight: 800; color: #9a5a12; background: #fff7d6; border: 2px dashed #f4c95d; border-radius: 14px; padding: 4px 10px; }
+  </style>
+</head>
+<body>
+  <div class="pk" id="pk">
+    <div class="board">
+      <div class="head">
+        <div class="side raid"><b>😈 PHE PHÁ</b><div class="flip" id="raidGift"></div></div>
+        <div class="clock" id="clock">0:00</div>
+        <div class="side guard"><b>PHE GIỮ 💗</b><div class="flip" id="guardGift"></div></div>
+      </div>
+      <div class="bar">
+        <div class="fill-guard"></div>
+        <div class="fill-raid" id="fillRaid"></div>
+        <div class="spark" id="spark">✨</div>
+        <div class="score raid" id="scoreRaid">0</div>
+        <div class="score guard" id="scoreGuard">0</div>
+      </div>
+      <div class="mvps">
+        <div class="mvp raid" id="mvpRaid"></div>
+        <div class="mvp guard" id="mvpGuard"></div>
+      </div>
+      <div class="dare">🎯 <span id="dare"></span></div>
+    </div>
+    <div class="help" id="help"></div>
+    <div class="result" id="result"></div>
+    <div class="guide" id="guide">
+      <h1>🍯 Trò chơi trên hũ của Ennie</h1>
+      <div class="teams">
+        <div class="team raid"><h2>😈 Phe Phá: thả Ennie đi tha quà</h2><ul id="guideRaid"></ul></div>
+        <div class="team guard"><h2>💗 Phe Giữ: mưa tim cứu hũ</h2><ul id="guideGuard"></ul></div>
+      </div>
+      <p>Chờ Ennie mở ván PK: Phe Phá thắng là Ennie trả kèo! 🎯</p>
+    </div>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/pk.js"></script>
+</body>
+</html>
