@@ -31,7 +31,7 @@ Kiểm tra nhanh: `http://127.0.0.1:8787/api/health`.
 ### Tham số trên URL
 
 - `live.html` chuyển tiếp xuống hũ các tham số `jar=blue|lavender|mint` (màu kính), `dog`, `cat=1` (mèo ngồi trên hũ), `nosticker`, `sfx`.
-- `dog=3d|toon|glb|svg` chọn kiểu chú chó khác. Mặc định là poodle dựng sẵn bằng Blender.
+- `dog=3d|toon|glb|svg` chọn kiểu chú chó khác. Mặc định là chính Ennie, cắt từ video tim đội (xem `tools/video_sprites/`).
 - `size=1.2` phóng to hoặc thu nhỏ hũ trong `overlay.html`.
 
 ## Kết nối TikTok LIVE
@@ -68,7 +68,9 @@ Mỗi nhóm có danh hiệu riêng. Fan cấp từ 20 trở lên và Super Fan k
 Giới hạn chống spam (tối đa 3 lần trong 10 phút, cách nhau 15 giây cho mỗi người) hiện đang tắt trong `server/src/index.js`, hàm `welcome()`.
 
 ### Chú chó Ennie
-Chú chó đi lại trên hũ, cảm ơn người tặng và chào người vào live qua bong bóng thoại. Có âm thanh nhỏ (`sfx.js`), tự ngủ khi không có hoạt động.
+Chú chó dưới sàn hũ là **Ennie thật**: các khung hình của video tim đội (`overlay/media/ennie_heart.webm`) đã cắt nền, không phải mô hình dựng lại. Mặc định cô bé **ngồi yên ở góc dưới bên phải hũ, nhìn thẳng vào người xem** (bộ sprite chính diện `overlay/models/dog-front/`), chớp mắt, nháy mắt, mỉm cười và nhảy mừng khi có quà. Thêm `?roam=1` vào link thì dùng bộ sprite nhìn ngang (`overlay/models/dog/`): cô bé đứng nhìn, quay nhìn, ngáp, vẫy đuôi, **đi bộ** và nhảy chuyền qua lại trong hũ. Các clip đi bộ, ngáp, vẫy đuôi cắt từ một video AI khác (nền xanh) dựng bằng ảnh của chính Ennie. Cô bé cảm ơn người tặng và chào người vào live qua bong bóng thoại. Có âm thanh nhỏ (`sfx.js`), tự ngủ khi không có hoạt động.
+
+Kích thước chú chó là hằng `SIZE` đầu `overlay/dogsprite.js`. Muốn thêm động tác (chạy, ngồi), dựng thêm video của Ennie rồi cho qua cùng quy trình trong `tools/video_sprites/README.md`.
 
 ### Bố cục
 `layout.html` chỉnh ba lớp: `jar`, `welcome`, `heart`. Hũ có thêm thông số `drop`, là độ cao trần mà quà rơi xuống, có thể cao hơn khung hũ. Bố cục lưu ở `data/layout.json`. Nút **Tải lại overlay** trên trang điều khiển tải lại mọi overlay đang mở.
@@ -87,9 +89,10 @@ overlay/layout.html        Trang bố cục (layout.js, layout.css)
 overlay/overlay.html       Hũ quà (overlay.js, bigburst.js, jardecor.js, sfx.js)
 overlay/welcome.html       Khung chào mừng (welcome.js)
 overlay/heart.html         Video tim đội (heartfx.js)
-overlay/dog*.js            Các kiểu chú chó (sprite, toon, glb, 3D)
+overlay/dog*.js            Các kiểu chú chó (dogsprite.js là bản mặc định; toon, glb, 3D là bản cũ)
 overlay/models, media      Ảnh sprite, mô hình GLB, video
-blender_pipeline/, poodle/ Dựng mô hình và render chú chó bằng Blender
+tools/video_sprites/       Cắt Ennie ra khỏi video thành sprite cho overlay
+blender_pipeline/, poodle/ Mô hình poodle bằng Blender (chỉ còn dùng cho ?dog=glb và ?dog=3d)
 scripts/                   Đóng gói Windows và launcher tự cập nhật
 data/                      Tự tạo khi chạy: session, levels, welcome, welcome-rules, layout, effects (.json)
 ```
@@ -138,4 +141,4 @@ Mỗi lần push lên `main`, GitHub Actions (`.github/workflows/release.yml`) c
 
 `start.bat` chạy `launcher.mjs` (nguồn ở `scripts/windows/launcher.mjs`). Trước khi bật server, launcher hỏi GitHub release mới nhất. Nếu số build lớn hơn `version.json`, nó tải `GiftJar-update.zip`, kiểm tra mã sha256 rồi thay `overlay/`, `server/`, `node_modules/` và vài file khác. `node/` và `data/` không bị đụng tới. Nếu server của bản mới dừng trong 30 giây đầu, launcher trả lại bản cũ và bỏ qua build đó. Không có mạng thì nó chạy bản đang có. Tắt cập nhật bằng biến `GIFTJAR_NO_UPDATE=1`.
 
-Push chỉ thay đổi `blender_pipeline/`, `poodle/` hoặc tài liệu sẽ không tạo build mới. Repo phải public để máy live tải được release mà không cần đăng nhập.
+Push chỉ thay đổi `blender_pipeline/`, `poodle/`, `tools/` hoặc tài liệu sẽ không tạo build mới. Repo phải public để máy live tải được release mà không cần đăng nhập.

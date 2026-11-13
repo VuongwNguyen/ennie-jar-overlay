@@ -124,8 +124,9 @@ body.overlay-page { background: transparent; color: #fff; overflow: hidden; }
 .dog-3d .dog-canvas { display: block; }
 .dog-3d .svg-dog, .dog-toon-on .svg-dog, .dog-sprite-on .svg-dog { display: none; }
 /* The pre-rendered poodle (dogsprite.js) and its soft shadow, moved around with a transform. */
-.dog-sprite { position: absolute; left: 0; top: 0; width: 190px; height: 190px; z-index: 10; pointer-events: none; will-change: transform; }
-.dog-sprite-shadow { position: absolute; left: 0; top: 0; height: 18px; z-index: 10; pointer-events: none; background: radial-gradient(closest-side, #1b0d1266, transparent); }
+/* The drop shadow only goes down, not sideways: the picture is flipped when she turns around. */
+.dog-sprite { position: absolute; left: 0; top: 0; width: 190px; height: 190px; z-index: 10; pointer-events: none; will-change: transform; filter: drop-shadow(0 4px 4px rgba(60, 20, 40, .32)); }
+.dog-sprite-shadow { position: absolute; left: 0; top: 0; height: 20px; z-index: 10; pointer-events: none; background: radial-gradient(closest-side, rgba(45, 15, 35, .55), rgba(45, 15, 35, .24) 62%, transparent); }
 /* The speech bubble over the walking dog's head (dogsprite.js), greeting viewers who join.
    --tail is where the dog's head is, measured from the bubble's left edge. */
 .dog-bubble { position: absolute; left: 0; top: 0; z-index: 12; pointer-events: none; display: none; --tail: 50%; }

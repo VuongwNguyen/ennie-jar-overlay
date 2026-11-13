@@ -17,7 +17,7 @@
       query.set("nowelcome", "");
       // Where the jar's box is from the start, so it does not first fill the whole stage.
       query.set("box", [layer.x, layer.y, layer.w, layer.h, Math.min(Number.isFinite(layer.drop) ? layer.drop : layer.y, layer.y)].join(","));
-      for (const key of ["jar", "dog", "cat", "nosticker", "sfx"]) if (params.has(key)) query.set(key, params.get(key));
+      for (const key of ["jar", "dog", "cat", "nosticker", "sfx", "roam"]) if (params.has(key)) query.set(key, params.get(key));
     }
     if (id === "welcome") query.set("layer", "");
     if (preview) {
