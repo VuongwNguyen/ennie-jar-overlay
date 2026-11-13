@@ -9,7 +9,7 @@ const GIFTS = {
   5660: ["Hand Heart", "Tim bằng tay"],
   6247: ["Heart", "Trái tim"],
   5586: ["Hearts", "Những trái tim"],
-  7934: ["Heart Me", "Thương mình đi"],
+  7934: ["Heart Me", "Tim đội"], // heartfx.js plays the team heart clip for this gift
   6671: ["Love You", "Yêu bạn"],
   6890: ["Love you", "Yêu bạn"],
   15231: ["Love you so much", "Yêu bạn nhiều lắm"],

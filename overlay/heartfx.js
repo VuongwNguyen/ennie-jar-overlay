@@ -5,12 +5,17 @@
 // While it plays, more of the same gift are ignored rather than queued: the gift costs 1 coin and
 // often arrives dozens of times in a row, so a queue would keep the clip on screen for minutes.
 (() => {
-  const TRIGGER_GIFTS = ["heart me"];
+  // Matched by the gift's id, which is the same in every language. The server shows gift names in
+  // Vietnamese (server/src/gift-names.js), so a test gift from the control page, which has no real id,
+  // arrives as "Tim đội"; the English name is kept too, should a gift come through untranslated.
+  const TRIGGER_ID = "7934";
+  const TRIGGER_NAMES = ["heart me", "tim đội"];
   const video = document.getElementById("heartFx");
   if (!video) return;
   const socket = io();
 
-  const matches = event => TRIGGER_GIFTS.includes(String(event?.gift?.name ?? "").trim().toLowerCase());
+  const matches = event => String(event?.gift?.id ?? "") === TRIGGER_ID
+    || TRIGGER_NAMES.includes(String(event?.gift?.name ?? "").trim().toLowerCase());
 
   function hide() {
     video.classList.remove("show");
