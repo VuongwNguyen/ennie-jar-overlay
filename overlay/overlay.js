@@ -155,15 +155,18 @@ const fallDelay = () => Math.sqrt((2 * -spawnY()) / FALL_G);
 
 const tierOf = coins => (coins >= MEGA_GIFT ? 2 : coins >= BIG_GIFT ? 1 : 0);
 
-// Gifts priced at 199 coins or more are drawn larger, going by the price of one gift so a long streak
-// of cheap gifts stays small. Below that all are the standard 28px; 199 coins is 83px, 1000 coins 99px,
-// 30000 coins 135px, up to a limit of 140px.
-const GIFT_SIZE = 28, GIFT_SIZE_MAX = 140, GIFT_GROWS_FROM = 199;
+// Gifts priced at 90 coins or more are drawn larger, going by the price of one gift so a long streak of cheap
+// gifts stays small. Below that all are the standard 28px; 90 coins is 75px, 150 coins 80px. From 199 coins the
+// size is also multiplied (GIFT_BIG_FACTOR): 199 coins is 108px, 1000 coins 129px, 5000 coins 155px, up to a
+// limit of 180px.
+const GIFT_SIZE = 28, GIFT_SIZE_MAX = 180, GIFT_GROWS_FROM = 90;
+const GIFT_BIG_FROM = 199, GIFT_BIG_FACTOR = 1.3;
 function giftSize(event) {
   const repeat = Math.max(1, event.gift.repeatCount || 1);
   const price = event.gift.diamondCount || (event.calculatedCoins ?? 1) / repeat;
   if (price < GIFT_GROWS_FROM) return GIFT_SIZE;
-  return Math.min(GIFT_SIZE_MAX, GIFT_SIZE * (1 + 0.85 * Math.log10(price)));
+  const size = GIFT_SIZE * (1 + 0.85 * Math.log10(price)) * (price >= GIFT_BIG_FROM ? GIFT_BIG_FACTOR : 1);
+  return Math.min(GIFT_SIZE_MAX, size);
 }
 
 // One gift's picture (or an emoji when it has none), sized for its price; el._size is that size.
