@@ -9,6 +9,7 @@ on:
     paths-ignore:
       - "blender_pipeline/**"
       - "poodle/**"
+      - "tools/**"
       - "video/**"
       - "README.md"
       - ".gitignore"

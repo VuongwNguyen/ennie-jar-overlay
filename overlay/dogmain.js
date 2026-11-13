@@ -1,4 +1,4 @@
-// Picks which dog the overlay shows. The pre-rendered poodle with real fur is the default; add ?dog=3d,
+// Picks which dog the overlay shows. Ennie cut out of the heart video (dogsprite.js) is the default; add ?dog=3d,
 // ?dog=toon, ?dog=glb or ?dog=svg to the URL for the others. Each version is only loaded when asked for.
 // Add ?cat=1 to sit the fluffy kitten on top of the jar.
 const params = new URLSearchParams(location.search);

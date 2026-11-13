@@ -1,24 +1,26 @@
-// The poodle with real fur, rendered ahead of time in Blender (blender_pipeline/render_clips.py). It
-// plays like a GIF with smooth see-through edges, drawn on a canvas and moved along the floor, so the
-// streaming PC only has to show pictures. It walks back and forth in front of the jar, and changes expression:
-// a big smile, panting, a yawn, a surprised look and a puzzled head tilt.
+// Ennie herself, cut out of video (tools/video_sprites). The pictures are real frames of the dog with a
+// see-through background, played like a GIF on a canvas, so the streaming PC only has to show pictures.
+// She stands in front of the jar, blinks, looks around, yawns, wags her tail, smiles, walks from one side to
+// the other and now and then hops (her hops carry her sideways too).
 const BASE = "/models/dog/";
-const SIZE = 190; // how wide a whole picture is drawn, in .jar-wrap coordinates
+const SIZE = 220; // how wide a whole picture is drawn, in .jar-wrap coordinates
 const JAR_LEFT = 5, JAR_RIGHT = 305; // the sides of the jar, in .jar-wrap coordinates
-const WALK_SPEED_PX = 42;
 const FLOOR = 416; // where its paws touch the ground
-const WALK_SPEED = 0.882; // how fast the paws carry the dog in the walking clip (animation.py)
-const FADE_SECONDS = 0.16;
+const WALK_SPEED_PX = 60; // how fast she crosses the jar when she walks
+const HOP_REACH = 60; // how far one hop carries her
+const FADE_SECONDS = 0.02; // photographs of different poses show as a ghost if they dissolve, so a clip starts at once
 const random = gsap.utils.random;
 
 export async function startSpriteDog() {
   const response = await fetch(`${BASE}manifest.json`);
   if (!response.ok) throw new Error(`manifest: ${response.status}`);
-  const { frameSize, clips, groundX, groundY, bodyWidth, walkUnit } = await response.json();
-  // The clips' speed as seen on screen, so the paws do not slide much along the floor.
-  const WALK_PX = WALK_SPEED * walkUnit * SIZE;
+  const { frameSize, clips, groundX, groundY, bodyWidth, walkSpeed } = await response.json();
+  // How fast the walking clip carries her at normal speed, as seen on screen: played at the pace of her walk
+  // across the jar, her paws do not slide much along the floor.
+  const WALK_PX = (walkSpeed ?? 0.5) * SIZE;
   const sheets = {};
   // Waits for onload rather than decode(), which never finishes while the page is hidden.
+  // A clip may share the sheet of another one (its "file").
   await Promise.all(Object.keys(clips).map(name => new Promise((done, fail) => {
     const image = new Image();
     image.onload = () => {
@@ -26,7 +28,7 @@ export async function startSpriteDog() {
       done();
     };
     image.onerror = () => fail(new Error(`could not load ${name}`));
-    image.src = `${BASE}${name}.png`;
+    image.src = `${BASE}${clips[name].file ?? name}.png`;
   })));
 
   const wrap = document.getElementById("jarWrap");
@@ -35,6 +37,8 @@ export async function startSpriteDog() {
   const canvas = document.createElement("canvas");
   canvas.className = "dog-sprite";
   canvas.width = canvas.height = frameSize;
+  // SIZE alone decides how big the dog is drawn; the stylesheet only has a starting value.
+  canvas.style.width = canvas.style.height = `${SIZE}px`;
   canvas.style.transformOrigin = `${groundX * 100}% ${groundY * 100}%`;
   wrap.append(shadow, canvas);
   document.body.classList.add("dog-sprite-on");
@@ -103,7 +107,7 @@ export async function startSpriteDog() {
     if (between) draw(now.name, (whole + 1) % clip.frames, between * alpha);
   }
 
-  // ---------- Walking back and forth in front of the jar, and no further than its width ----------
+  // ---------- Hopping from side to side in front of the jar, and no further than its width ----------
   const stage = { x: (JAR_LEFT + JAR_RIGHT) / 2, hop: 0, facing: 1 }; // the pictures face left, so facing 1 is left
   const halfBody = (bodyWidth * SIZE) / 2;
   const shadowWidth = bodyWidth * SIZE * 1.15;
@@ -174,8 +178,9 @@ export async function startSpriteDog() {
   const rest = seconds => new Promise(done => gsap.delayedCall(seconds, done));
 
   let interrupt = null;
-  // Walks to a spot on the other side of the jar, or until a gift interrupts.
+  // Walks to a spot on the other side of the jar, or until a gift interrupts. Without a walking clip she hops.
   async function walkAcross() {
+    if (!clips.Walk) return hopAcross();
     const { left, right } = range();
     const middle = (left + right) / 2;
     const target = stage.x > middle ? random(left, middle) : random(middle, right);
@@ -197,15 +202,33 @@ export async function startSpriteDog() {
     play("Idle");
   }
 
-  // The clip crouches, pushes off and lands; the hop adds height while the paws are off the ground.
+  // Hops to a spot on the other side of the jar, a few hops at a time. A gift stops her after the hop she is in.
+  async function hopAcross() {
+    const { left, right } = range();
+    const middle = (left + right) / 2;
+    const target = stage.x > middle ? random(left, middle) : random(middle, right);
+    const wanted = target > stage.x ? -1 : 1; // the pictures face left
+    if (stage.facing !== wanted) await tween(stage, { facing: wanted, duration: 0.2, ease: "sine.inOut", onUpdate: place });
+    const hops = Math.max(1, Math.round(Math.abs(target - stage.x) / HOP_REACH));
+    const step = (target - stage.x) / hops;
+    let stop = false;
+    interrupt = () => { stop = true; };
+    for (let i = 0; i < hops && !stop; i++) await leap(random(14, 20), step, i === hops - 1);
+    interrupt = null;
+    play("Idle");
+  }
+
+  // The clip bounds up with her ears flying; the hop adds height while the paws are off the ground, and `dx`
+  // carries her sideways in the air. A series of hops only settles into standing after the last one.
   const JUMP_LENGTH = clips.Jump.frames / clips.Jump.fps;
-  async function leap(height = 26) {
+  async function leap(height = 26, dx = 0, settle = true) {
     const ended = play("Jump");
     gsap.timeline({ delay: JUMP_LENGTH * 0.2, onUpdate: place })
       .to(stage, { hop: -height, duration: JUMP_LENGTH * 0.26, ease: "power2.out" })
       .to(stage, { hop: 0, duration: JUMP_LENGTH * 0.24, ease: "power2.in" });
+    if (dx) gsap.to(stage, { x: stage.x + dx, duration: JUMP_LENGTH * 0.5, delay: JUMP_LENGTH * 0.2, ease: "sine.inOut", onUpdate: place });
     await ended;
-    play("Idle");
+    if (settle) play("Idle");
   }
 
   // ---------- Resting, and reacting to gifts ----------
@@ -228,7 +251,10 @@ export async function startSpriteDog() {
           play("Idle");
           await rest(random(1.4, 3.2));
           if (over) return;
-          const act = random(["TailWag", "Joy", "Joy", "Pant", "HeadTilt", "HeadTilt", "Surprised", "Yawn", "Hop", "Idle"]);
+          // Only what the footage has: a clip that is missing is left out of the draw.
+          const acts = ["TailWag", "Joy", "Joy", "Pant", "HeadTilt", "HeadTilt", "Surprised", "Yawn", "Hop", "Idle"]
+            .filter(name => name === "Hop" || name === "Idle" || clips[name]);
+          const act = random(acts);
           if (act === "Hop") {
             await leap(random(18, 30));
           } else if (act === "TailWag" || act === "Joy" || act === "Pant") {
@@ -260,7 +286,8 @@ export async function startSpriteDog() {
 
   async function life() {
     for (;;) {
-      await walkAcross();
+      // Mostly she walks; now and then she hops across instead.
+      await (Math.random() < 0.8 ? walkAcross() : hopAcross());
       await cheer();
       // A little hop of its own now and then, gift or no gift.
       if (Math.random() < 0.2) await leap(random(18, 30));
