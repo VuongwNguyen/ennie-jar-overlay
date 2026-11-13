@@ -36,7 +36,7 @@ body.overlay-page { background: transparent; color: #fff; overflow: hidden; }
 .burst-glow { position: absolute; left: 0; top: 0; border-radius: 50%; background: radial-gradient(closest-side, #fffc, #ff9ccf99 40%, #ff5fa833 68%, transparent); will-change: transform, opacity; }
 .burst-flash { position: absolute; inset: 0; background: radial-gradient(circle at var(--cx) var(--cy), #fff 0, #fffa 14%, #ffd6ec55 32%, transparent 60%); will-change: opacity; }
 .burst-ring { position: absolute; left: 0; top: 0; border-radius: 50%; border: 10px solid #ffe08a; will-change: transform, opacity; }
-.burst-spark { position: absolute; left: 0; top: 0; line-height: 1; text-shadow: 0 0 8px #fff; will-change: transform, opacity; }
+.burst-spark { position: absolute; left: 0; top: 0; line-height: 1; will-change: transform, opacity; }
 /* Turning rays of light behind the heart, fading out towards their ends. */
 .burst-rays {
   position: absolute; left: 0; top: 0; border-radius: 50%;

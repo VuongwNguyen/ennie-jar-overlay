@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import { readFile, writeFile, mkdir, rename } from "node:fs/promises";
 import { createTikTokAdapter } from "./tiktok.js";
+import { createGiftLog } from "./gift-log.js";
+import { vietnameseGiftName } from "./gift-names.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "../../");
@@ -87,7 +89,7 @@ function normalizeGift(input = {}) {
     },
     gift: {
       id: String(gift.id || "gift"),
-      name: String(gift.name || "Quà tặng"),
+      name: String(vietnameseGiftName(gift.id, gift.name) || "Quà tặng"),
       image: typeof gift.image === "string" && /^https?:\/\//i.test(gift.image) ? gift.image : "",
       diamondCount,
       repeatCount,
@@ -97,13 +99,23 @@ function normalizeGift(input = {}) {
   };
 }
 
+const giftLog = createGiftLog(dataDir);
 const seenEvents = new Set();
-async function handleGift(raw) {
+// source: "tiktok" for a real gift, "test" for one sent from the control page.
+async function handleGift(raw, source = "tiktok") {
   const event = normalizeGift(raw);
+  const logged = { ...event, user: { ...event.user, uniqueId: String(raw?.user?.uniqueId || "") } };
   // A streak still in progress is credited once, when its final event arrives.
-  if (!event.gift.repeatEnd) return { ignored: true, reason: "streak-in-progress" };
-  if (seenEvents.has(event.eventId)) return { ignored: true };
+  if (!event.gift.repeatEnd) {
+    giftLog.gift(logged, "streak-in-progress", source);
+    return { ignored: true, reason: "streak-in-progress" };
+  }
+  if (seenEvents.has(event.eventId)) {
+    giftLog.gift(logged, "duplicate", source);
+    return { ignored: true };
+  }
   seenEvents.add(event.eventId);
+  giftLog.gift(logged, "credited", source);
   if (seenEvents.size > 5000) seenEvents.clear();
 
   const coins = event.gift.diamondCount * event.gift.repeatCount;
@@ -117,8 +129,8 @@ async function handleGift(raw) {
   state.donors[event.user.id] = donor;
   state.totalCoins += coins;
   state.gifts += event.gift.repeatCount;
-  const { name, image, diamondCount, repeatCount } = event.gift;
-  state.jar.push({ eventId: event.eventId, calculatedCoins: coins, gift: { name, image, diamondCount, repeatCount } });
+  const { id, name, image, diamondCount, repeatCount } = event.gift;
+  state.jar.push({ eventId: event.eventId, calculatedCoins: coins, gift: { id, name, image, diamondCount, repeatCount } });
   await persist();
 
   io.emit("gift", { ...event, calculatedCoins: coins });
@@ -139,7 +151,7 @@ app.get("/api/version", async (_req, res) => {
 
 app.post("/api/simulate/gift", async (req, res) => {
   try {
-    const result = await handleGift(req.body);
+    const result = await handleGift(req.body, "test");
     res.status(result.ignored ? 200 : 201).json(result);
   } catch (error) {
     res.status(500).json({ error: "Could not process gift" });
@@ -158,6 +170,7 @@ app.post("/api/simulate/member", (req, res) => {
 
 app.post("/api/session/reset", async (_req, res) => {
   try {
+    giftLog.note(`session reset (was ${state.sessionId}, ${state.totalCoins} coins, ${state.gifts} gifts)`);
     state = freshState();
     seenEvents.clear();
     await persist();
@@ -170,7 +183,11 @@ app.post("/api/session/reset", async (_req, res) => {
 });
 
 const AUTO_USERNAME = process.env.TIKTOK_USERNAME ?? "ennieiuoiw";
-const RETRY_MS = 30_000;
+// Waits between tries while the live cannot be reached: a dropped connection usually comes back within
+// seconds, so the first tries are quick, then they settle at 30s while the streamer is offline. The
+// count starts over once a connection succeeds.
+const RETRY_STEPS_MS = [3_000, 6_000, 12_000, 30_000];
+let retryCount = 0;
 let autoUsername = AUTO_USERNAME;
 let retryTimer = null;
 
@@ -538,19 +555,24 @@ const tiktok = createTikTokAdapter({
       io.emit("members-cleared");
     }
     io.emit("tiktok-status", status);
+    giftLog.status(status);
+    if (status.state === "connected") retryCount = 0;
     if (status.state === "disconnected" && autoUsername) scheduleReconnect();
   }
 });
 
 function scheduleReconnect() {
   if (retryTimer) return;
+  const wait = RETRY_STEPS_MS[Math.min(retryCount, RETRY_STEPS_MS.length - 1)];
+  retryCount++;
   retryTimer = setTimeout(() => {
     retryTimer = null;
     if (autoUsername) tiktok.connect(autoUsername).catch(() => {});
-  }, RETRY_MS);
+  }, wait);
 }
 function stopAuto() {
   autoUsername = "";
+  retryCount = 0;
   clearTimeout(retryTimer);
   retryTimer = null;
 }
@@ -599,7 +621,7 @@ httpServer.listen(PORT, HOST, () => {
   console.log(`Dashboard: http://${HOST}:${PORT}/`);
   console.log(`OBS overlay: http://${HOST}:${PORT}/overlay.html`);
   if (AUTO_USERNAME) {
-    console.log(`Auto-connecting to TikTok @${AUTO_USERNAME} (retry every ${RETRY_MS / 1000}s while offline)`);
+    console.log(`Auto-connecting to TikTok @${AUTO_USERNAME} (retrying after ${RETRY_STEPS_MS.map(ms => ms / 1000).join("s, ")}s while offline)`);
     tiktok.connect(AUTO_USERNAME).catch(err => console.log(`TikTok: ${err?.message || err}`));
   }
   console.log("Local-only server; change HOST only if you understand the network exposure.");
