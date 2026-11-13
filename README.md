@@ -66,7 +66,7 @@ Mỗi nhóm có danh hiệu riêng. Fan cấp từ 20 trở lên và Super Fan k
 Giới hạn chống spam (tối đa 3 lần trong 10 phút, cách nhau 15 giây cho mỗi người) hiện đang tắt trong `server/src/index.js`, hàm `welcome()`.
 
 ### Chú chó Ennie
-Chú chó dưới sàn hũ là **Ennie thật**: các khung hình của video tim đội (`overlay/media/ennie_heart.webm`) đã cắt nền, không phải mô hình dựng lại. Cô bé đứng nhìn, chớp mắt, quay nhìn, ngáp, vẫy đuôi, cười, nhảy mừng với đôi tai bay, **đi bộ** từ bên này sang bên kia hũ và thỉnh thoảng nhảy chuyền. Các clip đi bộ, ngáp, vẫy đuôi cắt từ một video AI khác (nền xanh) dựng bằng ảnh của chính Ennie. Cô bé cảm ơn người tặng và chào người vào live qua bong bóng thoại. Có âm thanh nhỏ (`sfx.js`), tự ngủ khi không có hoạt động.
+Chú chó dưới sàn hũ là **Ennie thật**: các khung hình của video tim đội (`overlay/media/ennie_heart.webm`) đã cắt nền, không phải mô hình dựng lại. Mặc định cô bé **ngồi yên ở góc dưới bên phải hũ, nhìn thẳng vào người xem** (bộ sprite chính diện `overlay/models/dog-front/`), chớp mắt, nháy mắt, mỉm cười và nhảy mừng khi có quà. Thêm `?roam=1` vào link thì dùng bộ sprite nhìn ngang (`overlay/models/dog/`): cô bé đứng nhìn, quay nhìn, ngáp, vẫy đuôi, **đi bộ** và nhảy chuyền qua lại trong hũ. Các clip đi bộ, ngáp, vẫy đuôi cắt từ một video AI khác (nền xanh) dựng bằng ảnh của chính Ennie. Cô bé cảm ơn người tặng và chào người vào live qua bong bóng thoại. Có âm thanh nhỏ (`sfx.js`), tự ngủ khi không có hoạt động.
 
 Kích thước chú chó là hằng `SIZE` đầu `overlay/dogsprite.js`. Muốn thêm động tác (chạy, ngồi), dựng thêm video của Ennie rồi cho qua cùng quy trình trong `tools/video_sprites/README.md`.
 

@@ -40,6 +40,23 @@ cleanly. `manifest.json` also gets `walkSpeed`, so her paws match the floor whil
 The overlay leaves clips that are missing from `manifest.json` out of its random choices. To add something
 else (running, sitting), cut it the same way and add a row to `CLIPS` in `add_clips.py`.
 
+## Front view (the default)
+
+`make_front.py` builds `overlay/models/dog-front/` from a second AI-made green-screen video: Ennie sits and faces
+the camera, showing ten seconds of expressions. Cut it with `cutout_green.py` (frames 1-265) and run
+`python tools/video_sprites/make_front.py .cache/ennie-front overlay/models/dog-front`.
+
+| Clip | Frames | What it shows |
+| --- | --- | --- |
+| Idle (and TailWag) | 22-43 | calm, breathing; starts on frame 43 |
+| Blink | 43-55 | a slow blink |
+| HeadTilt | 55-91 | a curious tilt, then calm again |
+| Joy | 109-130 | laughing with her eyes shut, played forwards and back |
+| Pant | 205-214 | an open happy mouth, one paw up |
+| Surprised | 139-154 | wide, shiny eyes |
+| Yawn | 178-199 | not a real yawn: her eyes close in a soft smile |
+| Jump | 202-235 | excited, a paw up, ears flapping; the overlay lifts her off the floor |
+
 ## Run it
 
 ```bash

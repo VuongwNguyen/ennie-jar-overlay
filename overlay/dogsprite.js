@@ -1,14 +1,22 @@
 // Ennie herself, cut out of video (tools/video_sprites). The pictures are real frames of the dog with a
 // see-through background, played like a GIF on a canvas, so the streaming PC only has to show pictures.
-// She stands in front of the jar, blinks, looks around, yawns, wags her tail, smiles, walks from one side to
-// the other and now and then hops (her hops carry her sideways too).
-const BASE = "/models/dog/";
-const SIZE = 220; // how wide a whole picture is drawn, in .jar-wrap coordinates
+// She sits in the bottom right corner of the jar, facing the viewer, and shows how she feels: she blinks,
+// winks, smiles, and jumps for joy when a gift comes (front view sprites in /models/dog-front/).
+// With ?roam=1 the side view sprites (/models/dog/) are used instead: she stands, looks around, yawns, wags her
+// tail, and walks or hops from one side of the jar to the other.
+const ROAM = new URLSearchParams(location.search).has("roam");
+const BASE = ROAM ? "/models/dog/" : "/models/dog-front/";
+const SIZE = 190; // how wide a whole picture is drawn, in .jar-wrap coordinates
 const JAR_LEFT = 5, JAR_RIGHT = 305; // the sides of the jar, in .jar-wrap coordinates
 const FLOOR = 416; // where its paws touch the ground
 const WALK_SPEED_PX = 60; // how fast she crosses the jar when she walks
 const HOP_REACH = 60; // how far one hop carries her
-const FADE_SECONDS = 0.02; // photographs of different poses show as a ghost if they dissolve, so a clip starts at once
+// Sitting, only her face changes from one clip to the next, so the pictures can dissolve into each other. The
+// standing clips differ too much in pose: they would show as a ghost, so each starts at once.
+const FADE_SECONDS = ROAM ? 0.02 : 0.2;
+const RETURN_FADE = ROAM ? 0.02 : 0.3; // back to calm; every clip ends near the calm pose, so a short dissolve is enough
+// Sitting, she does not rise off the floor like a stiff picture: only a small lift under the clip's own bounce.
+const HOP = ROAM ? 1 : 0.3;
 const random = gsap.utils.random;
 
 export async function startSpriteDog() {
@@ -19,12 +27,18 @@ export async function startSpriteDog() {
   // across the jar, her paws do not slide much along the floor.
   const WALK_PX = (walkSpeed ?? 0.5) * SIZE;
   const sheets = {};
+  const warm = document.createElement("canvas").getContext("2d");
+  // Sitting, she breathes: the picture rises and falls a little, so she is never a frozen picture between clips.
+  let breath = 1, placed = "";
   // Waits for onload rather than decode(), which never finishes while the page is hidden.
   // A clip may share the sheet of another one (its "file").
   await Promise.all(Object.keys(clips).map(name => new Promise((done, fail) => {
     const image = new Image();
     image.onload = () => {
       sheets[name] = image;
+      // A picture is only decoded when it is first drawn, which stalls the first time a clip plays: draw each sheet
+      // once now, into a one pixel canvas, so that happens before she starts.
+      try { warm.drawImage(image, 0, 0, 1, 1); } catch { /* not worth stopping for */ }
       done();
     };
     image.onerror = () => fail(new Error(`could not load ${name}`));
@@ -46,7 +60,7 @@ export async function startSpriteDog() {
 
   // ---------- Playing clips ----------
   const now = { name: "Idle", clock: 0, rate: 1, finished: null };
-  let previous = null, fade = 1, shown = "", nextBlink = performance.now() + 3000;
+  let previous = null, fade = 1, fadeLen = FADE_SECONDS, shown = "", nextBlink = performance.now() + 3000;
 
   function draw(name, index, alpha) {
     const { columns } = clips[name];
@@ -55,7 +69,7 @@ export async function startSpriteDog() {
   }
 
   // Starts a clip with a short fade from the last picture. A clip that ends resolves the returned promise.
-  function play(name, { rate = 1, cut = false } = {}) {
+  function play(name, { rate = 1, cut = false, fadeSeconds } = {}) {
     if (now.name === name && clips[name].loops) {
       now.rate = rate;
       return Promise.resolve();
@@ -64,6 +78,7 @@ export async function startSpriteDog() {
     const clip = clips[now.name];
     previous = cut ? null : { name: now.name, frame: Math.min(Math.floor(now.clock) % clip.frames, clip.frames - 1) };
     fade = cut ? 1 : 0;
+    fadeLen = fadeSeconds ?? (name === "Idle" ? RETURN_FADE : FADE_SECONDS);
     Object.assign(now, { name, clock: 0, rate, finished: null });
     return new Promise(done => {
       if (clips[name].loops) done();
@@ -72,10 +87,14 @@ export async function startSpriteDog() {
   }
 
   function tick(_time, deltaMs) {
+    if (!ROAM) {
+      breath = 1 + 0.014 * Math.sin((performance.now() / 1000) * (2 * Math.PI) / 3.4);
+      if (placed) canvas.style.transform = `${placed} scaleY(${breath.toFixed(4)})`;
+    }
     const seconds = Math.min(deltaMs / 1000, 0.1);
     const clip = clips[now.name];
     now.clock += seconds * clip.fps * now.rate;
-    fade = Math.min(1, fade + seconds / FADE_SECONDS);
+    fade = Math.min(1, fade + seconds / fadeLen);
     if (clip.loops) now.clock %= clip.frames;
     else if (now.clock >= clip.frames - 1) {
       now.clock = clip.frames - 1;
@@ -89,14 +108,16 @@ export async function startSpriteDog() {
     if (now.name === "Idle" && whole === 0 && performance.now() >= nextBlink) {
       nextBlink = Infinity;
       play("Blink", { rate: 0.7, cut: true }).then(() => {
-        nextBlink = performance.now() + random(2500, 6000);
-        if (now.name === "Blink") play("Idle", { cut: true });
+        nextBlink = performance.now() + (ROAM ? random(2500, 6000) : random(4500, 9000));
+        if (now.name === "Blink") play("Idle", { cut: ROAM });
       });
       return;
     }
 
-    // Slow clips blend from picture to picture, which keeps gentle movement smooth at few pictures.
-    const between = clip.fps <= 10 ? Math.floor((now.clock - whole) * 3) / 3 : 0;
+    // Between two pictures of a slow clip the next one is blended in, in steps: gentle movement is smooth at few
+    // pictures. A fast clip is not blended: two ear positions at once would show as a ghost ear.
+    const steps = clip.fps <= 10 ? 3 : 0;
+    const between = steps ? Math.floor((now.clock - whole) * steps) / steps : 0;
     const key = `${now.name}:${whole}:${between}:${fade.toFixed(2)}`;
     if (key === shown) return;
     shown = key;
@@ -114,7 +135,8 @@ export async function startSpriteDog() {
   shadow.style.width = `${shadowWidth}px`;
   const place = () => {
     const y = FLOOR - groundY * SIZE + stage.hop;
-    canvas.style.transform = `translate(${(stage.x - groundX * SIZE).toFixed(2)}px, ${y.toFixed(2)}px) scaleX(${stage.facing.toFixed(3)})`;
+    placed = `translate(${(stage.x - groundX * SIZE).toFixed(2)}px, ${y.toFixed(2)}px) scaleX(${stage.facing.toFixed(3)})`;
+    canvas.style.transform = ROAM ? placed : `${placed} scaleY(${breath.toFixed(4)})`;
     const lift = Math.min(1, -stage.hop / 60);
     shadow.style.transform = `translate(${(stage.x - shadowWidth / 2).toFixed(2)}px, ${FLOOR - 10}px) scale(${(1 - lift * 0.3).toFixed(3)})`;
     shadow.style.opacity = (1 - lift * 0.5).toFixed(3);
@@ -163,7 +185,12 @@ export async function startSpriteDog() {
       right: Math.min((frame.right - box.left) / s - halfBody, JAR_RIGHT - halfBody)
     };
   };
-  place();
+  // She sits in the bottom right corner of the jar, and stays there when the layout changes.
+  const toCorner = () => { stage.x = range().right; place(); };
+  if (!ROAM) {
+    toCorner();
+    addEventListener("resize", toCorner);
+  }
   gsap.ticker.add(tick);
   tick(0, 0);
   measureHead();
@@ -218,13 +245,13 @@ export async function startSpriteDog() {
     play("Idle");
   }
 
-  // The clip bounds up with her ears flying; the hop adds height while the paws are off the ground, and `dx`
-  // carries her sideways in the air. A series of hops only settles into standing after the last one.
+  // The clip bounds up; the hop adds height while she is off the floor, and `dx` carries her sideways in the
+  // air. A series of hops only settles into standing after the last one.
   const JUMP_LENGTH = clips.Jump.frames / clips.Jump.fps;
   async function leap(height = 26, dx = 0, settle = true) {
     const ended = play("Jump");
     gsap.timeline({ delay: JUMP_LENGTH * 0.2, onUpdate: place })
-      .to(stage, { hop: -height, duration: JUMP_LENGTH * 0.26, ease: "power2.out" })
+      .to(stage, { hop: -height * HOP, duration: JUMP_LENGTH * 0.26, ease: "power2.out" })
       .to(stage, { hop: 0, duration: JUMP_LENGTH * 0.24, ease: "power2.in" });
     if (dx) gsap.to(stage, { x: stage.x + dx, duration: JUMP_LENGTH * 0.5, delay: JUMP_LENGTH * 0.2, ease: "sine.inOut", onUpdate: place });
     await ended;
@@ -249,22 +276,25 @@ export async function startSpriteDog() {
       (async () => {
         while (!over) {
           play("Idle");
-          await rest(random(1.4, 3.2));
+          await rest(random(ROAM ? 1.4 : 6, ROAM ? 3.2 : 11));   // sitting she is calm for a good while between expressions
           if (over) return;
           // Only what the footage has: a clip that is missing is left out of the draw.
-          const acts = ["TailWag", "Joy", "Joy", "Pant", "HeadTilt", "HeadTilt", "Surprised", "Yawn", "Hop", "Idle"]
+          // Sitting she only makes the gentle ones; the excited ones (Pant, a hop) are for gifts.
+          const acts = (ROAM ? ["TailWag", "Joy", "Joy", "Pant", "HeadTilt", "HeadTilt", "Surprised", "Yawn", "Hop", "Idle"]
+            : ["HeadTilt", "HeadTilt", "Joy", "Surprised", "Yawn", "Idle", "Idle"])
             .filter(name => name === "Hop" || name === "Idle" || clips[name]);
           const act = random(acts);
           if (act === "Hop") {
             await leap(random(18, 30));
-          } else if (act === "TailWag" || act === "Joy" || act === "Pant") {
-            play(act);
-            await rest(random(1.2, 2.4));
-          } else if (act === "Surprised") {
-            await play("Surprised");
-            await rest(random(0.5, 0.9));
           } else if (act !== "Idle") {
-            await play(act);
+            // A clip that loops plays for a while; one that does not plays once and she holds its last picture.
+            if (clips[act].loops) {
+              play(act);
+              await rest(random(1.2, 2.4));
+            } else {
+              await play(act);
+              await rest(random(0.2, 0.6));
+            }
           }
         }
       })();
@@ -286,14 +316,20 @@ export async function startSpriteDog() {
 
   async function life() {
     for (;;) {
-      // Mostly she walks; now and then she hops across instead.
-      await (Math.random() < 0.8 ? walkAcross() : hopAcross());
-      await cheer();
-      // A little hop of its own now and then, gift or no gift.
-      if (Math.random() < 0.2) await leap(random(18, 30));
-      // A rest now and then, to change expression.
-      if (Math.random() < 0.6) {
-        await calm(random(3, 6));
+      if (ROAM) {
+        // Mostly she walks; now and then she hops across instead.
+        await (Math.random() < 0.8 ? walkAcross() : hopAcross());
+        await cheer();
+        // A little hop of its own now and then, gift or no gift.
+        if (Math.random() < 0.2) await leap(random(18, 30));
+        // A rest now and then, to change expression.
+        if (Math.random() < 0.6) {
+          await calm(random(3, 6));
+          await cheer();
+        }
+      } else {
+        // She stays where she is and only changes expression.
+        await calm(random(12, 25));
         await cheer();
       }
     }

@@ -1,0 +1,72 @@
+{
+ "frameSize": 320,
+ "clips": {
+  "Idle": {
+   "frames": 21,
+   "columns": 5,
+   "rows": 5,
+   "fps": 10,
+   "loops": true
+  },
+  "Blink": {
+   "frames": 16,
+   "columns": 4,
+   "rows": 4,
+   "fps": 20,
+   "loops": false
+  },
+  "HeadTilt": {
+   "frames": 41,
+   "columns": 7,
+   "rows": 6,
+   "fps": 18,
+   "loops": false
+  },
+  "Joy": {
+   "frames": 43,
+   "columns": 7,
+   "rows": 7,
+   "fps": 18,
+   "loops": false
+  },
+  "Pant": {
+   "frames": 48,
+   "columns": 7,
+   "rows": 7,
+   "fps": 18,
+   "loops": false
+  },
+  "Surprised": {
+   "frames": 25,
+   "columns": 5,
+   "rows": 5,
+   "fps": 18,
+   "loops": false
+  },
+  "Yawn": {
+   "frames": 26,
+   "columns": 6,
+   "rows": 5,
+   "fps": 16,
+   "loops": false
+  },
+  "Jump": {
+   "frames": 45,
+   "columns": 7,
+   "rows": 7,
+   "fps": 18,
+   "loops": false
+  },
+  "TailWag": {
+   "frames": 21,
+   "columns": 5,
+   "rows": 5,
+   "fps": 10,
+   "loops": true,
+   "file": "Idle"
+  }
+ },
+ "groundX": 0.5,
+ "groundY": 0.9,
+ "bodyWidth": 0.5938
+}
