@@ -1,8 +1,8 @@
 // The PK panel of the jar game (pk.html). The server (server/src/jar-game.js) sends the round as it changes:
 // the scores, each side's best giver, the dare and when time is up. The clock counts down here, set by the
-// server's own time so a computer whose clock is off still shows the right time. While Phe Phá leads the panel
-// cries for help, harder in the last 30 seconds. When time is up it shows who won, the dare Ennie owes if Phe
-// Phá won, and the winning side's top three, then hides until the next round.
+// server's own time so a computer whose clock is off still shows the right time, in red for the last 30 seconds
+// (the cry for help is Ennie's, in the corner of the jar: jargame.js). When time is up it shows who won, the dare
+// Ennie owes if Phe Phá won, the winning side's top three and everyone who gave, until the next round.
 (() => {
   const $ = id => document.getElementById(id);
   const params = new URLSearchParams(location.search);
@@ -10,6 +10,17 @@
   // then the honours again, until the next round.
   const HONOUR_SECONDS = 9, HURRY_SECONDS = 30;
   const panel = $("pk");
+
+  // How solid the backgrounds are (0-100, "Độ đậm nền" on the layout page): from the address at first, then by
+  // message from live.html whenever it is changed.
+  const setVeil = value => {
+    const n = Number(value);
+    if (Number.isFinite(n)) document.documentElement.style.setProperty("--veil", Math.max(0, Math.min(100, n)) / 100);
+  };
+  if (params.has("veil")) setVeil(params.get("veil"));
+  addEventListener("message", event => {
+    if (event.origin === location.origin && event.data?.type === "veil") setVeil(event.data.veil);
+  });
 
   // Drawn at 800 x 300 and scaled to whatever box the layout gives it.
   const fit = () => panel.style.setProperty("--fit", Math.min(innerWidth / 800, innerHeight / 300));
@@ -61,7 +72,6 @@
 
   // A side's gifts, one per level ("" where a level has none); older servers sent a single name.
   const giftNames = value => (Array.isArray(value) ? value : [value]).filter(Boolean);
-  const firstGift = value => giftNames(value)[0] ?? "";
 
   // ---------- The side's gifts on the board, one at a time ----------
   // Each side shows one of its gifts, with its picture and what it does, then flips to the next, so viewers see
@@ -126,7 +136,7 @@
     title.textContent = "⚔️ Ván mới sắp bắt đầu!";
     const label = document.createElement("p");
     label.className = "label";
-    label.textContent = "🎯 Kèo ván này, Phe Phá thắng là Ennie trả:";
+    label.textContent = "🎯 Nếu Phe Phá thắng, Ennie phải:";
     const dare = document.createElement("p");
     dare.className = "dare-big";
     dare.textContent = data.dare;
@@ -156,8 +166,7 @@
     $("spark").style.left = `${share}%`;
     showMvp($("mvpRaid"), data.mvp.raid, "raid");
     showMvp($("mvpGuard"), data.mvp.guard, "guard");
-    $("dare").textContent = `Kèo: ${data.dare} · Phe Phá thắng là Ennie trả!`;
-    $("help").textContent = `🆘 Cứu Ennie với! Tặng ${firstGift(data.gifts.guard) || "quà Phe Giữ"} 💗`;
+    $("dare").textContent = `Phe Phá thắng thì Ennie phải: ${data.dare}`;
     panel.classList.remove("done", "guiding");
     panel.classList.add("on");
     tick();
@@ -228,7 +237,7 @@
     const { raid, guard } = result.score;
     if (result.winner === "raid") {
       title.textContent = "😈 Phe Phá thắng!";
-      line.textContent = `Ennie trả kèo: ${result.dare}`;
+      line.textContent = `Ennie phải: ${result.dare} 🎯`;
     } else if (result.winner === "guard") {
       title.textContent = "💗 Phe Giữ thắng!";
       line.textContent = "Hũ của Ennie được cứu rồi, cảm ơn cả nhà!";
@@ -336,7 +345,7 @@
     return seconds;
   }
 
-  // The clock, and the cry for help while Phe Phá leads.
+  // The clock, red for the last 30 seconds.
   function tick() {
     if (!round) return;
     if (previewing) {
@@ -350,9 +359,6 @@
     $("clock").textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
     const hurry = left <= HURRY_SECONDS;
     $("clock").classList.toggle("hurry", hurry);
-    const losing = round.score.raid > round.score.guard;
-    $("help").classList.toggle("on", losing);
-    $("help").classList.toggle("hurry", losing && hurry);
   }
   setInterval(tick, 250);
 

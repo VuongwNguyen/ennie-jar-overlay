@@ -503,6 +503,11 @@
     for (const id of ["toFront", "forward", "backward", "toBack"]) $(id).disabled = !layer;
     if (!layer) return;
     $("dropRow").hidden = !("drop" in layer);
+    $("veilRow").hidden = !("veil" in layer);
+    if ("veil" in layer) {
+      if (document.activeElement !== $("veil")) $("veil").value = layer.veil;
+      $("veilOut").textContent = `${layer.veil}%`;
+    }
     for (const [key, input] of Object.entries(fields)) if (document.activeElement !== input) input.value = layer[key] ?? "";
     $("ratio").checked = layer.ratio !== false;
     $("visible").checked = layer.visible;
@@ -514,6 +519,21 @@
     for (const input of [...Object.values(fields), $("scale")]) input.disabled = layer.locked;
     document.querySelectorAll("[data-align], #fillStage").forEach(b => { b.disabled = layer.locked; });
   }
+  // The game panel's background strength: shown while dragging, one step of history when let go.
+  let veilBefore = null;
+  $("veil").addEventListener("input", () => {
+    const layer = layerById(selected);
+    if (!layer || !("veil" in layer)) return;
+    veilBefore ??= snapshot();
+    layer.veil = Number($("veil").value);
+    $("veilOut").textContent = `${layer.veil}%`;
+    pushPreview();
+  });
+  $("veil").addEventListener("change", () => {
+    if (veilBefore) record(veilBefore);
+    veilBefore = null;
+  });
+
   // Sets one number; with "keep ratio" on, width and height follow each other.
   function setField(layer, key, value) {
     value = Math.round(value);

@@ -442,7 +442,8 @@ const LAYERS = {
   heart: { name: "Video tim đội", x: 0, y: 0, w: 1080, h: 1920 },
   // The panel of the jar game (pk.html): the guide between rounds, then the PK bars, the clock, the dare and
   // the honours.
-  pk: { name: "Trò chơi trên hũ", x: 140, y: 330, w: 800, h: 300 }
+  // veil: how solid its background is, 0-100 (see pk.html).
+  pk: { name: "Trò chơi trên hũ", x: 140, y: 330, w: 800, h: 300, veil: 55 }
 };
 const DEFAULT_LAYOUT = Object.entries(LAYERS).map(([id, box]) => ({ id, ratio: true, ...box, visible: true, locked: false }));
 let layout = structuredClone(DEFAULT_LAYOUT);
@@ -468,7 +469,8 @@ function cleanLayout(input) {
       locked: item.locked === true,
       // Keep the width and height in step when resizing (on by default).
       ratio: item.ratio !== false,
-      ...("drop" in base ? { drop: num(item.drop, base.drop, -STAGE.h, 2 * STAGE.h) } : {})
+      ...("drop" in base ? { drop: num(item.drop, base.drop, -STAGE.h, 2 * STAGE.h) } : {}),
+      ...("veil" in base ? { veil: num(item.veil, base.veil, 0, 100) } : {})
     });
   }
   // A part missing from the saved file (one added in a later build) goes on top, where it can be seen.

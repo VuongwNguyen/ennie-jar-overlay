@@ -20,6 +20,7 @@
       for (const key of ["jar", "dog", "cat", "nosticker", "sfx", "roam"]) if (params.has(key)) query.set(key, params.get(key));
     }
     if (id === "welcome") query.set("layer", "");
+    if (id === "pk" && Number.isFinite(layer.veil)) query.set("veil", layer.veil);
     if (preview) {
       query.set("preview", "");
       if (id === "welcome") query.set("test", "hold");
@@ -48,7 +49,10 @@
     frame.allow = "autoplay";
     frame.setAttribute("aria-hidden", "true");
     frame.src = src;
-    frame.addEventListener("load", () => tellBox(frame));
+    frame.addEventListener("load", () => {
+      tellBox(frame);
+      if (Number.isFinite(frame._veil)) frame.contentWindow?.postMessage({ type: "veil", veil: frame._veil }, location.origin);
+    });
     stage.append(frame);
     frames.set(id, frame);
     return frame;
@@ -72,6 +76,11 @@
         const box = { x: layer.x, y: layer.y, w: layer.w, h: layer.h, top: Math.min(Number.isFinite(layer.drop) ? layer.drop : layer.y, layer.y) };
         if (JSON.stringify(box) !== JSON.stringify(frame._box)) { frame._box = box; tellBox(frame); }
       } else {
+        // The game panel's background strength, told to its page when it changes.
+        if (layer.id === "pk" && Number.isFinite(layer.veil) && frame._veil !== layer.veil) {
+          frame._veil = layer.veil;
+          try { frame.contentWindow?.postMessage({ type: "veil", veil: layer.veil }, location.origin); } catch { /* not loaded */ }
+        }
         const bleed = BLEED[layer.id] ?? 0;
         style.left = `${layer.x - layer.w * bleed}px`;
         style.top = `${layer.y - layer.h * bleed}px`;

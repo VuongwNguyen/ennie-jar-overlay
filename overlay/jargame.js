@@ -243,13 +243,45 @@
   // ---------- Phe Giữ ----------
   const HEARTS = ["♥", "💗", "♥", "💖", "♡"];
   const HEART_COLOURS = ["#ff7fb8", "#ff9ccf", "#ff5fa8", "#ffc6e6"];
+  // A few clouds between left and right, their tops at `top`: they slide in from the sides and puff up. Each has
+  // x and w (where hearts fall from) and leave(), which drifts it away and removes it.
+  function gatherClouds(left, right, top, count) {
+    const span = right - left;
+    return Array.from({ length: count }, (_, k) => {
+      const w = random(95, 140);
+      const x = left + (span - w) * (count > 1 ? k / (count - 1) : 0.5) + random(-12, 12);
+      const y = top + random(0, 22);
+      const el = document.createElement("div");
+      el.className = "jg-cloud";
+      el.style.setProperty("--w", `${w}px`);
+      wrap.append(el);
+      const fromSide = x + w / 2 < left + span / 2 ? -1 : 1;
+      gsap.fromTo(el, { x: x + fromSide * 70, y, opacity: 0, scale: 0.6 }, { x, opacity: 1, scale: 1, duration: 0.5, delay: k * 0.06, ease: "back.out(1.6)" });
+      return {
+        x, w,
+        leave: () => {
+          gsap.killTweensOf(el);
+          gsap.to(el, { x: x + fromSide * 90, opacity: 0, duration: 0.6, ease: "power1.in", onComplete: () => el.remove() });
+          // Gone in any case, even if the page was too busy (or hidden) to finish the drift.
+          setTimeout(() => el.remove(), 1500);
+        }
+      };
+    });
+  }
+
   // `returning`: the pieces to put back when the game is turned off, instead of the turn's count.
   async function guard(turn, returning = null) {
     banner("guard", returning ? "💗 Trả quà về hũ cho Ennie" : `💗 Phe Giữ · ${short(turn.nickname, 16)}`);
     const f = frameInWrap();
     const wide = turn.tier >= 3; // the biggest turn covers the whole frame, the others the jar
     const left = wide ? f.left : 10, right = wide ? f.right : 300;
-    const from = Math.min(f.top, -40) - 30;
+    // First the clouds drift in where gifts come into the frame (the top of the visible frame, above the jar's
+    // mouth; over the whole width for the biggest turn), then it rains from them: hearts, and the gifts put back,
+    // which fall in from up there and so come out from under the clouds.
+    const sky = f.top + 4; // the clouds' top: the top edge of the visible frame
+    const clouds = gatherClouds(left, right, sky, wide ? Math.max(4, Math.round((right - left) / 150)) : 3);
+    await sleep(0.55);
+    const from = sky + 30;
     for (let i = 0; i < turn.hearts; i++) {
       const el = document.createElement("span");
       el.className = "jg-heart";
@@ -258,11 +290,15 @@
       el.style.fontSize = `${random(14, wide ? 34 : 26)}px`;
       wrap.append(el);
       const duration = random(1.1, 1.8);
+      // Each heart falls from under one of the clouds.
+      const cloud = clouds[i % clouds.length];
       gsap.timeline({ delay: random(0, wide ? 1.6 : 0.9), onComplete: () => el.remove() })
-        .fromTo(el, { x: random(left, right), y: from - random(0, 80), rotation: random(-30, 30), opacity: 1 },
-          { y: random(wide ? 200 : 120, 400), rotation: random(-60, 60), duration, ease: "power1.in" })
+        .fromTo(el, { x: cloud.x + random(0.1, 0.9) * cloud.w, y: from + random(-6, 10), rotation: random(-30, 30), opacity: 0, scale: 0.4 },
+          { y: random(wide ? 200 : 120, 400), rotation: random(-60, 60), opacity: 1, scale: 1, duration, ease: "power1.in" })
         .to(el, { opacity: 0, scale: 0.6, duration: 0.3 }, duration - 0.3);
     }
+    // The clouds drift off once the rain is over.
+    gsap.delayedCall((wide ? 1.6 : 0.9) + 1.5, () => clouds.forEach(cloud => cloud.leave()));
     await sleep(0.25);
     // What she took falls back in, latest first.
     const back = returning ?? stolenPieces.splice(Math.max(0, stolenPieces.length - turn.count));
@@ -327,6 +363,7 @@
     taken.clear();
     for (const a of [...actors]) a.remove();
     for (const piece of wrap.querySelectorAll(".jg-piece")) piece.remove();
+    for (const cloud of wrap.querySelectorAll(".jg-cloud")) cloud.remove();
     const back = stolenPieces.splice(0);
     if (!back.length || reduceMotion) { back.forEach(({ event, i }, k) => dropLater(event, i, k * 40)); return; }
     guard({ team: "guard", tier: back.length >= 12 ? 3 : 1, count: 0, hearts: Math.min(60, 12 + back.length * 2), nickname: "" }, back);

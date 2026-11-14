@@ -134,6 +134,15 @@ body.overlay-page { background: transparent; color: #fff; overflow: hidden; }
 .jg-carry { position: absolute; left: 0; top: 0; z-index: 12; pointer-events: none; }
 .gift-particle.jg-piece { z-index: 12; }
 .jg-heart { position: absolute; left: 0; top: 0; z-index: 11; pointer-events: none; line-height: 1; text-shadow: 0 2px 6px #ff5fa866; }
+/* The clouds the hearts rain from (Phe Giữ): a soft pink-white puff, made of a rounded body and two bumps. */
+.jg-cloud {
+  position: absolute; left: 0; top: 0; z-index: 12; pointer-events: none;
+  width: var(--w, 120px); height: calc(var(--w, 120px) * .36); border-radius: 999px;
+  background: #fff4fa; box-shadow: 0 8px 18px #d63f8724, inset 0 -6px 10px #ffd6ea;
+}
+.jg-cloud::before, .jg-cloud::after { content: ""; position: absolute; border-radius: 50%; background: #fff4fa; }
+.jg-cloud::before { width: 48%; height: 125%; left: 14%; top: -62%; }
+.jg-cloud::after { width: 36%; height: 95%; left: 50%; top: -42%; }
 .jg-banner {
   position: absolute; left: 155px; top: 58px; z-index: 13; pointer-events: none; white-space: nowrap;
   padding: 6px 14px; border-radius: 16px; font-size: 17px; font-weight: 800; line-height: 1.2; text-shadow: none;
