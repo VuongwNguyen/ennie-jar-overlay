@@ -125,7 +125,9 @@ export function mapTikTokUnauthorizedMember(data) {
 const SAME_JOIN_MS = 5000;
 
 // onUser(user, source) hears everyone who chats, sends likes, follows or shares.
-export function createTikTokAdapter({ onGift, onMember, onUser, onStatus }) {
+// onRaw(method, decoded, payload) hears every message TikTok sends, including the kinds the library cannot
+// decode and would otherwise drop (decoded is then null), for trace.js.
+export function createTikTokAdapter({ onGift, onMember, onUser, onStatus, onRaw }) {
   let connection = null;
   let status = { state: "disconnected", username: "", error: "" };
 
@@ -189,6 +191,16 @@ export function createTikTokAdapter({ onGift, onMember, onUser, onStatus }) {
         if (user) onUser?.(user, source);
       });
     }
+    // Straight from the socket, before the library sorts the messages: it skips the kinds it cannot read.
+    // Only hooked up when there is someone to hand them to (trace.js runs only from the source).
+    if (onRaw) conn.on("websocketConnected", socket => {
+      socket?.on?.("protoMessageFetchResult", result => {
+        if (connection !== conn) return;
+        for (const message of result?.messages ?? []) {
+          try { onRaw(message.method, message.decodedData?.data ?? null, message.payload); } catch (err) { console.error("Trace failed:", err.message); }
+        }
+      });
+    });
     conn.on(ControlEvent.DISCONNECTED, () => {
       if (connection === conn) { connection = null; setStatus({ state: "disconnected" }); }
     });

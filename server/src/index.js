@@ -5,7 +5,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import { readFile, writeFile, mkdir, rename } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { createTikTokAdapter } from "./tiktok.js";
+import { createTrace } from "./trace.js";
 import { createGiftLog } from "./gift-log.js";
 import { vietnameseGiftName } from "./gift-names.js";
 
@@ -538,7 +540,29 @@ app.post("/api/welcome/test", (req, res) => {
   res.status(201).json({ ok: true });
 });
 
+// Records what TikTok sends about one person (trace.js), set on the control page. Only when the app runs from
+// the source: the packaged app (scripts/build-windows.sh writes version.json next to it) has no trace at all, no
+// routes, no hook on TikTok's messages and no card on the control page, so the streaming PC never records anything.
+const TRACE_ON = !existsSync(path.join(projectRoot, "version.json"));
+const trace = TRACE_ON ? createTrace(dataDir) : null;
+if (trace) {
+  app.get("/api/trace", async (_req, res) => res.json(await trace.status()));
+  app.post("/api/trace", async (req, res) => {
+    const username = String(req.body?.username ?? "").trim().replace(/^@/, "");
+    if (username && !/^[A-Za-z0-9._]{2,24}$/.test(username)) return res.status(400).json({ error: "@tên không hợp lệ" });
+    await trace.start(username);
+    res.json(await trace.status());
+  });
+  // The log file, to download and send on.
+  app.get("/api/trace/file", (_req, res) => {
+    const file = trace.filePath();
+    if (!file) return res.status(404).json({ error: "Chưa soi ai" });
+    res.download(file, err => { if (err && !res.headersSent) res.status(404).json({ error: "Chưa có file" }); });
+  });
+}
+
 const tiktok = createTikTokAdapter({
+  onRaw: trace?.message,
   onGift: event => {
     considerWelcome(event.user, "gift");
     return handleGift(event);
@@ -616,6 +640,7 @@ await loadWelcomeRules();
 await loadLayout();
 await loadEffects();
 await loadLevels();
+await trace?.load();
 httpServer.listen(PORT, HOST, () => {
   console.log(`Jar Overlay running: http://${HOST}:${PORT}`);
   console.log(`Dashboard: http://${HOST}:${PORT}/`);

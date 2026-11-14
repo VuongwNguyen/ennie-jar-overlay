@@ -52,6 +52,18 @@
           <button class="chip" id="memberNext" aria-label="Trang sau">Sau ›</button>
         </div>
       </div>
+      <!-- Records everything TikTok sends about one person (server/src/trace.js), to see why their join is missed.
+           Hidden until the server says it has trace, which only a copy run from the source has. -->
+      <details class="card fold-card" id="traceCard" hidden>
+        <summary>Soi sự kiện của một người <small id="traceBadge">đang tắt</small></summary>
+        <form class="row trace-form" id="traceForm">
+          <input id="traceUser" placeholder="@tên TikTok" aria-label="@tên cần soi">
+          <button>Bật soi</button>
+          <button type="button" class="secondary" id="traceOff">Tắt</button>
+        </form>
+        <p class="hint" id="traceNotice" role="status">Ghi lại mọi tin TikTok gửi có nhắc tới người này. Nhờ họ ra vào live vài lần, rồi tải file gửi lại.</p>
+        <p class="hint-links" id="traceLinks" hidden><a class="open" href="/api/trace/file" download>Tải file log</a></p>
+      </details>
       <div class="card">
         <h2>Top người tặng <small>của phiên này</small></h2>
         <ol id="leaderboard" class="leaderboard"><li class="empty">Chưa có dữ liệu</li></ol>

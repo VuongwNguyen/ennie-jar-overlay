@@ -140,3 +140,6 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   .rule { grid-template-columns: auto 1fr 70px; }
   .rule > span:nth-of-type(2), .rule > input:last-child { grid-column: 2 / -1; }
 }
+.trace-form { margin-bottom: 4px; }
+#traceCard[hidden] { display: none; }
+#traceBadge.err { color: var(--red); font-weight: 600; }

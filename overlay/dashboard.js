@@ -345,6 +345,43 @@ $("reloadOverlay").addEventListener("click", async () => {
   }
 });
 
+// ---------- Watching one person's events ----------
+// What TikTok sends about one @name is written to a file (server/src/trace.js); this shows whether it is
+// on and how much has been caught, every few seconds while the card is open. The packaged app has no trace
+// (the server answers 404), so there the card stays hidden.
+function renderTrace(status) {
+  const on = Boolean(status.username);
+  $("traceBadge").textContent = on ? `đang soi @${status.username}` : "đang tắt";
+  $("traceBadge").classList.toggle("err", on);
+  $("traceLinks").hidden = !on;
+  if (on && document.activeElement !== $("traceUser")) $("traceUser").value = status.username;
+  $("traceNotice").textContent = on
+    ? `${status.full ? "File đã đầy (20 MB), ngừng ghi. " : ""}Đã ghi ${status.lines.toLocaleString("vi-VN")} dòng (${(status.size / 1024).toFixed(0)} KB) vào data/trace/${status.file}. Cần đang kết nối TikTok thì mới ghi được.`
+    : "Ghi lại mọi tin TikTok gửi có nhắc tới người này. Nhờ họ ra vào live vài lần, rồi tải file gửi lại.";
+}
+let traceAvailable = false;
+const loadTrace = () => fetch("/api/trace")
+  .then(res => { if (!res.ok) throw new Error("no trace"); return res.json(); })
+  .then(status => { traceAvailable = true; $("traceCard").hidden = false; renderTrace(status); })
+  .catch(() => { $("traceCard").hidden = true; });
+loadTrace();
+setInterval(() => { if (traceAvailable && $("traceCard").open && !document.hidden) loadTrace(); }, 3000);
+async function setTrace(username) {
+  try {
+    const { ok, body } = await post("/api/trace", { username });
+    if (!ok) throw new Error(body?.error || "Không bật được");
+    renderTrace(body);
+  } catch (error) {
+    $("traceNotice").textContent = error.message || "Không liên lạc được với server.";
+  }
+}
+$("traceForm").addEventListener("submit", event => {
+  event.preventDefault();
+  const username = $("traceUser").value.trim().replace(/^@/, "");
+  if (username) setTrace(username);
+});
+$("traceOff").addEventListener("click", () => setTrace(""));
+
 // ---------- Tabs ----------
 // Four tabs, by when they are used. The one open is remembered in this browser; the Live tab comes first.
 const TABS = ["live", "welcome", "overlay", "test"];
