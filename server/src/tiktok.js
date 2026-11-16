@@ -123,6 +123,18 @@ export function mapTikTokUnauthorizedMember(data) {
 }
 
 const SAME_JOIN_MS = 5000;
+// How often a connected live is checked to still be on.
+const LIVE_CHECK_MS = 60_000;
+// The dashboard shows this as "Kênh này đang không live." (dashboard.js matches "isn't online").
+const OFFLINE = "The requested user isn't online";
+
+// Whether the streamer is live, read from their profile page: true, false, or null when TikTok gave no
+// clear answer. Connecting does not tell: when the streamer is offline TikTok answers the room check
+// with an error and no status, which the library lets through, and it then joins the room of their last
+// live, which is over. Seen on a real channel: "connected" with nothing but room notices arriving.
+async function isLive(conn) {
+  try { return await conn.fetchIsLive(); } catch { return null; }
+}
 
 // onUser(user, source) hears everyone who chats, sends likes, follows or shares.
 // onRaw(method, decoded, payload) hears every message TikTok sends, including the kinds the library cannot
@@ -208,10 +220,32 @@ export function createTikTokAdapter({ onGift, onMember, onUser, onStatus, onRaw 
       if (connection === conn) console.error("TikTok connection error:", err?.message ?? err);
     });
 
+    // Ends this connection because the live is over (or never started), so the server tries again later
+    // and joins the next live's room, which is a new one each time.
+    const offline = () => {
+      if (connection !== conn) return;
+      connection = null;
+      try { conn.disconnect(); } catch { /* already closed */ }
+      setStatus({ state: "disconnected", error: OFFLINE });
+    };
+
     try {
+      // Only a clear "not live" stops it: when TikTok cannot say, it connects anyway, so a failed check
+      // never costs a live.
+      if (await isLive(conn) === false) throw new Error(OFFLINE);
+      if (connection !== conn) return status;
       await conn.connect();
       if (connection !== conn) return status;
       setStatus({ state: "connected", error: "" });
+      const watch = setInterval(async () => {
+        if (connection !== conn) return clearInterval(watch);
+        if (await isLive(conn) === false) {
+          clearInterval(watch);
+          console.log(`TikTok: @${username} is no longer live, waiting for the next live`);
+          offline();
+        }
+      }, LIVE_CHECK_MS);
+      watch.unref?.();
     } catch (err) {
       if (connection === conn) connection = null;
       setStatus({ state: "disconnected", error: err?.message || "Không kết nối được" });
