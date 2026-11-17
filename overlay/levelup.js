@@ -2,9 +2,9 @@
 // The two kinds look and move differently, so they are told apart at a glance:
 // - team heart level (fan club): a pink heart pops up softly, fills up from the bottom like a glass of
 //   strawberry milk while showing the old level, beats as the number turns to the new one, hearts burst out
-//   and float up, and it beats twice more under the "LÊN CẤP FAN" ribbon;
+//   and float up, and it beats twice more under the "CHÚC MỪNG LÊN CẤP" ribbon;
 // - gifter level: a gold gem drops in from above and lands with a thud, flips over to show the new level,
-//   gold rays spin up behind it and coins rain down past the notched "LÊN CẤP TẶNG QUÀ" banner.
+//   gold rays spin up behind it and coins rain down past the notched "CHÚC MỪNG LÊN CẤP" banner.
 // Level ups that arrive while one plays wait their turn. Everything is sized to the page, so the box on the
 // layout page sets how big it is.
 (() => {
@@ -68,7 +68,7 @@
   const PLAYS = {
     // ---------- Team heart level: a heart that fills up and beats ----------
     fan(event, done, { hold = false } = {}) {
-      const { group, glow, badge, ribbon, name } = scene(event, "fan", "♥ LÊN CẤP FAN ♥");
+      const { group, glow, badge, ribbon, name } = scene(event, "fan", "♥ CHÚC MỪNG LÊN CẤP ♥");
       const id = `lvfill${++drawn}`;
       const HEART = "M50 88 C20 66 2 50 2 28 C2 12 14 2 28 2 C38 2 46 8 50 16 C54 8 62 2 72 2 C86 2 98 12 98 28 C98 50 80 66 50 88 Z";
       badge.append(svg(`<svg viewBox="0 0 100 90" preserveAspectRatio="xMidYMid meet">
@@ -124,7 +124,7 @@
 
     // ---------- Gifter level: a gold gem that drops in and flips, with a shower of coins ----------
     gifter(event, done, { hold = false } = {}) {
-      const { group, glow, badge, ribbon, name } = scene(event, "gifter", "LÊN CẤP TẶNG QUÀ");
+      const { group, glow, badge, ribbon, name } = scene(event, "gifter", "CHÚC MỪNG LÊN CẤP");
       const id = `lvgem${++drawn}`;
       badge.append(svg(`<svg viewBox="0 0 100 110" preserveAspectRatio="xMidYMid meet">
         <defs>
