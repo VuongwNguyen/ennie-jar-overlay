@@ -139,10 +139,15 @@
           <input class="link-url" id="heartUrl" readonly value="http://127.0.0.1:8787/heart.html" aria-label="Link video tim đội">
           <button class="copy" data-copy="heartUrl">Copy</button>
         </div>
+        <div class="link-row">
+          <span class="link-name">Lên cấp</span>
+          <input class="link-url" id="levelupUrl" readonly value="http://127.0.0.1:8787/levelup.html" aria-label="Link hiệu ứng lên cấp">
+          <button class="copy" data-copy="levelupUrl">Copy</button>
+        </div>
       </details>
     </section>
 
-    <!-- Testing without a live: gifts, a viewer joining, the heart clip and the welcome frame. -->
+    <!-- Testing without a live: gifts, a viewer joining, someone going up a level, the heart clip and the welcome frame. -->
     <section class="pane" role="tabpanel" id="pane-test" aria-labelledby="tab-test" hidden>
       <div class="card">
         <h2>Giả lập <small>không ảnh hưởng TikTok</small></h2>
@@ -161,12 +166,16 @@
         <div class="test-buttons">
           <button id="sendGift">Gửi quà thử</button>
           <button class="secondary" id="sendMember" title="Chó chào tên ở ô Người tặng / người vào">Thử người vào live</button>
+          <button class="secondary" data-levelup="fan" data-level="15" title="Trái tim hồng: tên ở ô Người tặng / người vào lên fan cấp 15">💗 Thử lên cấp fan</button>
+          <button class="secondary" data-levelup="gifter" data-level="31" title="Viên ngọc vàng: tên ở ô Người tặng / người vào lên cấp tặng quà 31">🪙 Thử lên cấp tặng quà</button>
         </div>
         <p class="hint" id="giftNotice" role="status"></p>
         <p class="hint-links">
           Xem thử:
           <a class="open" href="/heart.html?test" target="_blank" title="Mở và phát video tim đội một lần">Video tim đội</a>
           <a class="open" href="/welcome.html?test=hold" target="_blank" title="Mở một khung chào mừng đứng yên">Khung chào mừng</a>
+          <a class="open" href="/levelup.html?test=fan" target="_blank" title="Mở và chạy hiệu ứng trái tim hồng một lần">Lên cấp fan</a>
+          <a class="open" href="/levelup.html?test=gifter" target="_blank" title="Mở và chạy hiệu ứng viên ngọc vàng một lần">Lên cấp tặng quà</a>
         </p>
       </div>
     </section>

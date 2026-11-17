@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ennie Level Up</title>
+  <!-- An overlay part of its own, separate from the jar (overlay.html): someone going up a level, played by
+       levelup.js in the middle of its box. Two looks that cannot be mixed up: a pink heart that fills up and
+       beats, with hearts floating away, for the team heart level in the fan club; a gold gem that drops in,
+       flips over to the new level under a shower of coins, for the gifter level.
+       On live.html it is the "Hiệu ứng lên cấp" part, placed on the layout page; it can also be a Studio
+       source by itself. levelup.html?test plays both once after loading (?test=fan or ?test=gifter, one);
+       ?hold shows the heart standing still (?hold=gifter, the gem), as the layout page's preview does, so the
+       part can be placed; ?sfx=0.4 sets the volume (0 is silent). -->
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; background: transparent; overflow: hidden; }
+    .levelup-layer { position: fixed; inset: 0; pointer-events: none; }
+    /* The drawing, made for 560 x 560 and scaled to the page. The badge's middle is at 280, 210. */
+    .lv { position: absolute; left: 50%; top: 50%; width: 560px; height: 560px; margin: -280px 0 0 -280px; will-change: transform, opacity; }
+    .lv > * { position: absolute; }
+    .lv-badge { left: 280px; top: 210px; width: 230px; height: 230px; margin: -115px 0 0 -115px; will-change: transform; }
+    .lv-badge svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+    .lv-number {
+      position: absolute; inset: 0; display: grid; place-items: center;
+      font: 900 84px/1 "Segoe UI", system-ui, sans-serif; color: #fff;
+    }
+    .lv-glow { left: 280px; top: 210px; width: 420px; height: 420px; margin: -210px 0 0 -210px; border-radius: 50%; will-change: transform, opacity; }
+    .lv-ribbon {
+      left: 280px; top: 372px; white-space: nowrap; transform-origin: 50% 50%;
+      font: 800 28px/1 "Segoe UI", system-ui, sans-serif; letter-spacing: 1.5px; color: #fff;
+    }
+    .lv-name {
+      left: 280px; top: 440px; max-width: 540px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      font: 800 38px/1.15 "Segoe UI", system-ui, sans-serif; color: #fff;
+    }
+    .lv-bit { left: 280px; top: 210px; will-change: transform, opacity; }
+
+    /* Team heart level: pink, soft and round. */
+    .lv-fan .lv-glow { background: radial-gradient(closest-side, #ffd1e8ee, #ff8fc788 45%, #ff5fa822 70%, transparent); }
+    .lv-fan .lv-number { padding-top: 4px; text-shadow: 0 3px 0 #b3125c, 0 0 18px #ff8fc7; }
+    .lv-fan .lv-ribbon {
+      padding: 12px 34px; border-radius: 999px; background: linear-gradient(180deg, #ff9fcd, #e2448f);
+      border: 3px solid #fff; box-shadow: 0 0 0 3px #ff8fc7aa, 0 6px 22px #b3125c88; text-shadow: 0 2px 0 #9c1458;
+    }
+    .lv-fan .lv-name { text-shadow: 0 2px 0 #9c1458, 0 0 14px #e2448f; }
+    .lv-fan .lv-bit { color: #ff7eb9; font: 700 34px/1 "Segoe UI Symbol", system-ui, sans-serif; margin: -17px 0 0 -14px; text-shadow: 0 0 8px #fff; }
+
+    /* Gifter level: gold, sharp and heavy. */
+    .lv-gifter .lv-glow {
+      background: repeating-conic-gradient(from 0deg, #ffe58acc 0deg 5deg, transparent 5deg 18deg);
+      -webkit-mask: radial-gradient(closest-side, #000 25%, #0006 60%, transparent 100%);
+      mask: radial-gradient(closest-side, #000 25%, #0006 60%, transparent 100%);
+    }
+    .lv-gifter .lv-number { padding-top: 6px; color: #fffbe8; text-shadow: 0 3px 0 #8a4a00, 0 0 16px #fff3; }
+    .lv-gifter .lv-ribbon {
+      padding: 12px 56px; background: linear-gradient(180deg, #ffe066, #e8920c 60%, #c96f00);
+      clip-path: polygon(0 0, 100% 0, calc(100% - 22px) 50%, 100% 100%, 0 100%, 22px 50%);
+      color: #fffbe8; text-shadow: 0 2px 0 #7a3d00;
+    }
+    .lv-gifter .lv-name { text-shadow: 0 2px 0 #7a3d00, 0 0 14px #e8920c; }
+    /* A coin: a gold disc with a rim, spun by squeezing it. */
+    .lv-coin {
+      width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #fff6c8, #ffd34d 40%, #e8920c 75%);
+      border: 3px solid #c96f00; box-sizing: border-box;
+      color: #a35a00; font: 900 18px/28px "Segoe UI", system-ui, sans-serif; text-align: center;
+    }
+    .lv-gifter .lv-bit.lv-star { color: #fff4c2; font: 700 30px/1 "Segoe UI Symbol", system-ui, sans-serif; margin: -15px 0 0 -12px; }
+  </style>
+</head>
+<body>
+  <div class="levelup-layer" id="levelupLayer" aria-hidden="true"></div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/vendor/gsap.min.js"></script>
+  <script src="/sfx.js"></script>
+  <script src="/levelup.js"></script>
+</body>
+</html>

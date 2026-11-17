@@ -16,19 +16,27 @@
     if (id === "jar") {
       query.set("nowelcome", "");
       // Where the jar's box is from the start, so it does not first fill the whole stage.
-      query.set("box", [layer.x, layer.y, layer.w, layer.h, Math.min(Number.isFinite(layer.drop) ? layer.drop : layer.y, layer.y)].join(","));
+      query.set("box", [layer.x, layer.y, layer.w, layer.h, Math.min(Number.isFinite(layer.drop) ? layer.drop : layer.y, layer.y), floorOf(layer), ...wallsOf(layer)].join(","));
       for (const key of ["jar", "dog", "cat", "nosticker", "sfx", "roam"]) if (params.has(key)) query.set(key, params.get(key));
     }
     if (id === "welcome") query.set("layer", "");
     if (preview) {
       query.set("preview", "");
       if (id === "welcome") query.set("test", "hold");
-      if (id === "heart") query.set("hold", "");
+      if (id === "heart" || id === "levelup") query.set("hold", "");
     }
-    const page = { jar: "/overlay.html", welcome: "/welcome.html", heart: "/heart.html" }[id];
+    const page = { jar: "/overlay.html", welcome: "/welcome.html", heart: "/heart.html", levelup: "/levelup.html" }[id];
     const search = query.toString().replace(/=(&|$)/g, "$1");
     return page && (search ? `${page}?${search}` : page);
   }
+
+  // Where gifts that spill out of the jar land: the floor set on the layout page, or the bottom of the box.
+  const floorOf = layer => Math.max(layer.y, Number.isFinite(layer.floor) ? layer.floor : layer.y + layer.h);
+  // How far to either side they can roll: the walls set on the layout page, or the box's sides.
+  const wallsOf = layer => [
+    Number.isFinite(layer.wallLeft) ? layer.wallLeft : layer.x,
+    Number.isFinite(layer.wallRight) ? layer.wallRight : layer.x + layer.w
+  ];
 
   const frames = new Map();
   // The jar's page covers the whole stage (for the big gift effect) and is told where its box is and how
@@ -69,7 +77,7 @@
       const style = frame.style;
       if (layer.id === "jar") {
         Object.assign(style, { left: "0px", top: "0px", width: `${STAGE.w}px`, height: `${STAGE.h}px` });
-        const box = { x: layer.x, y: layer.y, w: layer.w, h: layer.h, top: Math.min(Number.isFinite(layer.drop) ? layer.drop : layer.y, layer.y) };
+        const box = { x: layer.x, y: layer.y, w: layer.w, h: layer.h, top: Math.min(Number.isFinite(layer.drop) ? layer.drop : layer.y, layer.y), floor: floorOf(layer), walls: wallsOf(layer) };
         if (JSON.stringify(box) !== JSON.stringify(frame._box)) { frame._box = box; tellBox(frame); }
       } else {
         const bleed = BLEED[layer.id] ?? 0;

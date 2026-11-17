@@ -154,8 +154,27 @@ kbd { background: #3a3a3a; border-radius: 3px; padding: 0 4px; font: 11px ui-mon
 .ceil-label { position: absolute; right: 0; bottom: 3px; font-size: 10px; color: var(--pink); white-space: nowrap; opacity: .7; }
 .ceil.active .ceil-label { opacity: 1; }
 .ceil-grip { position: absolute; left: 50%; top: -5px; width: 18px; height: 8px; margin-left: -9px; border-radius: 4px; background: var(--pink); }
+/* The floor gifts land on outside the jar: the same kind of line in green, its label underneath. */
+.ceil.floor-line { border-top-color: #2f9e7488; }
+.ceil.floor-line.active { border-top-color: #2f9e74; }
+.ceil.floor-line::after { display: none; }
+.ceil.floor-line .ceil-label { bottom: auto; top: 3px; color: #2f9e74; }
+.ceil.floor-line .ceil-grip { background: #2f9e74; }
+/* The two walls spilled gifts stop at: upright dashed lines in orange, dragged sideways. */
+.wall-line { position: absolute; width: 0; border-left: 1.5px dashed #e8892a88; z-index: 4; cursor: ew-resize; }
+.wall-line::before { content: ""; position: absolute; top: 0; bottom: 0; left: -6px; width: 12px; }
+.wall-line.active { border-left-color: #e8892a; }
+.wall-line.locked { cursor: default; }
+.wall-line .wall-label { position: absolute; top: 4px; left: 4px; font-size: 10px; color: #e8892a; white-space: nowrap; opacity: .7; }
+.wall-line.right .wall-label { left: auto; right: 4px; }
+.wall-line.active .wall-label { opacity: 1; }
+.wall-line .wall-grip { position: absolute; top: 50%; left: -5px; width: 8px; height: 18px; margin-top: -9px; border-radius: 4px; background: #e8892a; }
+/* The two walls, each on a line of its own with its whole name, then their button. */
+.wall-row { grid-template-columns: 1fr; }
+.wall-row label { grid-template-columns: 72px 1fr; }
+.wall-row .scrub { white-space: nowrap; }
 .drop-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; margin-top: 6px; }
-.drop-row label { display: grid; grid-template-columns: 36px 1fr; align-items: center; background: #383838; border-radius: 5px; }
+.drop-row label { display: grid; grid-template-columns: 36px minmax(48px, 1fr); align-items: center; background: #383838; border-radius: 5px; }
 .drop-row input { background: transparent; width: 100%; min-width: 0; }
 
 /* Snapping guides, in the pink red of design tools. */

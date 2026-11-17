@@ -87,6 +87,13 @@ $("sendMember").addEventListener("click", async () => {
     notify("giftNotice", ok ? "Đã gửi người vào live ✓" : "Không gửi được.", !ok);
   } catch { notify("giftNotice", "Không liên lạc được với server.", true); }
 });
+// A pretend level up for the name in "Người tặng", shown by the "Hiệu ứng lên cấp" part. Nothing is saved.
+document.querySelectorAll("[data-levelup]").forEach(button => button.addEventListener("click", async () => {
+  try {
+    const { ok } = await post("/api/simulate/levelup", { nickname: $("nickname").value.trim(), kind: button.dataset.levelup, level: Number(button.dataset.level) });
+    notify("giftNotice", ok ? "Đã gửi lên cấp thử ✓ (xem ở live.html hoặc levelup.html)" : "Không gửi được.", !ok);
+  } catch { notify("giftNotice", "Không liên lạc được với server.", true); }
+}));
 // Reset wipes the session's gifts, so it asks for a second click within a few seconds.
 const RESET_LABEL = $("reset").textContent;
 let resetArmed = 0;
@@ -119,6 +126,7 @@ fetch("/api/version").then(r => r.json()).then(({ build }) => {
 $("liveUrl").value = `${location.origin}/live.html`;
 $("overlayUrl").value = `${location.origin}/overlay.html`;
 $("heartUrl").value = `${location.origin}/heart.html`;
+$("levelupUrl").value = `${location.origin}/levelup.html`;
 
 // ---------- Viewers who get the welcome frame ----------
 function renderWelcome(list) {

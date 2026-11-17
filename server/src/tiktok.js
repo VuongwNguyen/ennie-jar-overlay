@@ -114,6 +114,25 @@ export function mapTikTokFanJoin(data) {
   return { type: "member", user };
 }
 
+// Someone going up a level in the live: TikTok sends a barrage message of type 8 when their gifter level
+// goes up and of type 10 when their team heart level in this streamer's fan club does, with the new level
+// and the user in a param of its own. Returns { type: "levelup", kind: "gifter" | "fan", level, user }.
+// Not yet seen on a real live (traces so far only had type 11, the fan join), so the user is looked for in
+// every place a barrage message can carry one.
+const LEVEL_UP = { 8: ["gifter", "userGradeParam"], 10: ["fan", "fansLevelParam"] };
+export function mapTikTokLevelUp(data) {
+  const [kind, field] = LEVEL_UP[Number(data?.msgType)] ?? [];
+  if (!kind) return null;
+  const param = data[field] ?? {};
+  const level = Number(param.currentGrade) || 0;
+  const user = mapTikTokUser(param.user ?? data.user ?? bannerUser(data.commonBarrageContent) ?? bannerUser(data.content));
+  if (!user || !level) return null;
+  // The level just reached, which the user's badges may not show yet.
+  if (kind === "gifter") user.gifterLevel = Math.max(user.gifterLevel, level);
+  else user.fanLevel = Math.max(user.fanLevel, level);
+  return { type: "levelup", kind, level, user, timestamp: Date.now() };
+}
+
 // Someone TikTok lets in without showing who they are: only a display name comes with it, no id or @name
 // and no levels, so they are listed and greeted by that name but cannot match a welcome rule.
 export function mapTikTokUnauthorizedMember(data) {
@@ -139,7 +158,8 @@ async function isLive(conn) {
 // onUser(user, source) hears everyone who chats, sends likes, follows or shares.
 // onRaw(method, decoded, payload) hears every message TikTok sends, including the kinds the library cannot
 // decode and would otherwise drop (decoded is then null), for trace.js.
-export function createTikTokAdapter({ onGift, onMember, onUser, onStatus, onRaw }) {
+// onLevelUp(event) hears someone's gifter or team heart level going up (mapTikTokLevelUp).
+export function createTikTokAdapter({ onGift, onMember, onUser, onLevelUp, onStatus, onRaw }) {
   let connection = null;
   let status = { state: "disconnected", username: "", error: "" };
 
@@ -192,7 +212,16 @@ export function createTikTokAdapter({ onGift, onMember, onUser, onStatus, onRaw 
     // club members and Super Fans (the "superFanJoin" event is one of these banners, so "barrage" covers
     // it), and an unauthorized member for people TikTok does not name.
     conn.on(WebcastEvent.MEMBER, data => join(mapTikTokMember(data)));
-    conn.on(WebcastEvent.BARRAGE ?? "barrage", data => join(mapTikTokFanJoin(data)));
+    conn.on(WebcastEvent.BARRAGE ?? "barrage", data => {
+      join(mapTikTokFanJoin(data));
+      if (connection !== conn) return;
+      try {
+        const levelUp = mapTikTokLevelUp(data);
+        if (levelUp) onLevelUp?.(levelUp);
+      } catch (err) {
+        console.error("Could not map TikTok level up:", err);
+      }
+    });
     conn.on(WebcastEvent.UNAUTHORIZED_MEMBER ?? "unauthorizedMember", data => join(mapTikTokUnauthorizedMember(data)));
     // Anyone who chats, likes, follows or shares. The library sends follows and shares as their own
     // "follow" and "share" events, and only other social messages as "social".

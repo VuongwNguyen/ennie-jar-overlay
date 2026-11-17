@@ -5,7 +5,7 @@
 // here moves.
 (() => {
   const $ = id => document.getElementById(id);
-  const ICONS = { jar: "🍯", welcome: "✨", heart: "💗" };
+  const ICONS = { jar: "🍯", welcome: "✨", heart: "💗", levelup: "🏅" };
   const MIN = 20;
   let stage = { w: 1080, h: 1920 };
   let layers = []; // bottom layer first, as on the server
@@ -171,9 +171,60 @@
     boxes.set(id, box);
     return box;
   }
-  // The ceiling the jar's gifts fall from: a dashed line across the jar's width, dragged up and down.
-  const ceilings = new Map();
+  // The ceiling the jar's gifts fall from, and the floor that gifts spilling out of the jar land on: dashed lines
+  // across the jar's width, dragged up and down (pink for the ceiling, green for the floor).
+  const ceilings = new Map(), floors = new Map();
+  function renderFloors() {
+    for (const layer of layers) {
+      if (!("floor" in layer)) continue;
+      let line = floors.get(layer.id);
+      if (!line) {
+        line = document.createElement("div");
+        line.className = "ceil floor-line";
+        line.dataset.id = layer.id;
+        line.dataset.kind = "floor";
+        line.innerHTML = `<span class="ceil-label">Sàn quà rơi ngoài hũ</span><i class="ceil-grip"></i>`;
+        handles.append(line);
+        floors.set(layer.id, line);
+      }
+      line.style.left = `${layer.x * zoom}px`;
+      line.style.width = `${layer.w * zoom}px`;
+      line.style.top = `${layer.floor * zoom}px`;
+      line.style.display = layer.visible ? "" : "none";
+      line.classList.toggle("active", layer.id === selected || layer.id === hoverId);
+      line.classList.toggle("locked", layer.locked);
+    }
+  }
+  // The two walls: upright lines from the ceiling down to the floor, dragged sideways.
+  const walls = new Map();
+  function renderWalls() {
+    for (const layer of layers) {
+      if (!("wallLeft" in layer)) continue;
+      for (const side of ["wallLeft", "wallRight"]) {
+        const key = `${layer.id}:${side}`;
+        let line = walls.get(key);
+        if (!line) {
+          line = document.createElement("div");
+          line.className = `wall-line ${side === "wallLeft" ? "left" : "right"}`;
+          line.dataset.id = layer.id;
+          line.dataset.kind = side;
+          line.innerHTML = `<span class="wall-label">${side === "wallLeft" ? "Vách trái" : "Vách phải"}</span><i class="wall-grip"></i>`;
+          handles.append(line);
+          walls.set(key, line);
+        }
+        const top = Math.min(layer.drop ?? layer.y, layer.y), bottom = Math.max(layer.floor ?? layer.y + layer.h, layer.y + layer.h);
+        line.style.left = `${layer[side] * zoom}px`;
+        line.style.top = `${top * zoom}px`;
+        line.style.height = `${(bottom - top) * zoom}px`;
+        line.style.display = layer.visible ? "" : "none";
+        line.classList.toggle("active", layer.id === selected || layer.id === hoverId);
+        line.classList.toggle("locked", layer.locked);
+      }
+    }
+  }
   function renderCeilings() {
+    renderFloors();
+    renderWalls();
     for (const layer of layers) {
       if (!("drop" in layer)) continue;
       let line = ceilings.get(layer.id);
@@ -181,6 +232,7 @@
         line = document.createElement("div");
         line.className = "ceil";
         line.dataset.id = layer.id;
+        line.dataset.kind = "drop";
         line.innerHTML = `<span class="ceil-label">Trần quà rơi</span><i class="ceil-grip"></i>`;
         handles.append(line);
         ceilings.set(layer.id, line);
@@ -265,12 +317,12 @@
     if (event.button !== 0) return;
     const p = toStage(event);
     const grip = event.target.closest(".knob, .edge");
-    const ceiling = event.target.closest(".ceil");
+    const ceiling = event.target.closest(".ceil, .wall-line");
     const current = layerById(selected);
     let target, mode, cycleTo = null;
     if (ceiling && !layerById(ceiling.dataset.id)?.locked) {
       target = layerById(ceiling.dataset.id);
-      mode = "drop";
+      mode = ["floor", "wallLeft", "wallRight"].includes(ceiling.dataset.kind) ? ceiling.dataset.kind : "drop";
       if (target.id !== selected) select(target.id);
     } else if (grip && current && !current.locked) {
       target = current;
@@ -318,8 +370,13 @@
       }
       layer.x = Math.round(x);
       layer.y = Math.round(y);
-      // The ceiling moves along with the jar.
+      // The ceiling and the floor move along with the jar.
       if ("drop" in f) layer.drop = Math.round(f.drop + (layer.y - f.y));
+      if ("floor" in f) layer.floor = Math.round(f.floor + (layer.y - f.y));
+      if ("wallLeft" in f) {
+        layer.wallLeft = Math.round(f.wallLeft + (layer.x - f.x));
+        layer.wallRight = Math.round(f.wallRight + (layer.x - f.x));
+      }
     } else if (drag.mode === "drop") {
       let drop = f.drop + dy;
       if (snap) {
@@ -327,10 +384,32 @@
         if (s) { drop += s.d; hy.push(s.line); }
       }
       layer.drop = Math.round(Math.min(drop, layer.y));
+    } else if (drag.mode === "floor") {
+      let floor = f.floor + dy;
+      if (snap) {
+        const s = nearest([floor], ys);
+        if (s) { floor += s.d; hy.push(s.line); }
+      }
+      layer.floor = Math.round(Math.max(floor, layer.y));
+    } else if (drag.mode === "wallLeft" || drag.mode === "wallRight") {
+      let x = f[drag.mode] + dx;
+      if (snap) {
+        const s = nearest([x], xs);
+        if (s) { x += s.d; vx.push(s.line); }
+      }
+      // The left wall stays left of the right one.
+      layer[drag.mode] = Math.round(drag.mode === "wallLeft" ? Math.min(x, layer.wallRight - 20) : Math.max(x, layer.wallLeft + 20));
     } else {
       Object.assign(layer, resized(f, drag.mode, dx, dy, {
         fromCentre: event.altKey, keepRatio: layer.ratio !== event.shiftKey, snap: snap ? { xs, ys, vx, hy } : null
       }));
+      // A floor at the bottom of the box stays at its bottom; any other stays where it is, but never above the box.
+      if ("floor" in f) layer.floor = f.floor === f.y + f.h ? layer.y + layer.h : Math.max(f.floor, layer.y);
+      // Walls on the box's sides stay on them.
+      if ("wallLeft" in f) {
+        if (f.wallLeft === f.x) layer.wallLeft = layer.x;
+        if (f.wallRight === f.x + f.w) layer.wallRight = layer.x + layer.w;
+      }
     }
     showGuides(vx, hy);
     renderBoxes();
@@ -494,7 +573,7 @@
   $("toBack").onclick = () => move("back");
 
   // ---------- Properties ----------
-  const fields = { x: $("fx"), y: $("fy"), w: $("fw"), h: $("fh"), drop: $("fdrop") };
+  const fields = { x: $("fx"), y: $("fy"), w: $("fw"), h: $("fh"), drop: $("fdrop"), floor: $("ffloor"), wallLeft: $("fwallLeft"), wallRight: $("fwallRight") };
   function renderProps() {
     const layer = layerById(selected);
     $("propsEmpty").hidden = Boolean(layer);
@@ -503,6 +582,8 @@
     for (const id of ["toFront", "forward", "backward", "toBack"]) $(id).disabled = !layer;
     if (!layer) return;
     $("dropRow").hidden = !("drop" in layer);
+    $("floorRow").hidden = !("floor" in layer);
+    $("wallRow").hidden = !("wallLeft" in layer);
     for (const [key, input] of Object.entries(fields)) if (document.activeElement !== input) input.value = layer[key] ?? "";
     $("ratio").checked = layer.ratio !== false;
     $("visible").checked = layer.visible;
@@ -527,8 +608,12 @@
       }
     }
     if (key === "drop") value = Math.min(value, layer.y);
+    if (key === "floor") value = Math.max(value, layer.y);
+    if (key === "wallLeft") value = Math.min(value, layer.wallRight - 20);
+    if (key === "wallRight") value = Math.max(value, layer.wallLeft + 20);
     layer[key] = value;
     if (key === "y" && "drop" in layer) layer.drop = Math.min(layer.drop, value);
+    if (key === "y" && "floor" in layer) layer.floor = Math.max(layer.floor, value);
   }
   for (const [key, input] of Object.entries(fields)) {
     input.addEventListener("change", () => {
@@ -602,9 +687,21 @@
     const layer = layerById(selected);
     if (layer && "drop" in layer && !layer.locked) change(() => { layer.drop = 0; });
   };
+  $("wallsToBox").onclick = () => {
+    const layer = layerById(selected);
+    if (layer && "wallLeft" in layer && !layer.locked) change(() => { layer.wallLeft = layer.x; layer.wallRight = layer.x + layer.w; });
+  };
+  $("floorBottom").onclick = () => {
+    const layer = layerById(selected);
+    if (layer && "floor" in layer && !layer.locked) change(() => { layer.floor = layer.y + layer.h; });
+  };
   $("resetLayer").onclick = () => {
     const layer = layerById(selected), base = defaultOf(selected);
-    if (layer && base) change(() => Object.assign(layer, { x: base.x, y: base.y, w: base.w, h: base.h, name: base.name }));
+    if (layer && base) change(() => {
+      Object.assign(layer, { x: base.x, y: base.y, w: base.w, h: base.h, name: base.name });
+      if ("floor" in layer) layer.floor = layer.y + layer.h;
+      if ("wallLeft" in layer) { layer.wallLeft = layer.x; layer.wallRight = layer.x + layer.w; }
+    });
   };
   $("resetAll").onclick = () => {
     if (confirm("Đưa tất cả các lớp về vị trí, cỡ và thứ tự ban đầu?")) change(() => { layers = clone(defaults); });
@@ -648,6 +745,8 @@
         layer.x += arrows[0] * step;
         layer.y += arrows[1] * step;
         if ("drop" in layer) layer.drop += arrows[1] * step;
+        if ("floor" in layer) layer.floor += arrows[1] * step;
+        if ("wallLeft" in layer) { layer.wallLeft += arrows[0] * step; layer.wallRight += arrows[0] * step; }
       });
     }
   });

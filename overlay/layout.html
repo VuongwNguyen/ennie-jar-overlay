@@ -89,6 +89,15 @@
         <label title="Độ cao quà bắt đầu rơi, tính từ mép trên khung (0 là sát mép trên). Kéo đường gạch hồng phía trên hũ cũng được."><span class="scrub" data-field="drop">Trần</span><input type="number" id="fdrop" step="1"></label>
         <button class="secondary" id="dropTop" title="Cho quà rơi từ sát mép trên màn hình">Sát mép trên</button>
       </div>
+      <div class="drop-row" id="floorRow" hidden>
+        <label title="Độ cao của sàn mà quà rơi ra ngoài hũ nằm lên, tính từ mép trên khung. Kéo đường gạch xanh phía dưới hũ cũng được."><span class="scrub" data-field="floor">Sàn</span><input type="number" id="ffloor" step="1"></label>
+        <button class="secondary" id="floorBottom" title="Đặt sàn ở đáy khung của hũ (như ban đầu)">Sát đáy khung</button>
+      </div>
+      <div class="drop-row wall-row" id="wallRow" hidden>
+        <label title="Quà rơi ra ngoài hũ lăn sang trái tới đâu thì dừng. Kéo đường gạch cam bên trái cũng được."><span class="scrub" data-field="wallLeft">Vách trái</span><input type="number" id="fwallLeft" step="1"></label>
+        <label title="Quà rơi ra ngoài hũ lăn sang phải tới đâu thì dừng. Kéo đường gạch cam bên phải cũng được."><span class="scrub" data-field="wallRight">Vách phải</span><input type="number" id="fwallRight" step="1"></label>
+        <button class="secondary" id="wallsToBox" title="Đặt hai vách ở hai cạnh khung của hũ (như ban đầu)">Theo khung</button>
+      </div>
       <label class="check"><input type="checkbox" id="ratio"> Giữ tỉ lệ khi đổi cỡ</label>
       <label class="scale-row" title="100% là cỡ ban đầu của lớp">Cỡ <input type="range" id="scale" min="10" max="300" step="1"> <output id="scaleOut">100%</output></label>
       <h3>Hiển thị</h3>

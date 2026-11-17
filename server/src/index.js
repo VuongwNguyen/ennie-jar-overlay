@@ -9,6 +9,7 @@ import { existsSync } from "node:fs";
 import { createTikTokAdapter } from "./tiktok.js";
 import { createTrace } from "./trace.js";
 import { createGiftLog } from "./gift-log.js";
+import { createLevelWatch } from "./levelwatch.js";
 import { vietnameseGiftName } from "./gift-names.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -170,6 +171,16 @@ app.post("/api/simulate/member", (req, res) => {
   res.status(201).json({ ok: true });
 });
 
+// Pretends someone went up a level: kind "fan" (team heart) or "gifter", to the level given.
+app.post("/api/simulate/levelup", (req, res) => {
+  const nickname = String(req.body?.nickname ?? "").trim().slice(0, 40) || "Người xem";
+  const kind = req.body?.kind === "gifter" ? "gifter" : "fan";
+  const level = Math.max(1, Math.min(100, Math.round(Number(req.body?.level)) || 10));
+  // Shown every time, not only once like a real one.
+  showLevelUp({ type: "levelup", kind, level, user: { id: `test-${nickname}`, uniqueId: "", nickname, avatar: "", gifterLevel: kind === "gifter" ? level : 0, fanLevel: kind === "fan" ? level : 0, fanClub: "" }, timestamp: Date.now() }, "test");
+  res.status(201).json({ ok: true });
+});
+
 app.post("/api/session/reset", async (_req, res) => {
   try {
     giftLog.note(`session reset (was ${state.sessionId}, ${state.totalCoins} coins, ${state.gifts} gifts)`);
@@ -208,7 +219,10 @@ const seenThisConnection = new Map();
 const RETRY_WELCOME_MS = 30_000;
 const HANDLED = new Set(["queued", "welcomed"]);
 function considerWelcome(rawUser, source) {
+  // Looked at before remembered levels fill in the gaps: only levels TikTok sent now can show a level up.
+  const levelUps = levelWatch.check(rawUser);
   const user = withRememberedLevels(rawUser);
+  for (const { kind, level } of levelUps) showLevelUp({ type: "levelup", kind, level, user, timestamp: Date.now() }, "seen on a message");
   // Nobody is left out for an unusual name: the id TikTok gives everyone comes first.
   const key = String(user?.id || user?.uniqueId || user?.nickname || "");
   if (!key) return;
@@ -239,6 +253,18 @@ function updateStatus(key, status) {
   if (seen) seen.handled = HANDLED.has(status);
   io.emit("member-status", { key, status });
 }
+// Someone's gifter or team heart level went up: the new level is remembered and levelup.html shows it.
+// TikTok's own level-up message (or the control page's test button). The same level up found from the
+// levels on a message (levelwatch.js) is shown only once, whichever comes first.
+function handleLevelUp(event) {
+  if (!levelWatch.claim(event.user, event.kind, event.level)) return;
+  showLevelUp({ ...event, user: withRememberedLevels(event.user) }, "TikTok message");
+}
+function showLevelUp(event, how) {
+  console.log(`TikTok: ${event.user.nickname} reached ${event.kind === "fan" ? "team heart" : "gifter"} level ${event.level} (${how})`);
+  io.emit("levelup", event);
+}
+const levelWatch = createLevelWatch();
 app.get("/api/members/recent", (_req, res) => res.json(recentMembers));
 
 // ---------- Remembered levels ----------
@@ -427,9 +453,14 @@ const LAYERS = {
   // (its size follows the width). Width and height change separately for this one.
   // drop: the ceiling the gifts fall from, as a height on the stage (0 is the top of the screen). It may be
   // above the box: the jar's page then reaches up to it, so gifts fall from there without the jar moving.
-  jar: { name: "Hũ quà", x: 320, y: 0, w: 760, h: 793, ratio: false, drop: 0 },
+  // floor: where gifts that spill out of the jar land, as a height on the stage; the bottom of the box by default.
+  // wallLeft, wallRight: how far to either side they can roll, as positions across the stage; the box's sides
+  // by default.
+  jar: { name: "Hũ quà", x: 320, y: 0, w: 760, h: 793, ratio: false, drop: 0, floor: 793, wallLeft: 320, wallRight: 1080 },
   welcome: { name: "Khung chào mừng", x: 140, y: 880, w: 800, h: 346 },
-  heart: { name: "Video tim đội", x: 0, y: 0, w: 1080, h: 1920 }
+  heart: { name: "Video tim đội", x: 0, y: 0, w: 1080, h: 1920 },
+  // Someone going up a level (levelup.html), drawn in the middle of its box; over the jar by default.
+  levelup: { name: "Hiệu ứng lên cấp", x: 420, y: 120, w: 560, h: 560 }
 };
 const DEFAULT_LAYOUT = Object.entries(LAYERS).map(([id, box]) => ({ id, ratio: true, ...box, visible: true, locked: false }));
 let layout = structuredClone(DEFAULT_LAYOUT);
@@ -457,6 +488,15 @@ function cleanLayout(input) {
       ratio: item.ratio !== false,
       ...("drop" in base ? { drop: num(item.drop, base.drop, -STAGE.h, 2 * STAGE.h) } : {})
     });
+  }
+  // The floor is never above the top of the box; a layout saved before there was one has it at the box's bottom.
+  for (const layer of out) {
+    if (!("floor" in (LAYERS[layer.id] ?? {}))) continue;
+    const saved = list.find(item => item?.id === layer.id);
+    layer.floor = Math.max(layer.y, num(saved?.floor, layer.y + layer.h, -STAGE.h, 3 * STAGE.h));
+    // The walls likewise, the box's sides when none was saved; the left one never right of the right one.
+    layer.wallLeft = num(saved?.wallLeft, layer.x, -STAGE.w, 2 * STAGE.w);
+    layer.wallRight = Math.max(layer.wallLeft + 20, num(saved?.wallRight, layer.x + layer.w, -STAGE.w, 2 * STAGE.w));
   }
   // A part missing from the saved file (one added in a later build) goes on top, where it can be seen.
   for (const item of DEFAULT_LAYOUT) if (!seen.has(item.id)) out.push(structuredClone(item));
@@ -568,6 +608,7 @@ const tiktok = createTikTokAdapter({
     return handleGift(event);
   },
   onMember: handleMember,
+  onLevelUp: handleLevelUp,
   // Chat, likes, follows and shares: their levels are remembered, and someone seen this way for the
   // first time (TikTok may not have reported their join) is considered for the welcome frame.
   onUser: (user, source) => considerWelcome(user, source),
@@ -576,6 +617,7 @@ const tiktok = createTikTokAdapter({
     if (status.state === "connecting") {
       recentMembers.length = 0;
       seenThisConnection.clear();
+      levelWatch.clear();
       io.emit("members-cleared");
     }
     io.emit("tiktok-status", status);

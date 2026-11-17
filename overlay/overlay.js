@@ -10,6 +10,9 @@ const BIG_GIFT = 100;
 const MEGA_GIFT = 1000;
 
 let engine, runner;
+// How thick the glass is to the gifts, as the radius of the circles it is made of (see startPhysics): thin, so
+// gifts outside the jar lie close against it.
+const GLASS = 3;
 let frameBodies = [];
 const particles = new Map();
 
@@ -24,13 +27,38 @@ let scale = 1;
 // that big. On its own (overlay.html) the box and the frame are the whole page.
 let jarBox = null;
 {
-  // live.html gives the box in the address at first (?box=x,y,w,h,top), then by message when it changes.
-  const [x, y, w, h, top] = (new URLSearchParams(location.search).get("box") ?? "").split(",").map(Number);
-  if ([x, y, w, h, top].every(Number.isFinite) && w > 0 && h > 0) jarBox = { x, y, w, h, top };
+  // live.html gives the box in the address at first (?box=x,y,w,h,top,floor), then by message when it changes.
+  // floor: where gifts that spill out of the jar land (the layout page's "Sàn"); without it, the jar's base.
+  // wallLeft, wallRight: how far to either side they can roll ("Vách"); without them, the box's sides.
+  const [x, y, w, h, top, floor, wallLeft, wallRight] = (new URLSearchParams(location.search).get("box") ?? "").split(",").map(Number);
+  if ([x, y, w, h, top].every(Number.isFinite) && w > 0 && h > 0) {
+    jarBox = { x, y, w, h, top, floor: Number.isFinite(floor) ? floor : null, walls: [wallLeft, wallRight].every(Number.isFinite) ? [wallLeft, wallRight] : null };
+  }
 }
+// The walls spilled gifts stop at, in page pixels: the layout's, or the sides of the box (or of the page).
+// A wall is never closer to the jar than CLEAR (in the jar's own units) outside its glass: a wall set across the
+// jar, or just beside it, would leave falling gifts nowhere to go but onto its shoulder, where they stack up into
+// a column as if the jar were bigger than it looks.
+const CLEAR = 34;
+function jarWalls() {
+  let [left, right] = Array.isArray(jarBox?.walls) && jarBox.walls.every(Number.isFinite)
+    ? jarBox.walls
+    : jarBox ? [jarBox.x, jarBox.x + jarBox.w] : [0, innerWidth];
+  const layer = document.getElementById("giftLayer")?.getBoundingClientRect();
+  if (layer && layer.width) {
+    const glass = 2 * GLASS;
+    left = Math.min(left, layer.left + (-glass - CLEAR) * scale);
+    right = Math.max(right, layer.left + (JAR.w + glass + CLEAR) * scale);
+  }
+  return [left, right];
+}
+// The frame reaches down to the floor when it is below the box, so gifts lying there are not cut off.
 function jarFrame() {
   if (!jarBox) return { left: 0, top: 0, right: innerWidth, bottom: innerHeight };
-  return { left: jarBox.x, top: Math.min(jarBox.top, jarBox.y), right: jarBox.x + jarBox.w, bottom: jarBox.y + jarBox.h };
+  const bottom = Math.max(jarBox.y + jarBox.h, Number.isFinite(jarBox.floor) ? jarBox.floor + 4 : -Infinity);
+  // Walls outside the box widen the frame to them, so gifts rolling that far stay in sight.
+  const [wallLeft, wallRight] = jarWalls();
+  return { left: Math.min(jarBox.x, wallLeft), top: Math.min(jarBox.top, jarBox.y), right: Math.max(jarBox.x + jarBox.w, wallRight), bottom };
 }
 window.jarFrame = jarFrame;
 function fitScene() {
@@ -46,28 +74,36 @@ function fitScene() {
 }
 addEventListener("message", event => {
   if (event.origin !== location.origin || event.data?.type !== "box") return;
-  const { x, y, w, h, top } = event.data;
+  const { x, y, w, h, top, floor, walls } = event.data;
   if (![x, y, w, h, top].every(Number.isFinite)) return;
-  jarBox = { x, y, w: Math.max(1, w), h: Math.max(1, h), top };
+  jarBox = { x, y, w: Math.max(1, w), h: Math.max(1, h), top, floor: Number.isFinite(floor) ? floor : null, walls: Array.isArray(walls) && walls.every(Number.isFinite) ? walls : null };
   dispatchEvent(new Event("resize")); // refits the scene, the physics frame, the sticker and the rest
 });
 
-// Ground level with the jar's base plus walls at the edges of the visible frame,
-// so gifts that spill out stay on screen and pile up beside the jar.
+// The floor that gifts spilling out of the jar land on, and a wall on either side, so they stay on screen and pile
+// up beside the jar. The floor is the layout page's "Sàn" (live.html), or the jar's base; the walls its "Vách",
+// or the sides of the jar's box.
+// It is only outside the jar: inside, the jar's own base holds the gifts. A floor below the jar's base gets a
+// block under the jar too, so nothing slips beneath it.
+let groundLevel = JAR.h; // the floor, in physics units (the jar's base is JAR.h)
 function buildFrame() {
   if (!engine) return;
   const { Bodies, Composite } = Matter;
   Composite.remove(engine.world, frameBodies);
   const r = $("giftLayer").getBoundingClientRect();
   // Screen pixels to physics units, which are the scene's unscaled pixels.
-  const frame = jarFrame();
-  const left = (frame.left - r.left) / scale, right = (frame.right - r.left) / scale;
-  const t = 60, tall = 4000;
+  const [wallLeft, wallRight] = jarWalls();
+  const left = (wallLeft - r.left) / scale, right = (wallRight - r.left) / scale;
+  groundLevel = Number.isFinite(jarBox?.floor) ? (jarBox.floor - r.top) / scale : JAR.h;
+  const t = 60, tall = 4000, g = groundLevel, edge = 2 * GLASS; // edge: room for the glass outside the jar's outline
+  const floorPiece = (from, to) => Bodies.rectangle((from + to) / 2, g + t / 2, Math.max(1, to - from), t, { isStatic: true });
   frameBodies = [
-    Bodies.rectangle((left + right) / 2, JAR.h + t / 2, right - left + 2 * t, t, { isStatic: true }),
-    Bodies.rectangle(left - t / 2, JAR.h - tall / 2, t, tall + t, { isStatic: true }),
-    Bodies.rectangle(right + t / 2, JAR.h - tall / 2, t, tall + t, { isStatic: true })
+    floorPiece(left - t, -edge),
+    floorPiece(JAR.w + edge, right + t),
+    Bodies.rectangle(left - t / 2, g - tall / 2, t, tall + t, { isStatic: true }),
+    Bodies.rectangle(right + t / 2, g - tall / 2, t, tall + t, { isStatic: true })
   ];
+  if (g > JAR.h) frameBodies.push(Bodies.rectangle(JAR.w / 2, (JAR.h + g) / 2 + 4, JAR.w + 2 * edge, g - JAR.h + 8, { isStatic: true }));
   Composite.add(engine.world, frameBodies);
 }
 
@@ -112,8 +148,9 @@ function startPhysics() {
   if (!window.Matter) return;
   const { Engine, Runner, Bodies, Composite, Events } = Matter;
   engine = Engine.create({ gravity: { x: 0, y: 1.15 }, enableSleeping: true });
-  // The glass is a ring of small static circles placed along the outline.
-  const pegR = 8, statics = [];
+  // The glass is a ring of small static circles placed along the outline, just outside it: inside, gifts touch
+  // the outline; outside, they stop 2 * GLASS away from it.
+  const pegR = GLASS, statics = [];
   const left = leftOutline();
   for (let i = 0; i < left.length; i++) {
     const [x, y] = left[i];
@@ -137,7 +174,7 @@ function startPhysics() {
         el._x = x; el._y = y; el._a = a;
         el.style.transform = `translate(${x}px, ${y}px) rotate(${a}rad)`;
       }
-      if (body.position.y > JAR.h + 90) removeParticle(body, el);
+      if (body.position.y > Math.max(JAR.h, groundLevel) + 90) removeParticle(body, el);
     }
   });
 }
