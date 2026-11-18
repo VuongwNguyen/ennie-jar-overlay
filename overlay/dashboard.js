@@ -87,6 +87,13 @@ $("sendMember").addEventListener("click", async () => {
     notify("giftNotice", ok ? "Đã gửi người vào live ✓" : "Không gửi được.", !ok);
   } catch { notify("giftNotice", "Không liên lạc được với server.", true); }
 });
+// The same, coming in as a guardian (Hộ vệ) or a Super Fan, for the welcome rules of those two.
+document.querySelectorAll("[data-member-kind]").forEach(button => button.addEventListener("click", async () => {
+  try {
+    const { ok } = await post("/api/simulate/member", { nickname: $("nickname").value.trim(), [button.dataset.memberKind]: true });
+    notify("giftNotice", ok ? `Đã gửi ${button.dataset.memberKind === "guardian" ? "hộ vệ" : "Super Fan"} vào live ✓` : "Không gửi được.", !ok);
+  } catch { notify("giftNotice", "Không liên lạc được với server.", true); }
+}));
 // A pretend level up for the name in "Người tặng", shown by the "Hiệu ứng lên cấp" part. Nothing is saved.
 document.querySelectorAll("[data-levelup]").forEach(button => button.addEventListener("click", async () => {
   try {
@@ -171,6 +178,10 @@ fetch("/api/welcome").then(r => r.json()).then(renderWelcome).catch(() => {});
 
 // ---------- Welcoming by level ----------
 function renderRules(rules) {
+  $("ruleGuardianOn").checked = rules.guardian.on;
+  $("ruleGuardianBadge").value = rules.guardian.badge;
+  $("ruleSuperFanOn").checked = rules.superFan.on;
+  $("ruleSuperFanBadge").value = rules.superFan.badge;
   $("ruleFanOn").checked = rules.fan.on;
   $("ruleFanAbove").value = rules.fan.above;
   $("ruleFanBadge").value = rules.fan.badge;
@@ -182,6 +193,8 @@ fetch("/api/welcome/rules").then(r => r.json()).then(renderRules).catch(() => {}
 $("rulesForm").addEventListener("submit", async event => {
   event.preventDefault();
   const rules = {
+    guardian: { on: $("ruleGuardianOn").checked, badge: $("ruleGuardianBadge").value.trim() },
+    superFan: { on: $("ruleSuperFanOn").checked, badge: $("ruleSuperFanBadge").value.trim() },
     fan: { on: $("ruleFanOn").checked, above: Number($("ruleFanAbove").value), badge: $("ruleFanBadge").value.trim() },
     gifter: { on: $("ruleGifterOn").checked, above: Number($("ruleGifterAbove").value), badge: $("ruleGifterBadge").value.trim() }
   };
@@ -195,7 +208,7 @@ $("rulesForm").addEventListener("submit", async event => {
 
 // ---------- Viewers who just joined, with the @name to copy into the list ----------
 // Why someone was or was not welcomed, and how they were seen (TikTok does not report every join).
-const REASONS = { list: "chỉ định", fan: "tim đội", gifter: "cấp quà" };
+const REASONS = { list: "chỉ định", guardian: "hộ vệ", superFan: "Super Fan", fan: "tim đội", gifter: "cấp quà" };
 const STATUSES = {
   queued: "⏳ đang chờ", welcomed: "✓ đã chào", limit: "đã chào 3 lần/10 phút", soon: "vừa chào xong",
   dropped: "hàng chờ đầy", below: "chưa đủ cấp", "no-level": "không có cấp",
@@ -231,7 +244,7 @@ function renderMembers() {
     const who = document.createElement("span");
     who.className = "who";
     const handle = member.user?.uniqueId ? `@${member.user.uniqueId}` : `id ${member.user?.id ?? "?"}`;
-    const levels = [member.user?.fanLevel ? `💗${member.user.fanLevel}` : "", member.user?.gifterLevel ? `🎁${member.user.gifterLevel}` : ""].filter(Boolean).join(" ");
+    const levels = [member.user?.guardian ? "🛡️" : "", member.user?.superFan ? "⭐" : "", member.user?.fanLevel ? `💗${member.user.fanLevel}` : "", member.user?.gifterLevel ? `🎁${member.user.gifterLevel}` : ""].filter(Boolean).join(" ");
     who.textContent = `${member.user?.nickname ?? "?"} · ${handle}${levels ? ` · ${levels}` : ""}`;
     const time = document.createElement("span");
     time.className = "badge";
@@ -323,7 +336,21 @@ for (const chip of document.querySelectorAll(".chip[data-gift]")) {
 // The gift price that sets off the heart burst on the jar (0 turns it off).
 const showEffects = settings => {
   if (document.activeElement !== $("burstFrom")) $("burstFrom").value = settings.burstFrom;
+  for (const button of document.querySelectorAll("[data-jar-style]")) button.setAttribute("aria-checked", String(button.dataset.jarStyle === (settings.jarStyle ?? "jar")));
 };
+// The jar or the fish tank: the overlays switch over by themselves (overlay.js reloads on "effects").
+const JAR_STYLE_NAMES = { jar: "hũ quà", tank: "bể nuôi cá" };
+document.querySelectorAll("[data-jar-style]").forEach(button => button.addEventListener("click", async () => {
+  if (button.getAttribute("aria-checked") === "true") return;
+  try {
+    const { ok, body: saved } = await post("/api/effects", { jarStyle: button.dataset.jarStyle });
+    if (!ok) throw new Error("not saved");
+    showEffects(saved);
+    notify("jarStyleNotice", `Đã đổi sang ${JAR_STYLE_NAMES[saved.jarStyle]} ✓ Overlay đang tải lại.`);
+  } catch {
+    notify("jarStyleNotice", "Không đổi được, thử lại.", true);
+  }
+}));
 fetch("/api/effects").then(res => res.json()).then(showEffects).catch(() => {});
 socket.on("effects", showEffects);
 $("effectsForm").addEventListener("submit", async event => {
@@ -391,10 +418,13 @@ $("traceForm").addEventListener("submit", event => {
 $("traceOff").addEventListener("click", () => setTrace(""));
 
 // ---------- Tabs ----------
-// Four tabs, by when they are used. The one open is remembered in this browser; the Live tab comes first.
-const TABS = ["live", "welcome", "overlay", "test"];
+// Three tabs, by when they are used. The one open is remembered in this browser; the Live tab comes first.
+const TABS = ["live", "overlay", "settings"];
+// Tabs that were merged: the welcome cards are now on Overlay, and testing is under Settings.
+const OLD_TABS = { welcome: "overlay", test: "settings" };
 let tab = "live";
 function openTab(name) {
+  name = OLD_TABS[name] ?? name;
   tab = TABS.includes(name) ? name : "live";
   for (const id of TABS) {
     $(`tab-${id}`).setAttribute("aria-selected", String(id === tab));

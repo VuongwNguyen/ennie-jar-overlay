@@ -115,6 +115,17 @@ body.overlay-page { background: transparent; color: #fff; overflow: hidden; }
 .jar-edge-outer { stroke: var(--jar-edge-dark); }
 .jar-edge { stroke: var(--jar-edge); }
 .jar-inner { stroke: var(--jar-tint-bottom); }
+/* The fish tank (tank.js) draws its own glass, water and lid: the jar's glass, rim and corner bow are hidden. */
+.jar-wrap.tank .jar-only { display: none; }
+/* The fish tank's name tag is a piece of driftwood on a rope. */
+.jar-wrap.tank .heading {
+  color: #fff4e0; text-shadow: 0 2px 0 #6b4220, 0 0 6px #4a2a1066;
+  background: repeating-linear-gradient(176deg, #0000 0 6px, #7a4a2226 6px 7px), linear-gradient(180deg, #d2a46c, #a8743f 60%, #8a5a2e);
+  border: 2px solid #6b4220; border-radius: 16px 8px 18px 7px / 10px 16px 9px 15px; box-shadow: 0 3px 7px #24152d55, inset 0 2px 0 #f2cf9a88;
+}
+.jar-wrap.tank .heading::before { background: #4a2a10; border-color: #6b4220; }
+.jar-wrap.tank .heading::after { height: 3px; margin-top: -1.5px; background: repeating-linear-gradient(90deg, #d8b98a 0 3px, #b8945f 3px 6px); box-shadow: none; }
+.jar-wrap.tank .heading-icon g { fill: #fff4e0; stroke: #6b4220; }
 .jar-lip { stroke: var(--jar-edge-dark); }
 .jar-svg .sweep { transform: skewX(-18deg); transform-origin: 0 0; animation: sweep 7s ease-in-out infinite; }
 /* The sitting dog blinks every few seconds, sometimes twice in a row. */

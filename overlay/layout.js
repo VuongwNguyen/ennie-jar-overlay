@@ -174,9 +174,12 @@
   // The ceiling the jar's gifts fall from, and the floor that gifts spilling out of the jar land on: dashed lines
   // across the jar's width, dragged up and down (pink for the ceiling, green for the floor).
   const ceilings = new Map(), floors = new Map();
+  // The floor line and its "Sàn" row are hidden for now, as the jar overlay does not use the floor (FLOOR_ON in
+  // overlay.js). A floor already saved is kept as it is.
+  const FLOOR_ON = false;
   function renderFloors() {
     for (const layer of layers) {
-      if (!("floor" in layer)) continue;
+      if (!FLOOR_ON || !("floor" in layer)) continue;
       let line = floors.get(layer.id);
       if (!line) {
         line = document.createElement("div");
@@ -212,7 +215,7 @@
           handles.append(line);
           walls.set(key, line);
         }
-        const top = Math.min(layer.drop ?? layer.y, layer.y), bottom = Math.max(layer.floor ?? layer.y + layer.h, layer.y + layer.h);
+        const top = Math.min(layer.drop ?? layer.y, layer.y), bottom = Math.max(FLOOR_ON ? layer.floor ?? layer.y + layer.h : layer.y + layer.h, layer.y + layer.h);
         line.style.left = `${layer[side] * zoom}px`;
         line.style.top = `${top * zoom}px`;
         line.style.height = `${(bottom - top) * zoom}px`;
@@ -582,7 +585,7 @@
     for (const id of ["toFront", "forward", "backward", "toBack"]) $(id).disabled = !layer;
     if (!layer) return;
     $("dropRow").hidden = !("drop" in layer);
-    $("floorRow").hidden = !("floor" in layer);
+    $("floorRow").hidden = !FLOOR_ON || !("floor" in layer);
     $("wallRow").hidden = !("wallLeft" in layer);
     for (const [key, input] of Object.entries(fields)) if (document.activeElement !== input) input.value = layer[key] ?? "";
     $("ratio").checked = layer.ratio !== false;

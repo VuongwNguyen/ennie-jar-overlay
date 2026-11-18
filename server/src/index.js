@@ -167,7 +167,8 @@ app.post("/api/simulate/member", (req, res) => {
   const level = value => Math.max(0, Math.min(100, Math.round(Number(value)) || 0));
   // source "chat", "like", "social" or "gift" pretends they were first seen that way rather than joining.
   const source = ["chat", "like", "social", "gift"].includes(req.body?.source) ? req.body.source : "join";
-  considerWelcome({ id: `test-${uniqueId || nickname}`, uniqueId, nickname, fanLevel: level(req.body?.fanLevel), gifterLevel: level(req.body?.gifterLevel) }, source);
+  // guardian / superFan: pretends they came in as a guardian (Hộ vệ) or a Super Fan.
+  considerWelcome({ id: `test-${uniqueId || nickname}`, uniqueId, nickname, fanLevel: level(req.body?.fanLevel), gifterLevel: level(req.body?.gifterLevel), guardian: req.body?.guardian === true, superFan: req.body?.superFan === true }, source);
   res.status(201).json({ ok: true });
 });
 
@@ -341,21 +342,32 @@ async function saveWelcomeList() {
   await writeFile(`${welcomeFile}.tmp`, JSON.stringify(welcomeList, null, 2), "utf8");
   await rename(`${welcomeFile}.tmp`, welcomeFile);
 }
-// Who else is welcomed, by level, with one title for each group; kept in data/welcome-rules.json.
-// A level must be above the number set: fan "above 10" means team heart level 11 and up.
+// Who else is welcomed, with one title for each group; kept in data/welcome-rules.json. Guardians (Hộ vệ)
+// and Super Fans are welcomed whenever they come in; the others by level, which must be above the number
+// set: fan "above 10" means team heart level 11 and up.
 const rulesFile = path.join(dataDir, "welcome-rules.json");
 const DEFAULT_RULES = {
+  guardian: { on: true, badge: "HỘ VỆ" },
+  superFan: { on: true, badge: "ÁNH SAO" },
   fan: { on: true, above: 10, badge: "FAN CỨNG" },
   gifter: { on: true, above: 15, badge: "NHÀ TÀI TRỢ" }
 };
 let welcomeRules = structuredClone(DEFAULT_RULES);
 function cleanRules(input) {
-  const rule = (value, fallback) => ({
+  const kind = (value, fallback) => ({
     on: typeof value?.on === "boolean" ? value.on : fallback.on,
-    above: Math.max(0, Math.min(100, Math.round(Number(value?.above ?? fallback.above)) || 0)),
     badge: String(value?.badge ?? fallback.badge).trim().slice(0, 16) || fallback.badge
   });
-  return { fan: rule(input?.fan, DEFAULT_RULES.fan), gifter: rule(input?.gifter, DEFAULT_RULES.gifter) };
+  const level = (value, fallback) => ({
+    ...kind(value, fallback),
+    above: Math.max(0, Math.min(100, Math.round(Number(value?.above ?? fallback.above)) || 0))
+  });
+  return {
+    guardian: kind(input?.guardian, DEFAULT_RULES.guardian),
+    superFan: kind(input?.superFan, DEFAULT_RULES.superFan),
+    fan: level(input?.fan, DEFAULT_RULES.fan),
+    gifter: level(input?.gifter, DEFAULT_RULES.gifter)
+  };
 }
 async function loadWelcomeRules() {
   try {
@@ -365,7 +377,7 @@ async function loadWelcomeRules() {
   }
 }
 
-// In order: picked by name, then team heart level, then gifter level. The first that matches gives the
+// In order: picked by name, then guardian, Super Fan, team heart level, gifter level. The first that matches gives the
 // title on the frame, and its place in the queue (rank 1 is shown first).
 function welcomeFor(user) {
   const ids = [user?.uniqueId, user?.id].map(cleanId).filter(Boolean);
@@ -374,9 +386,11 @@ function welcomeFor(user) {
     ?? welcomeList.find(entry => cleanId(entry.id) === cleanId(user?.nickname));
   if (listed) return { id: user?.uniqueId || user?.id || listed.id, badge: listed.badge, reason: "list", rank: 1 };
   const id = user?.uniqueId || user?.id;
-  const { fan, gifter } = welcomeRules;
-  if (fan.on && (user?.fanLevel ?? 0) > fan.above) return { id, badge: fan.badge, reason: "fan", rank: 2 };
-  if (gifter.on && (user?.gifterLevel ?? 0) > gifter.above) return { id, badge: gifter.badge, reason: "gifter", rank: 3 };
+  const { guardian, superFan, fan, gifter } = welcomeRules;
+  if (guardian.on && user?.guardian) return { id, badge: guardian.badge, reason: "guardian", rank: 2 };
+  if (superFan.on && user?.superFan) return { id, badge: superFan.badge, reason: "superFan", rank: 2 };
+  if (fan.on && (user?.fanLevel ?? 0) > fan.above) return { id, badge: fan.badge, reason: "fan", rank: 3 };
+  if (gifter.on && (user?.gifterLevel ?? 0) > gifter.above) return { id, badge: gifter.badge, reason: "gifter", rank: 4 };
   return null;
 }
 // Sends someone to the overlay's queue, unless they are already waiting there, were shown less than
@@ -512,12 +526,18 @@ async function loadLayout() {
 let layoutWrite = Promise.resolve();
 // Effect settings, set on the control page and kept in data/effects.json: burstFrom is the price of one
 // gift, in coins, from which it sets off the heart burst on the jar (bigburst.js); 0 turns the burst off.
+// jarStyle is what holds the gifts: "jar", the glass jar, or "tank", the fish tank (tank.js).
+// A setting left out of a change keeps its value (base), so saving one does not reset the other.
 const effectsFile = path.join(dataDir, "effects.json");
-const DEFAULT_EFFECTS = { burstFrom: 1000 };
+const JAR_STYLES = ["jar", "tank"];
+const DEFAULT_EFFECTS = { burstFrom: 1000, jarStyle: "jar" };
 let effects = { ...DEFAULT_EFFECTS };
-const cleanEffects = input => {
-  const n = Math.round(Number(input?.burstFrom));
-  return { burstFrom: Number.isFinite(n) ? Math.max(0, Math.min(1_000_000, n)) : DEFAULT_EFFECTS.burstFrom };
+const cleanEffects = (input, base = DEFAULT_EFFECTS) => {
+  const n = Math.round(Number(input?.burstFrom ?? base.burstFrom));
+  return {
+    burstFrom: Number.isFinite(n) ? Math.max(0, Math.min(1_000_000, n)) : base.burstFrom,
+    jarStyle: JAR_STYLES.includes(input?.jarStyle) ? input.jarStyle : base.jarStyle
+  };
 };
 async function loadEffects() {
   try {
@@ -528,7 +548,7 @@ async function loadEffects() {
 }
 app.get("/api/effects", (_req, res) => res.json(effects));
 app.post("/api/effects", async (req, res) => {
-  effects = cleanEffects(req.body);
+  effects = cleanEffects(req.body, effects);
   io.emit("effects", effects);
   await mkdir(dataDir, { recursive: true });
   await writeFile(`${effectsFile}.tmp`, JSON.stringify(effects, null, 2), "utf8");

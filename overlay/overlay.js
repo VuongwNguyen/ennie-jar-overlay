@@ -5,6 +5,35 @@ const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 // Inner size of the glass body (px). The outline below drives both the drawing and the physics.
 const JAR = { w: 272, h: 356, corner: 80, neck: 112, belly: 134 };
 const CX = JAR.w / 2;
+// What holds the gifts: "jar", the glass jar, or "tank", a fish tank of the same size (tank.js draws it, and
+// tankdecor.js dresses its outside).
+// Chosen on the control page (data/effects.json, jarStyle), or ?theme=tank / ?theme=jar in the address.
+// It is read before anything is drawn, since the outline drives both the drawing and the physics: one quick
+// request to this same server, waited for, so the page never starts with the wrong shape.
+const THEME = (() => {
+  const asked = new URLSearchParams(location.search).get("theme");
+  const STYLES = ["jar", "tank"];
+  if (asked) return STYLES.includes(asked) ? asked : "jar";
+  try {
+    const request = new XMLHttpRequest();
+    request.open("GET", "/api/effects", false);
+    request.send();
+    const style = JSON.parse(request.responseText)?.jarStyle;
+    return STYLES.includes(style) ? style : "jar";
+  } catch {
+    return "jar";
+  }
+})();
+const TANK = THEME === "tank";
+window.JAR_THEME = THEME;
+// The tank: straight glass walls, rounded at the bottom only, and water up to WATER_Y (in the jar's units).
+const TANK_CORNER = 18;
+const WATER_Y = 46;
+// The top of the tank's sand (tank.js draws it from here down): gifts come to rest on it, not inside it.
+const SAND_TOP = JAR.h - 28;
+// The floor for gifts that spill out of the jar ("Sàn" on the layout page) is switched off for now: they land
+// level with the jar's base, as before. Set to true to use the floor set on the layout page again.
+const FLOOR_ON = false;
 const MOUTH = { x: 155, y: 40 }; // where gifts enter, in .jar-wrap coordinates
 const BIG_GIFT = 100;
 const MEGA_GIFT = 1000;
@@ -32,7 +61,7 @@ let jarBox = null;
   // wallLeft, wallRight: how far to either side they can roll ("Vách"); without them, the box's sides.
   const [x, y, w, h, top, floor, wallLeft, wallRight] = (new URLSearchParams(location.search).get("box") ?? "").split(",").map(Number);
   if ([x, y, w, h, top].every(Number.isFinite) && w > 0 && h > 0) {
-    jarBox = { x, y, w, h, top, floor: Number.isFinite(floor) ? floor : null, walls: [wallLeft, wallRight].every(Number.isFinite) ? [wallLeft, wallRight] : null };
+    jarBox = { x, y, w, h, top, floor: FLOOR_ON && Number.isFinite(floor) ? floor : null, walls: [wallLeft, wallRight].every(Number.isFinite) ? [wallLeft, wallRight] : null };
   }
 }
 // The walls spilled gifts stop at, in page pixels: the layout's, or the sides of the box (or of the page).
@@ -76,7 +105,7 @@ addEventListener("message", event => {
   if (event.origin !== location.origin || event.data?.type !== "box") return;
   const { x, y, w, h, top, floor, walls } = event.data;
   if (![x, y, w, h, top].every(Number.isFinite)) return;
-  jarBox = { x, y, w: Math.max(1, w), h: Math.max(1, h), top, floor: Number.isFinite(floor) ? floor : null, walls: Array.isArray(walls) && walls.every(Number.isFinite) ? walls : null };
+  jarBox = { x, y, w: Math.max(1, w), h: Math.max(1, h), top, floor: FLOOR_ON && Number.isFinite(floor) ? floor : null, walls: Array.isArray(walls) && walls.every(Number.isFinite) ? walls : null };
   dispatchEvent(new Event("resize")); // refits the scene, the physics frame, the sticker and the rest
 });
 
@@ -111,12 +140,14 @@ const smooth = t => t * t * (3 - 2 * t);
 // Half the inner width of the jar at depth y (wide neck, short shoulders, straight sides).
 function halfWidth(y) {
   const { neck, belly } = JAR;
+  if (TANK) return belly;
   const t = Math.min(1, Math.max(0, (y - 26) / 44));
   return neck + (belly - neck) * smooth(t);
 }
 // Left side of the outline from the rim down to the middle of the base.
 function leftOutline() {
-  const { h, corner: r, belly } = JAR;
+  const { h, belly } = JAR;
+  const r = TANK ? TANK_CORNER : JAR.corner;
   const pts = [];
   for (let y = 0; y < h - r; y += 4) pts.push([CX - halfWidth(y), y]);
   const steps = 16;
@@ -138,6 +169,7 @@ function drawJar() {
   // ?jar=blue, lavender or mint picks another pastel for the glass (see overlay.css).
   const colour = new URLSearchParams(location.search).get("jar");
   if (colour) $("jarWrap").dataset.jar = colour;
+  if (THEME !== "jar") $("jarWrap").classList.add(THEME);
   const inset = (pts, d, from, to) => pts.filter(([, y]) => y >= from && y <= to).map(([x, y]) => [x + d, y]);
   $("hlLeft").setAttribute("d", toPath(inset(left, 20, 80, 290)));
   $("hlLeftThin").setAttribute("d", toPath(inset(left, 34, 96, 170)));
@@ -160,7 +192,13 @@ function startPhysics() {
     const cx = x + ox * pegR, cy = y + oy * pegR;
     for (const sx of [cx, 2 * CX - cx]) statics.push(Bodies.circle(sx, cy, pegR, { isStatic: true, friction: 0 }));
   }
+  // The base: the outline stops where the bottom corners end, so the flat middle of the base needs a body of
+  // its own. Without it gifts fell through whenever the floor outside was not also under the jar.
+  // In the tank the base is the top of the sand, across the whole width.
+  if (TANK) statics.push(Bodies.rectangle(CX, SAND_TOP + 30, JAR.w - 2, 60, { isStatic: true, friction: 0.5 }));
+  else statics.push(Bodies.rectangle(CX, JAR.h + 30, JAR.w - 2 * JAR.corner + 40, 60, { isStatic: true, friction: 0.4 }));
   Composite.add(engine.world, statics);
+  if (TANK) Events.on(engine, "beforeUpdate", water);
   buildFrame();
   addEventListener("resize", buildFrame);
   runner = Runner.create();
@@ -177,6 +215,38 @@ function startPhysics() {
       if (body.position.y > Math.max(JAR.h, groundLevel) + 90) removeParticle(body, el);
     }
   });
+}
+
+// In the tank, gifts that fall into the water slow down and sink gently, swaying a little: the water holds up
+// part of their weight and drags on them. A gift that hits the water from above makes a splash (tank.js).
+const WATER_LIFT = 0.5, WATER_DRAG = 0.07, AIR_DRAG = 0.01;
+function water() {
+  const g = engine.gravity.y * engine.gravity.scale, now = engine.timing.timestamp;
+  for (const body of particles.keys()) {
+    const { x, y } = body.position;
+    const wet = x > 0 && x < JAR.w && y > WATER_Y && y < JAR.h + 20;
+    if (wet !== body._wet) {
+      body.frictionAir = wet ? WATER_DRAG : AIR_DRAG;
+      if (wet && body._wet === false && body.velocity.y > 1) {
+        window.tankSplash?.(x, body.circleRadius ?? 14);
+        body._sank = now || 1; // when it went in (never 0, which would read as "did not")
+      }
+      body._wet = wet;
+    }
+    // A gift that fell in has come to rest: a fish may come and look at it (tank.js). Gifts put back in place
+    // when the page opens did not fall in, so they do not count.
+    // At rest means in the water for 2.5 seconds and hardly sinking any more: the water keeps a pile stirring
+    // a little, so it never stops quite dead.
+    if (wet && body._sank && !body._landed && now - body._sank > 2500 && Math.abs(body.velocity.y) < 0.6) {
+      body._landed = true;
+      window.tankGiftLanded?.(x, y, body.circleRadius ?? 14);
+    }
+    if (!wet || body.isSleeping) continue;
+    // A slow sideways drift while it is still sinking, different for each gift.
+    const moving = Math.abs(body.velocity.y) > 0.3;
+    const sway = moving ? Math.sin(now / 420 + body.id * 1.7) * body.mass * g * 0.08 : 0;
+    Matter.Body.applyForce(body, body.position, { x: sway, y: -body.mass * g * WATER_LIFT });
+  }
 }
 
 function removeParticle(body, el) {
@@ -367,6 +437,8 @@ function celebrateJar(coins, tier) {
   sparkleBurst(6 + tier * 5);
   floatText(coins);
   if (tier) confetti(10 + tier * 8);
+  // In the fish tank, a big gift opens the treasure chest on the sand (tank.js).
+  if (tier) window.tankTreasure?.(tier);
 }
 
 const coinsOf = event => event.calculatedCoins ?? event.gift.diamondCount * event.gift.repeatCount;
@@ -388,7 +460,13 @@ function pour(event) {
 // A gift of this many coins or more each (set on the control page, 1,000 by default; 0 for never) gathers
 // every gift on screen into a heart in the middle, which bursts and pours back into the jar (bigburst.js).
 let burstFrom = 1000;
-socket.on("effects", settings => { if (Number.isFinite(settings?.burstFrom)) burstFrom = settings.burstFrom; });
+socket.on("effects", settings => {
+  if (Number.isFinite(settings?.burstFrom)) burstFrom = settings.burstFrom;
+  // Switched between the jar and the fish tank on the control page: this page starts over in the new one.
+  // The gifts come back from the server, as after any reload. A ?theme in the address stays as it is.
+  const style = settings?.jarStyle;
+  if (["jar", "tank"].includes(style) && style !== THEME && !new URLSearchParams(location.search).has("theme")) location.reload();
+});
 const pricePerGift = event => event.gift.diamondCount || coinsOf(event) / Math.max(1, event.gift.repeatCount || 1);
 
 function addGift(event) {
@@ -417,7 +495,7 @@ const SLOT_FIT = 42; // the largest gift that may be placed in a rest slot
 // Non-overlapping spots inside the jar, from the base up to the rim.
 function restSlots() {
   const gap = 30, left = leftOutline(), slots = [];
-  for (let y = JAR.h - gap / 2; y >= gap / 2; y -= gap) {
+  for (let y = (TANK ? SAND_TOP : JAR.h) - gap / 2; y >= gap / 2; y -= gap) {
     // A row must fit at its narrowest point, wherever the outline pinches within it.
     const edge = Math.max(...left.filter(([, py]) => Math.abs(py - y) <= gap / 2).map(([x]) => x));
     const half = Math.max(0, CX - edge - gap / 2);

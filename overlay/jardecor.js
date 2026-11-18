@@ -13,7 +13,8 @@
   wrap.append(svg);
 
   // ---------- Wooden stand ----------
-  const stand = el("g", {}, svg);
+  // Hidden under the fish tank, which stands on a seashell instead (tank.js).
+  const stand = el("g", { class: "jar-only" }, svg);
   el("ellipse", { cx: 136, cy: 381, rx: 150, ry: 7, fill: "#1b0d12", opacity: 0.25 }, stand);
   el("rect", { x: -10, y: 362, width: 292, height: 15, rx: 7, fill: "#a97544", stroke: "#7d4f2c", "stroke-width": 2 }, stand);
   el("rect", { x: -10, y: 352, width: 292, height: 18, rx: 8, fill: "#d3a271", stroke: "#7d4f2c", "stroke-width": 2 }, stand);
@@ -21,7 +22,8 @@
   el("path", { d: "M16 363Q70 360 120 364T226 362M58 367Q120 365 170 368", stroke: "#8a5a35", "stroke-width": 1.2, "stroke-linecap": "round", fill: "none", opacity: 0.6 }, stand);
 
   // ---------- Flowers and leaves at the foot of the jar ----------
-  const garden = el("g", {}, svg);
+  // Also hidden under the fish tank, so its seashell stand shows.
+  const garden = el("g", { class: "jar-only" }, svg);
   const leaf = (x, y, angle, size = 1, colour = "#7fbf7a") =>
     el("ellipse", { cx: x, cy: y, rx: 5 * size, ry: 11 * size, fill: colour, stroke: "#4f8a53", "stroke-width": 1, transform: `rotate(${angle} ${x} ${y})` }, garden);
   const flower = (x, y, size, petal, heart = "#ffd76a") => {

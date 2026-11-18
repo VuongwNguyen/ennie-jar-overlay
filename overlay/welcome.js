@@ -28,6 +28,7 @@
   const frame = $("welcome"), art = $("welcomeArt");
   const random = gsap.utils.random;
   const SHOW_SECONDS = 4.8;
+  const EXIT_SECONDS = 0.8; // the fade at the end, after SHOW_SECONDS
   const BANNER_AT = 0.85; // when the banner starts to slide out from behind the medallion
   // The drawing, from the wings to the bow and from the dog's head to the ribbon (see welcome.css).
   const DRAWING = { width: 702, height: 304 };
@@ -146,9 +147,10 @@
     art.append(svg);
     gsap.set(svg, { x, y, scale: 0, rotation: random(-30, 30) });
     gsap.timeline({ delay, onComplete: () => svg.remove() })
-      .to(svg, { scale: size, duration: 0.35, ease: "back.out(3)" })
-      .to(svg, { rotation: "+=90", duration: 1.2, ease: "none" }, 0)
-      .to(svg, { scale: 0, opacity: 0, duration: 0.4, ease: "power1.in" }, 0.8);
+      // Swells in and out softly, like a twinkle, rather than popping.
+      .to(svg, { scale: size, duration: 0.6, ease: "sine.out" })
+      .to(svg, { rotation: "+=70", duration: 1.6, ease: "sine.inOut" }, 0)
+      .to(svg, { scale: 0, opacity: 0, duration: 0.7, ease: "sine.in" }, 0.9);
   }
   // Big stars that grow and spin slowly behind the frame, then fade, one after another.
   function flare(x, y, delay) {
@@ -192,52 +194,63 @@
     node.style.color = random(BIT_COLOURS);
     node.style.fontSize = `${random(burst ? 14 : 12, burst ? 30 : 22)}px`;
     art.append(node);
-    const angle = random(0, Math.PI * 2), distance = burst ? random(80, 220) : 0;
-    const duration = burst ? random(1.1, 1.8) : random(2.4, 3.6);
-    gsap.set(node, { x: fromX, y: fromY, scale: 0.3, opacity: 0, rotation: random(-40, 40) });
+    // A burst floats out and drifts down slowly, like petals on the air; the rest sway as they fall.
+    const angle = random(0, Math.PI * 2), distance = burst ? random(60, 170) : 0;
+    const duration = burst ? random(1.8, 2.6) : random(3, 4.4);
+    gsap.set(node, { x: fromX, y: fromY, scale: 0.4, opacity: 0, rotation: random(-30, 30) });
+    const sway = random(18, 34) * (Math.random() < 0.5 ? -1 : 1);
     gsap.timeline({ onComplete: () => node.remove() })
-      .to(node, { scale: 1, opacity: 1, duration: 0.25, ease: "back.out(3)" }, 0)
+      .to(node, { scale: 1, opacity: 1, duration: 0.5, ease: "sine.out" }, 0)
       .to(node, burst
-        ? { x: fromX + Math.cos(angle) * distance, y: fromY + Math.sin(angle) * distance * 0.6 + 40, rotation: random(-180, 180), duration, ease: "power2.out" }
-        : { x: fromX + random(-40, 40), y: fromY + random(70, 140), rotation: random(-120, 120), duration, ease: "sine.inOut" }, 0)
-      .to(node, { opacity: 0, duration: duration * 0.35, ease: "power1.in" }, duration * 0.65);
+        ? { x: fromX + Math.cos(angle) * distance, y: fromY + Math.sin(angle) * distance * 0.5 + 50, rotation: random(-90, 90), duration, ease: "power3.out" }
+        : { x: fromX + random(-30, 30), y: fromY + random(70, 130), rotation: random(-70, 70), duration, ease: "sine.inOut" }, 0)
+      .to(node, { keyframes: { xPercent: [0, sway, -sway * 0.6, 0] }, duration, ease: "sine.inOut" }, 0)
+      .to(node, { opacity: 0, duration: duration * 0.45, ease: "sine.in" }, duration * 0.55);
   }
 
   // The burst when the frame lands: a flash, rings of light rushing out, and confetti thrown up.
   const CONFETTI = ["#ff3d8a", "#ff8fc4", "#ffd056", "#ffffff", "#ff6fae", "#ffe08a", "#c084fc"];
   // Confetti, hearts and petals thrown out along the banner as it opens.
   function bannerBurst() {
-    for (let i = 0; i < 40; i++) confetti(random(260, 640), 155);
-    for (let i = 0; i < 30; i++) bit(random(250, 640), 150, true);
+    for (let i = 0; i < 18; i++) confetti(random(260, 640), 155);
+    for (let i = 0; i < 16; i++) bit(random(250, 640), 150, true);
   }
   function confetti(fromX, fromY) {
     const piece = document.createElement("div");
     piece.className = "welcome-confetti";
     piece.style.background = random(CONFETTI);
     art.append(piece);
-    const angle = random(-Math.PI, 0), power = random(160, 420);
-    gsap.set(piece, { x: fromX, y: fromY, rotation: random(0, 360), scale: random(0.6, 1.3) });
+    // Tossed up gently, then it flutters down, swaying, the way paper does.
+    const angle = random(-Math.PI, 0), power = random(110, 280);
+    gsap.set(piece, { x: fromX, y: fromY, rotation: random(0, 360), scale: random(0.6, 1.2), opacity: 0 });
+    const fall = random(2, 2.8);
     gsap.timeline({ onComplete: () => piece.remove() })
-      .to(piece, { x: fromX + Math.cos(angle) * power, y: fromY + Math.sin(angle) * power * 0.7, duration: 0.6, ease: "power3.out" })
-      .to(piece, { y: `+=${random(180, 320)}`, x: `+=${random(-60, 60)}`, rotation: `+=${random(360, 900)}`, rotationX: random(360, 1080), duration: random(1.4, 2.2), ease: "power1.in" })
-      .to(piece, { opacity: 0, duration: 0.5 }, "-=0.5");
+      .to(piece, { opacity: 1, duration: 0.2, ease: "sine.out" }, 0)
+      .to(piece, { x: fromX + Math.cos(angle) * power, y: fromY + Math.sin(angle) * power * 0.6, duration: 0.9, ease: "power3.out" }, 0)
+      .to(piece, { y: `+=${random(160, 280)}`, rotation: `+=${random(180, 420)}`, rotationX: random(180, 540), duration: fall, ease: "sine.in" }, 0.9)
+      .to(piece, { keyframes: { xPercent: [0, 260, -200, 160, 0] }, duration: fall, ease: "sine.inOut" }, 0.9)
+      .to(piece, { opacity: 0, duration: 0.8, ease: "sine.in" }, 0.9 + fall - 0.8);
   }
   function boom() {
     const flash = document.createElement("div");
     flash.className = "welcome-flash";
     art.append(flash);
-    gsap.fromTo(flash, { scale: 0.2, opacity: 1 }, { scale: 3.2, opacity: 0, duration: 0.7, ease: "power2.out", onComplete: () => flash.remove() });
-    for (let i = 0; i < 3; i++) {
+    // A soft bloom of light rather than a flash: it swells and fades out slowly.
+    gsap.timeline({ onComplete: () => flash.remove() })
+      .fromTo(flash, { scale: 0.4, opacity: 0 }, { scale: 1.4, opacity: 0.6, duration: 0.4, ease: "sine.out" })
+      .to(flash, { scale: 2.3, opacity: 0, duration: 0.75, ease: "sine.out" });
+    // Two thin ripples of light spreading out like rings on water.
+    for (let i = 0; i < 2; i++) {
       const ring = document.createElement("div");
       ring.className = "welcome-ring";
       art.append(ring);
-      gsap.fromTo(ring, { scale: 0.3, opacity: 1, borderWidth: 10 }, {
-        scale: 3.4 + i * 0.6, opacity: 0, borderWidth: 1, duration: 0.9 + i * 0.15, delay: i * 0.12, ease: "power2.out",
+      gsap.fromTo(ring, { scale: 0.5, opacity: 0, borderWidth: 4 }, {
+        keyframes: { opacity: [0, 0.8, 0] }, scale: 3 + i * 0.5, borderWidth: 1, duration: 1.5 + i * 0.3, delay: i * 0.25, ease: "power2.out",
         onComplete: () => ring.remove()
       });
     }
-    for (let i = 0; i < 40; i++) confetti(136, 144);
-    for (let i = 0; i < 60; i++) bit(136, 144, true);
+    for (let i = 0; i < 16; i++) confetti(136, 144);
+    for (let i = 0; i < 26; i++) bit(136, 144, true);
   }
 
   // Motion that runs only while the frame is shown.
@@ -249,7 +262,12 @@
     loops.push(gsap.to("#wDotRing", { rotation: -360, svgOrigin: "0 0", duration: 12, ease: "none", repeat: -1 }));
     // Glitter on the banner twinkles.
     loops.push(gsap.to("#wGlitter circle", { opacity: () => random(0.1, 1), duration: 0.5, ease: "sine.inOut", stagger: { each: 0.03, repeat: -1, yoyo: true } }));
-    loops.push(gsap.fromTo("#wAura", { opacity: 0.6, scale: 0.94, svgOrigin: "136 144" }, { opacity: 1, scale: 1.06, svgOrigin: "136 144", duration: 0.9, ease: "sine.inOut", yoyo: true, repeat: -1 }));
+    loops.push(gsap.fromTo("#wAura", { opacity: 0.6, scale: 0.95, svgOrigin: "136 144" }, { opacity: 1, scale: 1.05, svgOrigin: "136 144", duration: 1.6, ease: "sine.inOut", yoyo: true, repeat: -1 }));
+    // The whole frame floats gently up and down while it is shown, as if hanging in the air. yPercent, so it
+    // does not fight the entrance and exit, which move y.
+    loops.push(gsap.fromTo(art, { yPercent: 0 }, { yPercent: -1.6, duration: 1.8, ease: "sine.inOut", yoyo: true, repeat: -1, delay: 0.9 }));
+    // The medallion sways a touch, around its middle.
+    loops.push(gsap.to(".welcome-avatar", { keyframes: { rotation: [0, 2, -2, 0] }, duration: 4.4, ease: "none", repeat: -1, delay: 1.2 }));
     // Butterflies circle the frame, flapping.
     [["#wFly1", 40, 40, 0.9], ["#wFly2", 600, 60, 0.75], ["#wFly3", 330, 250, 0.65]].forEach(([id, x, y, size], i) => {
       gsap.set(id, { x, y, scale: size, transformOrigin: "50% 50%" });
@@ -305,34 +323,36 @@
     startLoops();
     dogPlay();
     playing = gsap.timeline({ onComplete: () => { stopLoops(); dog.pause?.(); frame.classList.remove("show"); next(); } })
-      // Slams in from nothing, overshoots, wobbles into place, and shakes on landing.
-      .fromTo(art, { opacity: 0, scale: 0.15, rotation: -12, x: 0 }, { opacity: 1, scale: 1.18, rotation: 3, duration: 0.32, ease: "power3.out", transformOrigin: "20% 50%" })
-      .add(boom, 0.28)
-      .to(art, { scale: 1, rotation: 0, duration: 0.7, ease: "elastic.out(1, 0.45)" }, 0.32)
-      .to(art, { keyframes: { x: [0, -12, 10, -8, 6, -3, 0] }, duration: 0.45, ease: "none" }, 0.32)
-      .fromTo(".welcome-avatar", { scale: 0, rotation: -540 }, { scale: 1, rotation: 0, duration: 0.8, ease: "back.out(2.2)" }, 0.1)
-      // The medallion lands first; then the banner slides out from behind it.
+      // Drifts up into place and settles, growing a little as it comes, with a soft overshoot.
+      .fromTo(art, { scale: 0.82, rotation: -3, x: 0, y: 34 }, { scale: 1, rotation: 0, y: 0, duration: 1, ease: "back.out(1.3)", transformOrigin: "20% 50%" })
+      .fromTo(art, { opacity: 0 }, { opacity: 1, duration: 0.55, ease: "sine.out" }, 0)
+      .add(boom, 0.25)
+      .fromTo(".welcome-avatar", { scale: 0.55, rotation: -40, opacity: 0 }, { scale: 1, rotation: 0, opacity: 1, duration: 1, ease: "back.out(1.5)" }, 0.12)
+      // The medallion settles first; then the banner unfurls from behind it.
       .set(["#wChiffons", ".welcome-dog", ".welcome-text > *"], { opacity: 0 }, 0)
-      .fromTo("#wBannerRect", { attr: { width: 0 } }, { attr: { width: 520 }, duration: 0.55, ease: "power3.out" }, BANNER_AT)
-      .add(bannerBurst, BANNER_AT + 0.2)
-      .to("#wChiffons", { opacity: 0.9, duration: 0.5 }, BANNER_AT + 0.1)
-      .fromTo(".welcome-text > *", { scale: 2.2, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.45, stagger: 0.1, ease: "back.out(3)" }, BANNER_AT + 0.3)
-      .fromTo(".welcome-dog", { y: -160, opacity: 0, rotation: -20 }, { y: 0, opacity: 1, rotation: 0, duration: 0.65, ease: "bounce.out" }, BANNER_AT + 0.45)
-      .fromTo("#wShineBar", { attr: { x: -120 } }, { attr: { x: 760 }, duration: 0.9, ease: "power1.inOut" }, BANNER_AT + 0.5)
-      .fromTo("#wRays", { opacity: 0, scale: 0.2, svgOrigin: "136 144" }, { opacity: 1, scale: 1.7, svgOrigin: "136 144", duration: 0.45, ease: "power3.out" }, 0.25)
-      .to("#wRays", { opacity: 0.85, scale: 1, svgOrigin: "136 144", duration: 0.9, ease: "power2.inOut" }, 0.7)
-      .add(() => sparkles(22, 0.6), 0.2)
-      .add(flares, 0.1)
+      .fromTo("#wBannerRect", { attr: { width: 0 } }, { attr: { width: 520 }, duration: 0.95, ease: "power2.inOut" }, BANNER_AT - 0.15)
+      .add(bannerBurst, BANNER_AT + 0.3)
+      .to("#wChiffons", { opacity: 0.9, duration: 1, ease: "sine.inOut" }, BANNER_AT)
+      // The words rise softly into place, one after another.
+      .fromTo(".welcome-text > *", { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, stagger: 0.14, ease: "power2.out" }, BANNER_AT + 0.25)
+      // The poodle pops up from behind the banner, as if standing up on it.
+      .fromTo(".welcome-dog", { y: 40, opacity: 0, scale: 0.9, transformOrigin: "50% 100%" }, { y: 0, opacity: 1, scale: 1, duration: 0.8, ease: "back.out(1.6)" }, BANNER_AT + 0.45)
+      .fromTo("#wShineBar", { attr: { x: -120 } }, { attr: { x: 760 }, duration: 1.3, ease: "sine.inOut" }, BANNER_AT + 0.6)
+      .fromTo("#wRays", { opacity: 0, scale: 0.4, svgOrigin: "136 144" }, { opacity: 0.85, scale: 1, svgOrigin: "136 144", duration: 1.3, ease: "power2.out" }, 0.25)
+      .add(() => sparkles(16, 0.9), 0.3)
+      .add(flares, 0.2)
       .add(flares, 2.2)
-      .add(() => sparkles(14, 1.5), 1.6)
-      .add(() => sparkles(12, 1.2), 3)
-      .fromTo("#wShineBar", { attr: { x: -120 } }, { attr: { x: 760 }, duration: 1.1, ease: "power1.inOut" }, 2.4)
-      .to(art, { opacity: 0, y: -20, scale: 0.96, duration: 0.45, ease: "power1.in" }, SHOW_SECONDS);
-    if (waiting.length >= CROWD) playing.timeScale((SHOW_SECONDS + 0.45) / CROWD_SECONDS);
+      .add(() => sparkles(12, 1.6), 1.6)
+      .add(() => sparkles(10, 1.2), 3)
+      .fromTo("#wShineBar", { attr: { x: -120 } }, { attr: { x: 760 }, duration: 1.4, ease: "sine.inOut" }, 2.6)
+      // Leaves softly: the words fade first, then the frame drifts up and dissolves.
+      .to(".welcome-text > *, .welcome-dog", { opacity: 0, y: -8, duration: 0.5, stagger: 0.06, ease: "sine.in" }, SHOW_SECONDS - 0.25)
+      .to(art, { opacity: 0, y: -26, scale: 0.94, duration: EXIT_SECONDS, ease: "power2.inOut" }, SHOW_SECONDS);
+    if (waiting.length >= CROWD) playing.timeScale((SHOW_SECONDS + EXIT_SECONDS) / CROWD_SECONDS);
   }
 
-  // One welcome at a time. The others wait in a queue ordered by rank (1 picked by name, 2 team heart,
-  // 3 gifter level) and, within a rank, by arrival. A full queue lets go of its lowest place, and tells
+  // One welcome at a time. The others wait in a queue ordered by rank (1 picked by name, 2 guardian or
+  // Super Fan, 3 team heart, 4 gifter level) and, within a rank, by arrival. A full queue lets go of its lowest place, and tells
   // the server, so that person is not counted as welcomed.
   const QUEUE_MAX = 30;
   const waiting = [];

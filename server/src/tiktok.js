@@ -99,15 +99,24 @@ export function mapTikTokMember(data) {
 // pieces, with their team heart badge.
 // Super Fans (paid monthly subscribers) get a banner of their own when they come in, keyed
 // "ttlive_superfan_commentnotif_superfanjoined"; the library also sends it as "superFanJoin".
+// Guardians (Hộ vệ) come in with a banner of their own too: scene and subType "guardian_entrance", key
+// "pm_mt_alp_join_animation_1New". Seen on a real live: 7 guardian entries, each only as this banner,
+// never as a member message.
+const SUPER_FAN_BANNER = /superfan_commentnotif_superfanjoined/i;
 const JOIN_BANNER = /^pm_mt_fan_live_join|superfan_commentnotif_superfanjoined/i;
+const GUARDIAN_ENTRANCE = "guardian_entrance";
 const bannerKeys = data => [data?.content?.key, data?.content?.displayType, data?.commonBarrageContent?.key, data?.commonBarrageContent?.displayType];
 // The first user in the banner's text pieces (named pieces or piecesList, depending on the decoder).
 const bannerUser = text => (text?.pieces ?? text?.piecesList ?? []).find(piece => piece?.userValue?.user)?.userValue?.user;
 export function mapTikTokFanJoin(data) {
-  const isJoin = data?.subType === "fans_entrance" || bannerKeys(data).some(key => JOIN_BANNER.test(key ?? ""));
+  const guardian = data?.subType === GUARDIAN_ENTRANCE || data?.scene === GUARDIAN_ENTRANCE;
+  const isJoin = guardian || data?.subType === "fans_entrance" || bannerKeys(data).some(key => JOIN_BANNER.test(key ?? ""));
   if (!isJoin) return null;
   const user = mapTikTokUser(bannerUser(data.commonBarrageContent) ?? bannerUser(data.content));
   if (!user) return null;
+  // What kind of entrance it was, for the welcome rules.
+  if (guardian) user.guardian = true;
+  if (bannerKeys(data).some(key => SUPER_FAN_BANNER.test(key ?? ""))) user.superFan = true;
   // The banner's own badge carries the team heart level too, should the user's badge list lack it.
   if (!user.fanLevel && data.badge?.sceneType === FAN_BADGE) user.fanLevel = Number(data.badge.privilegeLogExtra?.level) || 0;
   if (user.fanLevel && !user.fanClub) user.fanClub = data.badge?.combine?.str || "";
@@ -199,13 +208,18 @@ export function createTikTokAdapter({ onGift, onMember, onUser, onLevelUp, onSta
     });
     // Someone coming in can arrive as several messages at once (a Super Fan in the fan club gets both
     // banners, maybe a member message too), so one person's joins a few seconds apart count once.
+    // A later message that says more (the Super Fan or guardian banner after a plain one) still goes
+    // through, so the welcome rules see it.
     const lastJoin = new Map();
+    const flags = user => (user.guardian ? "g" : "") + (user.superFan ? "s" : "");
     const join = event => {
       if (!event || connection !== conn) return;
       const now = Date.now();
-      if (now - (lastJoin.get(event.user.id) ?? 0) < SAME_JOIN_MS) return;
-      lastJoin.set(event.user.id, now);
-      if (lastJoin.size > 500) for (const [id, at] of lastJoin) if (now - at >= SAME_JOIN_MS) lastJoin.delete(id);
+      const before = lastJoin.get(event.user.id);
+      const seen = before && now - before.at < SAME_JOIN_MS ? before.flags : null;
+      if (seen !== null && [...flags(event.user)].every(flag => seen.includes(flag))) return;
+      lastJoin.set(event.user.id, { at: now, flags: (seen ?? "") + flags(event.user) });
+      if (lastJoin.size > 500) for (const [id, entry] of lastJoin) if (now - entry.at >= SAME_JOIN_MS) lastJoin.delete(id);
       onMember?.(event);
     };
     // Joins come in three kinds: the member message for most viewers, a "{user} joined" banner for fan
@@ -229,7 +243,11 @@ export function createTikTokAdapter({ onGift, onMember, onUser, onLevelUp, onSta
       conn.on(name, data => {
         if (connection !== conn) return;
         const user = mapTikTokUser(data?.user);
-        if (user) onUser?.(user, source);
+        if (!user) return;
+        // Chat says whether they subscribe to this streamer, which is taken to mean a Super Fan (never seen
+        // true on a real live yet).
+        if (data?.userIdentity?.isSubscriberOfAnchor) user.superFan = true;
+        onUser?.(user, source);
       });
     }
     // Straight from the socket, before the library sorts the messages: it skips the kinds it cannot read.

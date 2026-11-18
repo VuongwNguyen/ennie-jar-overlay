@@ -101,6 +101,9 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .member-list .badge.off { color: var(--muted); font-weight: 500; }
 .chip { padding: 5px 10px; font-size: 12px; font-weight: 600; background: #fff; color: var(--text); border: 1px solid var(--line-strong); border-radius: 20px; }
 .chip:hover { background: var(--pink-soft); color: var(--pink-dark); border-color: #f3c2da; }
+.jar-styles { display: flex; gap: 8px; flex-wrap: wrap; }
+.jar-styles .chip { padding: 8px 16px; font-size: 14px; }
+.jar-styles .chip[aria-checked="true"] { background: var(--pink-soft); color: var(--pink-dark); border-color: var(--pink-dark); }
 .pager { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 10px; font-size: 12px; color: var(--muted); }
 
 /* ---------- Welcome rules ---------- */

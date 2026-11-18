@@ -26,9 +26,8 @@
 
     <nav class="tabs" role="tablist" aria-label="Mục">
       <button role="tab" id="tab-live" aria-controls="pane-live" data-tab="live">🔴 Live<i class="alert" id="liveAlert" hidden></i></button>
-      <button role="tab" id="tab-welcome" aria-controls="pane-welcome" data-tab="welcome">👋 Chào mừng</button>
       <button role="tab" id="tab-overlay" aria-controls="pane-overlay" data-tab="overlay">🎨 Overlay</button>
-      <button role="tab" id="tab-test" aria-controls="pane-test" data-tab="test">🧪 Thử nghiệm</button>
+      <button role="tab" id="tab-settings" aria-controls="pane-settings" data-tab="settings">⚙️ Cài đặt</button>
     </nav>
 
     <!-- During the live: the connection, who is here, and the session's donors. -->
@@ -74,10 +73,30 @@
       </div>
     </section>
 
-    <!-- Who gets the welcome frame: picked people (data/welcome.json), then by level (data/welcome-rules.json). -->
-    <section class="pane" role="tabpanel" id="pane-welcome" aria-labelledby="tab-welcome" hidden>
+    <!-- What shows on Studio: the link and layout, who gets the welcome frame, the big gift effect, the old links. -->
+    <section class="pane" role="tabpanel" id="pane-overlay" aria-labelledby="tab-overlay" hidden>
       <div class="card">
-        <h2>Chỉ định theo @tên <small>ưu tiên cao nhất</small></h2>
+        <h2>Link cho Studio <small>một nguồn Link, 1080 × 1920</small></h2>
+        <div class="link-row">
+          <input class="link-url" id="liveUrl" readonly value="http://127.0.0.1:8787/live.html" aria-label="Link overlay">
+          <button class="copy" data-copy="liveUrl">Copy</button>
+          <a class="open" href="/live.html" target="_blank">Mở</a>
+        </div>
+        <a class="big-link" href="/layout.html" target="_blank">Chỉnh bố cục overlay ↗</a>
+      </div>
+      <!-- What holds the gifts: the glass jar or the fish tank; kept in data/effects.json (jarStyle). -->
+      <div class="card">
+        <h2>Kiểu hũ <small>đổi là overlay tự tải lại, quà giữ nguyên</small></h2>
+        <div class="jar-styles" role="radiogroup" aria-label="Kiểu hũ">
+          <button type="button" class="chip" role="radio" data-jar-style="jar" aria-checked="false">🫙 Hũ quà</button>
+          <button type="button" class="chip" role="radio" data-jar-style="tank" aria-checked="false">🐠 Bể nuôi cá</button>
+        </div>
+        <p class="hint" id="jarStyleNotice" role="status"></p>
+      </div>
+      <!-- Who gets the welcome frame: picked people (data/welcome.json), then guardians, Super Fans and levels
+           (data/welcome-rules.json). -->
+      <div class="card">
+        <h2>👋 Chào mừng: chỉ định theo @tên <small>ưu tiên cao nhất</small></h2>
         <form class="row welcome-add" id="welcomeForm">
           <input id="welcomeId" placeholder="@tên TikTok hoặc id" aria-label="@tên TikTok hoặc id">
           <input id="welcomeBadge" placeholder="Danh hiệu (KHÁCH QUÝ)" aria-label="Danh hiệu" maxlength="16">
@@ -87,8 +106,16 @@
         <p class="hint" id="welcomeNotice" role="status"></p>
       </div>
       <div class="card">
-        <h2>Tự chào theo cấp <small>tim đội trước, rồi cấp quà</small></h2>
+        <h2>👋 Chào mừng: tự chào <small>hộ vệ, Super Fan, rồi tim đội, rồi cấp quà</small></h2>
         <form class="rules" id="rulesForm">
+          <label class="rule">
+            <input type="checkbox" id="ruleGuardianOn"> <span>🛡️ Hộ vệ vào live</span>
+            <span>danh hiệu</span> <input id="ruleGuardianBadge" maxlength="16" aria-label="Danh hiệu cho hộ vệ">
+          </label>
+          <label class="rule">
+            <input type="checkbox" id="ruleSuperFanOn"> <span>⭐ Super Fan vào live</span>
+            <span>danh hiệu</span> <input id="ruleSuperFanBadge" maxlength="16" aria-label="Danh hiệu cho Super Fan">
+          </label>
           <label class="rule">
             <input type="checkbox" id="ruleFanOn"> <span>💗 Tim đội cấp lớn hơn</span>
             <input type="number" id="ruleFanAbove" min="0" max="100" aria-label="Cấp tim đội lớn hơn">
@@ -102,19 +129,6 @@
           <button>Lưu</button>
         </form>
         <p class="hint" id="rulesNotice" role="status"></p>
-      </div>
-    </section>
-
-    <!-- What shows on Studio: the layout, the big gift effect and the link. -->
-    <section class="pane" role="tabpanel" id="pane-overlay" aria-labelledby="tab-overlay" hidden>
-      <div class="card">
-        <h2>Link cho Studio <small>một nguồn Link, 1080 × 1920</small></h2>
-        <div class="link-row">
-          <input class="link-url" id="liveUrl" readonly value="http://127.0.0.1:8787/live.html" aria-label="Link overlay">
-          <button class="copy" data-copy="liveUrl">Copy</button>
-          <a class="open" href="/live.html" target="_blank">Mở</a>
-        </div>
-        <a class="big-link" href="/layout.html" target="_blank">Chỉnh bố cục overlay ↗</a>
       </div>
       <!-- From which gift price the heart burst plays; kept in data/effects.json. -->
       <div class="card">
@@ -147,8 +161,8 @@
       </details>
     </section>
 
-    <!-- Testing without a live: gifts, a viewer joining, someone going up a level, the heart clip and the welcome frame. -->
-    <section class="pane" role="tabpanel" id="pane-test" aria-labelledby="tab-test" hidden>
+    <!-- Settings: for now, testing without a live (gifts, a viewer joining, a level up, the heart clip, the welcome frame). -->
+    <section class="pane" role="tabpanel" id="pane-settings" aria-labelledby="tab-settings" hidden>
       <div class="card">
         <h2>Giả lập <small>không ảnh hưởng TikTok</small></h2>
         <div class="presets" aria-label="Chọn nhanh">
@@ -166,6 +180,8 @@
         <div class="test-buttons">
           <button id="sendGift">Gửi quà thử</button>
           <button class="secondary" id="sendMember" title="Chó chào tên ở ô Người tặng / người vào">Thử người vào live</button>
+          <button class="secondary" data-member-kind="guardian" title="Tên ở ô Người tặng / người vào vào live như một hộ vệ (khung chào HỘ VỆ nếu luật đang bật)">🛡️ Thử hộ vệ vào</button>
+          <button class="secondary" data-member-kind="superFan" title="Tên ở ô Người tặng / người vào vào live như một Super Fan (khung chào ÁNH SAO nếu luật đang bật)">⭐ Thử Super Fan vào</button>
           <button class="secondary" data-levelup="fan" data-level="15" title="Trái tim hồng: tên ở ô Người tặng / người vào lên fan cấp 15">💗 Thử lên cấp fan</button>
           <button class="secondary" data-levelup="gifter" data-level="31" title="Viên ngọc vàng: tên ở ô Người tặng / người vào lên cấp tặng quà 31">🪙 Thử lên cấp tặng quà</button>
         </div>
