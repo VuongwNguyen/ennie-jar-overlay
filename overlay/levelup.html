@@ -11,7 +11,7 @@
        On live.html it is the "Hiệu ứng lên cấp" part, placed on the layout page; it can also be a Studio
        source by itself. levelup.html?test plays both once after loading (?test=fan or ?test=gifter, one);
        ?hold shows the heart standing still (?hold=gifter, the gem), as the layout page's preview does, so the
-       part can be placed; ?sfx=0.4 sets the volume (0 is silent). -->
+       part can be placed. It has no sound. -->
   <style>
     html, body { margin: 0; width: 100%; height: 100%; background: transparent; overflow: hidden; }
     .levelup-layer { position: fixed; inset: 0; pointer-events: none; }
@@ -81,7 +81,6 @@
   <div class="levelup-layer" id="levelupLayer" aria-hidden="true"></div>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/vendor/gsap.min.js"></script>
-  <script src="/sfx.js"></script>
   <script src="/levelup.js"></script>
 </body>
 </html>

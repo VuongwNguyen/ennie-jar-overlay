@@ -12,8 +12,7 @@
   if (!layer || !window.gsap) return;
   const params = new URLSearchParams(location.search);
   const random = gsap.utils.random;
-  // Sounds from sfx.js; silent when they are not there.
-  const sfx = new Proxy({}, { get: (_, name) => (...args) => { try { window.burstSfx?.[name]?.(...args); } catch { /* no sound */ } } });
+  // No sounds: the streamer asked for the level up to be silent.
   // The drawing is made for a 560 x 560 box; it is scaled to fit the page.
   const DESIGN = 560;
   // More than this many waiting are dropped, oldest first, so a flood of level ups does not run for minutes.
@@ -110,7 +109,6 @@
       timeline.fromTo(glow, { scale: 0.3, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: "power2.out" }, 0);
       timeline.fromTo(badge, { scale: 0, rotation: -12 }, { scale: 1, rotation: 0, duration: 0.7, ease: "elastic.out(1, 0.5)" }, 0);
       timeline.fromTo(fill, { attr: { y: 90 } }, { attr: { y: 60 }, duration: 0.5, ease: "power1.out" }, 0.1);
-      timeline.add(() => sfx.chime(), 0.05);
       // 2. It fills to the top, swaying a little like liquid poured in.
       timeline.to(fill, { attr: { y: 0 }, duration: 0.8, ease: "power1.inOut" }, 0.65);
       timeline.to(badge, { keyframes: [{ rotation: -4, duration: 0.2 }, { rotation: 4, duration: 0.3 }, { rotation: 0, duration: 0.3 }] }, 0.65);
@@ -119,8 +117,6 @@
       timeline.add(() => {
         number.textContent = String(event.level);
         burstHearts(group);
-        sfx.beat(1);
-        sfx.sparkle();
       }, FULL);
       timeline.to(badge, { scale: 1.28, duration: 0.14, ease: "power2.out" }, FULL);
       timeline.to(badge, { scale: 1, duration: 0.5, ease: "elastic.out(1, 0.4)" }, FULL + 0.14);
@@ -131,7 +127,6 @@
       timeline.add(() => floatHearts(group), FULL + 0.3);
       for (const at of [FULL + 1.0, FULL + 1.6]) {
         timeline.to(badge, { scale: 1.12, duration: 0.12, yoyo: true, repeat: 1, ease: "power2.out" }, at);
-        timeline.add(() => sfx.beat(0), at);
       }
       // 5. It all floats up and fades, like a balloon let go.
       timeline.to(group, { y: "-=80", opacity: 0, duration: 0.7, ease: "power1.in" }, FULL + 2.5);
@@ -164,13 +159,13 @@
       // 1. The gem drops in from above and lands with a thud and a puff of sparkles.
       timeline.fromTo(badge, { y: -520, rotation: 8 }, { y: 0, rotation: 0, duration: 0.55, ease: "power3.in" }, 0);
       const LAND = 0.55;
-      timeline.add(() => { sfx.pop(0, 60); landingStars(group); }, LAND);
+      timeline.add(() => landingStars(group), LAND);
       timeline.to(badge, { keyframes: [{ scaleY: 0.82, scaleX: 1.15, duration: 0.08 }, { scaleY: 1.06, scaleX: 0.96, duration: 0.12 }, { scaleY: 1, scaleX: 1, duration: 0.15 }] }, LAND);
       timeline.to(group, { keyframes: [{ y: 6, duration: 0.05 }, { y: -4, duration: 0.05 }, { y: 0, duration: 0.06 }] }, LAND);
       // 2. It flips over to the new level, and gold rays spin up behind it.
       const FLIP = LAND + 0.55;
       timeline.to(badge, { rotationY: 90, duration: 0.16, ease: "power2.in" }, FLIP);
-      timeline.add(() => { number.textContent = String(event.level); sfx.fanfare(); }, FLIP + 0.16);
+      timeline.add(() => { number.textContent = String(event.level); }, FLIP + 0.16);
       timeline.fromTo(badge, { rotationY: -90 }, { rotationY: 0, duration: 0.4, ease: "back.out(2.5)", immediateRender: false }, FLIP + 0.16);
       timeline.fromTo(glow, { scale: 0.3, opacity: 0, rotation: 0 }, { scale: 1, opacity: 1, rotation: 60, duration: 0.5, ease: "power2.out" }, FLIP + 0.16);
       timeline.to(glow, { rotation: "+=140", duration: 2.6, ease: "none" }, FLIP + 0.66);
@@ -232,7 +227,6 @@
         .to(coin, { y: random(300, 360), duration: random(1.1, 1.5), ease: "power1.in" }, 0)
         .to(coin, { scaleX: 0.15, duration: 0.18, yoyo: true, repeat: 7, ease: "sine.inOut" }, 0)
         .to(coin, { opacity: 0, duration: 0.3 }, 0.95);
-      if (i % 5 === 0) setTimeout(() => sfx.plink(random(-0.5, 0.5)), (delay + 0.5) * 1000);
     }
   }
 
