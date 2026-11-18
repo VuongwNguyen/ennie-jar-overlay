@@ -23,7 +23,8 @@
 
   // ---------- Flowers and leaves at the foot of the jar ----------
   // Also hidden under the fish tank, so its seashell stand shows.
-  const garden = el("g", { class: "jar-only" }, svg);
+  // At Christmas (xmas.css, .decor-garden) they make way for pine garlands, trees and presents (xmas.js).
+  const garden = el("g", { class: "jar-only decor-garden" }, svg);
   const leaf = (x, y, angle, size = 1, colour = "#7fbf7a") =>
     el("ellipse", { cx: x, cy: y, rx: 5 * size, ry: 11 * size, fill: colour, stroke: "#4f8a53", "stroke-width": 1, transform: `rotate(${angle} ${x} ${y})` }, garden);
   const flower = (x, y, size, petal, heart = "#ffd76a") => {
@@ -68,14 +69,16 @@
   vine(266, -1, 346, 84);
 
   // ---------- String of lights, in two swags across the front of the glass ----------
-  const COLOURS = ["#ffd76a", "#ff8fc7", "#9fe6ff", "#fff1a8"];
+  // Christmas lights in red, gold, green and blue at Christmas (season.js), on a pine-green wire.
+  const COLOURS = window.XMAS ? ["#ff3b47", "#ffd76a", "#3fd17a", "#6fc3ff"] : ["#ffd76a", "#ff8fc7", "#9fe6ff", "#fff1a8"];
+  const WIRE = window.XMAS ? "#1d5a36" : "#4f8a53";
   const glow = el("radialGradient", { id: "bulbGlow" }, el("defs", {}, svg));
   el("stop", { offset: 0, "stop-color": "#fff", "stop-opacity": 0.85 }, glow);
   el("stop", { offset: 1, "stop-color": "#fff", "stop-opacity": 0 }, glow);
   const lights = el("g", { class: "jar-lights" }, svg);
   let bulbIndex = 0;
   for (const [left, dip, right] of [[[3, 136], [136, 206], [269, 136]], [[3, 246], [136, 316], [269, 246]]]) {
-    el("path", { d: `M${left}Q${dip} ${right}`, fill: "none", stroke: "#4f8a53", "stroke-width": 1.8, "stroke-linecap": "round" }, lights);
+    el("path", { d: `M${left}Q${dip} ${right}`, fill: "none", stroke: WIRE, "stroke-width": 1.8, "stroke-linecap": "round" }, lights);
     for (let i = 1; i < 10; i++) {
       const t = i / 10, u = 1 - t;
       const x = u * u * left[0] + 2 * u * t * dip[0] + t * t * right[0];
@@ -83,7 +86,7 @@
       const colour = COLOURS[bulbIndex % COLOURS.length];
       const bulb = el("g", { class: `bulb ${bulbIndex % 2 ? "bulb-b" : "bulb-a"}`, transform: `translate(${x.toFixed(1)} ${y.toFixed(1)})` }, lights);
       el("circle", { class: "bulb-glow", cy: 6, r: 12, fill: "url(#bulbGlow)" }, bulb);
-      el("rect", { x: -2, y: -2, width: 4, height: 4, rx: 1, fill: "#4f8a53" }, bulb);
+      el("rect", { x: -2, y: -2, width: 4, height: 4, rx: 1, fill: WIRE }, bulb);
       el("ellipse", { cy: 6, rx: 4.2, ry: 5.6, fill: colour, stroke: "#fff", "stroke-width": 0.7 }, bulb);
       bulbIndex++;
     }
@@ -98,8 +101,9 @@
 
   // ---------- Hearts and stars drifting around the jar ----------
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const FLOATERS = ["♥", "♡", "✦", "♥", "✧"];
-  const TINTS = ["#ff9ccf", "#ffc6e6", "#fff4c2", "#ffffff", "#f4d38d"];
+  // At Christmas: snowflakes and stars, white, ice blue, gold and red.
+  const FLOATERS = window.XMAS ? ["❄", "❅", "★", "✦", "❆"] : ["♥", "♡", "✦", "♥", "✧"];
+  const TINTS = window.XMAS ? ["#ffffff", "#dff4ff", "#ffe08a", "#ff6b74", "#ffffff"] : ["#ff9ccf", "#ffc6e6", "#fff4c2", "#ffffff", "#f4d38d"];
   const random = gsap.utils.random;
   function drift(fromX, fromY, big = false) {
     const item = document.createElement("span");
@@ -158,7 +162,8 @@
       .to(fly, { opacity: random(0, 0.15), scale: 0.6, duration: random(0.6, 1.6), ease: "sine.inOut" }, `+=${random(0.1, 0.8)}`)
       .to({}, { duration: random(0.1, 1.2) });
   }
-  if (!reduceMotion) {
+  // At Christmas snow falls here instead (xmas.js).
+  if (!reduceMotion && !window.XMAS) {
     const { left, right, top, bottom } = fireflyArea();
     for (let i = 0; i < FIREFLIES; i++) {
       const fly = document.createElement("span");

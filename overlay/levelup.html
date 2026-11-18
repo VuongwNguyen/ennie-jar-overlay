@@ -12,6 +12,8 @@
        source by itself. levelup.html?test plays both once after loading (?test=fan or ?test=gifter, one);
        ?hold shows the heart standing still (?hold=gifter, the gem), as the layout page's preview does, so the
        part can be placed; ?sfx=0.4 sets the volume (0 is silent). -->
+  <!-- The season's look (season.js): at Christmas the heart is red under Santa's hat and the gem wears holly. -->
+  <script src="/season.js"></script>
   <style>
     html, body { margin: 0; width: 100%; height: 100%; background: transparent; overflow: hidden; }
     .levelup-layer { position: fixed; inset: 0; pointer-events: none; }
@@ -75,6 +77,21 @@
       color: #a35a00; font: 900 18px/28px "Segoe UI", system-ui, sans-serif; text-align: center;
     }
     .lv-gifter .lv-bit.lv-star { color: #fff4c2; font: 700 30px/1 "Segoe UI Symbol", system-ui, sans-serif; margin: -15px 0 0 -12px; }
+
+    /* ---------- Christmas (season.js puts html.xmas on): berry red and pine green, gold and snow ---------- */
+    html.xmas .lv-fan .lv-glow { background: radial-gradient(closest-side, #fff6d8ee, #ff6b7488 45%, #2f9a5a22 70%, transparent); }
+    html.xmas .lv-fan .lv-number { text-shadow: 0 3px 0 #7e0d16, 0 0 18px #ff6b74; }
+    html.xmas .lv-fan .lv-ribbon {
+      background: linear-gradient(180deg, #e8424e, #a8131f); border-color: #ffe08a;
+      box-shadow: 0 0 0 3px #2f7d4f, 0 6px 22px #5a0a1088; text-shadow: 0 2px 0 #6e0a12;
+    }
+    html.xmas .lv-fan .lv-name { text-shadow: 0 2px 0 #6e0a12, 0 0 14px #2f9a5a; }
+    html.xmas .lv-fan .lv-avatar { background: linear-gradient(180deg, #ff6a72, #b5141f); box-shadow: 0 0 0 3px #2f9a5a, 0 4px 14px #5a0a1088; }
+    html.xmas .lv-fan .lv-bit { color: #ff5a64; }
+    html.xmas .lv-fan .lv-bit.snow { color: #ffffff; text-shadow: 0 0 8px #9fd8ff; }
+    html.xmas .lv-gifter .lv-ribbon { background: linear-gradient(180deg, #3aa866, #1f7a45 60%, #145a32); text-shadow: 0 2px 0 #0d3a20; }
+    html.xmas .lv-gifter .lv-name { text-shadow: 0 2px 0 #7a3d00, 0 0 14px #2f9a5a; }
+    .lv-xmas { position: absolute; overflow: visible; pointer-events: none; }
   </style>
 </head>
 <body>

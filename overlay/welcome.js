@@ -104,6 +104,36 @@
   for (let i = 0; i < 46; i++) {
     svgEl("circle", { cx: random(232, 632).toFixed(1), cy: random(118, 192).toFixed(1), r: random(0.8, 2.2).toFixed(1), fill: random(["#ffffff", "#fff3b0", "#ffe0ef"]), opacity: random(0.35, 0.9).toFixed(2) }, glitter);
   }
+  // At Christmas: snow lying along the top of the banner, sprigs of holly at its ends, and Santa's hat on the
+  // medallion in place of the crown (welcome.css hides the crown). The colours are in welcome.css.
+  if (window.XMAS) {
+    // The butterflies become little ice-blue snow fairies (drawn through <use>, so recoloured at the source).
+    const tint = { "#ff9cc9": "#bfe6ff", "#ffc3df": "#eaf7ff", "#8e2f63": "#3a6f99" };
+    for (const node of document.querySelectorAll("#wButterfly [fill], #wButterfly [stroke]")) {
+      for (const attr of ["fill", "stroke"]) if (tint[node.getAttribute(attr)]) node.setAttribute(attr, tint[node.getAttribute(attr)]);
+    }
+    svgEl("path", {
+      d: "M210 112 C212 100 230 102 246 104 C290 98 330 106 370 101 C410 97 450 106 490 101 C530 97 570 105 604 100 C626 98 646 104 648 116 C644 120 638 117 634 122 C632 127 627 127 626 121 C600 118 560 120 520 118 C500 118 496 125 492 125 C488 125 487 118 480 118 C420 119 360 117 320 119 C300 120 298 127 294 127 C290 127 290 120 284 119 C260 118 240 119 226 120 C220 121 218 126 214 126 C210 126 210 118 210 112Z",
+      fill: "#ffffff", stroke: "#d6e8f5", "stroke-width": 1.2
+    }, banner);
+    const holly = (x, y, angle, scale) => {
+      const g = svgEl("g", { transform: `translate(${x} ${y}) rotate(${angle}) scale(${scale})` }, art.querySelector(".welcome-frame"));
+      for (const [d, fill] of [["M-1 2 C-6 -3 -9 -1 -15 -6 C-12 -6 -12 -9 -14 -11 C-9 -9 -6 -11 -4 -8 C-4 -5 -2 -3 -1 2Z", "#2f7d4f"], ["M1 2 C6 -2 10 1 16 -3 C13 -4 14 -7 12 -9 C7 -7 5 -9 3 -6 C3 -3 1 -2 1 2Z", "#3c9a62"]]) {
+        svgEl("path", { d, fill, stroke: "#1d5a36", "stroke-width": 1 }, g);
+      }
+      for (const [cx, cy] of [[-3, 4], [3.5, 4.5], [0, -0.5]]) svgEl("circle", { cx, cy, r: 3.6, fill: "#d8323f", stroke: "#7e0d16", "stroke-width": 0.8 }, g);
+      return g;
+    };
+    holly(222, 106, -20, 1.6);
+    holly(56, 220, 10, 2.2);
+    // Santa's hat, tipped over the top left of the medallion.
+    const hat = svgEl("g", { transform: "translate(136 144) rotate(-18) translate(-6 -98)" }, art.querySelector(".welcome-frame"));
+    hat.innerHTML = `
+      <path d="M-48 8 C-42 -24 -14 -50 18 -50 C40 -50 58 -36 64 -16 C54 -22 42 -22 36 -16 C44 -6 48 4 50 8 Z" fill="#d21f2e" stroke="#8e0e18" stroke-width="2"/>
+      <path d="M-24 -26 C-12 -38 2 -44 16 -44" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="5" stroke-linecap="round"/>
+      <rect x="-56" y="0" width="114" height="22" rx="11" fill="#fff" stroke="#d6e8f5" stroke-width="1.5"/>
+      <circle cx="64" cy="-12" r="12" fill="#fff" stroke="#d6e8f5" stroke-width="1.5"/>`;
+  }
   // A bow tied at the right end of the banner.
   const bow = svgEl("g", { transform: "translate(648 106) rotate(12)" }, banner);
   svgEl("path", { d: "M-2 2 C-6 14 -10 22 -16 30 L-8 28 L-4 36 C0 24 2 14 2 4Z M2 2 C6 14 10 22 16 30 L8 28 L4 36 C0 24 -2 14 -2 4Z", fill: "#d62f7c", stroke: "url(#wGold)", "stroke-width": 1 }, bow);
@@ -185,8 +215,9 @@
   }
 
   // Hearts and petals that burst out when the frame appears, then keep drifting while it is shown.
-  const BITS = ["♥", "♥", "❀", "✿", "♡", "✦"];
-  const BIT_COLOURS = ["#ff5fa8", "#ff8fc4", "#ffc1dd", "#ffd76a", "#ffffff", "#e8549a"];
+  // At Christmas (season.js): snowflakes, stars and the odd holly berry.
+  const BITS = window.XMAS ? ["❄", "❅", "★", "❆", "✦", "❄"] : ["♥", "♥", "❀", "✿", "♡", "✦"];
+  const BIT_COLOURS = window.XMAS ? ["#ffffff", "#dff4ff", "#ffd76a", "#ff5a64", "#ffffff", "#9fe0b4"] : ["#ff5fa8", "#ff8fc4", "#ffc1dd", "#ffd76a", "#ffffff", "#e8549a"];
   function bit(fromX, fromY, burst) {
     const node = document.createElement("span");
     node.className = "welcome-bit";
@@ -209,7 +240,7 @@
   }
 
   // The burst when the frame lands: a flash, rings of light rushing out, and confetti thrown up.
-  const CONFETTI = ["#ff3d8a", "#ff8fc4", "#ffd056", "#ffffff", "#ff6fae", "#ffe08a", "#c084fc"];
+  const CONFETTI = window.XMAS ? ["#e0303f", "#2f9a5a", "#ffd056", "#ffffff", "#ff6b74", "#ffe08a", "#dff4ff"] : ["#ff3d8a", "#ff8fc4", "#ffd056", "#ffffff", "#ff6fae", "#ffe08a", "#c084fc"];
   // Confetti, hearts and petals thrown out along the banner as it opens.
   function bannerBurst() {
     for (let i = 0; i < 18; i++) confetti(random(260, 640), 155);

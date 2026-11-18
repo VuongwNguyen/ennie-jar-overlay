@@ -60,3 +60,47 @@
 /* Big four-pointed stars that grow and spin behind the frame. */
 .welcome-flare { position: absolute; left: 0; top: 0; width: 220px; height: 220px; margin: -110px 0 0 -110px; overflow: visible; }
 .welcome-spark { position: absolute; left: 0; top: 0; width: 14px; height: 14px; margin: -7px 0 0 -7px; overflow: visible; }
+
+/* ---------- Christmas (season.js puts html.xmas on): red, pine green, gold and snow ---------- */
+html.xmas #wPlaque stop:nth-child(1) { stop-color: #ff8a90; }
+html.xmas #wPlaque stop:nth-child(2) { stop-color: #d8323f; }
+html.xmas #wPlaque stop:nth-child(3) { stop-color: #9c0f1b; }
+html.xmas #wRibbon stop:nth-child(1) { stop-color: #3aa866; }
+html.xmas #wRibbon stop:nth-child(2) { stop-color: #1b5e36; }
+html.xmas #wRoseGold stop:nth-child(2) { stop-color: #e0303f; }
+html.xmas #wRoseGold stop:nth-child(4) { stop-color: #2f9a5a; }
+html.xmas #wRoseGold stop:nth-child(5) { stop-color: #8e0e18; }
+html.xmas #wPlaqueEdge stop:nth-child(1), html.xmas #wPlaqueEdge stop:nth-child(5) { stop-color: #c99a2a; }
+html.xmas #wPlaqueEdge stop:nth-child(3) { stop-color: #ffffff; }
+html.xmas #wPlaqueEdge stop:nth-child(4) { stop-color: #ffe9a8; }
+html.xmas #wChiffon stop { stop-color: #e6f4ff; }
+html.xmas #wGlow stop:nth-child(1) { stop-color: #ffe08a; }
+html.xmas #wGlow stop:nth-child(2) { stop-color: #fff3c2; }
+html.xmas #wGlow stop:nth-child(3) { stop-color: #ffffff; }
+html.xmas #wRay stop:nth-child(2) { stop-color: #ffffff; }
+html.xmas #wRay stop:nth-child(3) { stop-color: #dff4ff; }
+html.xmas #wRose stop:nth-child(1) { stop-color: #ffb0b5; }
+html.xmas #wRose stop:nth-child(2) { stop-color: #e0303f; }
+html.xmas #wRose stop:nth-child(3) { stop-color: #8e0e18; }
+html.xmas #wGem stop:nth-child(1) { stop-color: #ffd0d4; }
+html.xmas #wGem stop:nth-child(2) { stop-color: #e0303f; }
+html.xmas #wGem stop:nth-child(3) { stop-color: #7e0d16; }
+html.xmas #wPearl stop:nth-child(2) { stop-color: #eef6fb; }
+html.xmas #wPearl stop:nth-child(3) { stop-color: #b9cbd8; }
+html.xmas .welcome-frame [stroke="#ff7fb8"] { stroke: #2f9a5a; }
+html.xmas .welcome-frame [fill="#ffe2ee"] { fill: #ffffff; }
+html.xmas .welcome-frame [fill="#a8285f"] { fill: #1b5e36; }
+html.xmas .welcome-frame [fill="#d62f7c"] { fill: #a8131f; }
+html.xmas .welcome-frame [stroke="#ff5fa8"] { stroke: #d8323f; }
+html.xmas .welcome-frame [fill="#ff3d8a"] { fill: #2f9a5a; }
+/* The butterflies become little ice-blue snow fairies; the crown makes way for Santa's hat (welcome.js). */
+html.xmas .welcome-frame [fill="#ff9cc9"] { fill: #bfe6ff; }
+html.xmas .welcome-frame [fill="#ffc3df"] { fill: #eaf7ff; }
+html.xmas .welcome-frame [stroke="#8e2f63"] { stroke: #3a6f99; }
+html.xmas .welcome-frame g[transform="translate(0 -108)"] { display: none; }
+html.xmas .welcome-avatar { background: radial-gradient(circle at 40% 35%, #fff4f4, #ff7a82 75%, #c4202e); text-shadow: 0 2px 4px #6e0a12; }
+html.xmas .welcome-hello, html.xmas .welcome-sub { text-shadow: 0 1px 2px #6e0a12; }
+html.xmas .welcome-name { filter: drop-shadow(0 2px 0 #6e0a12) drop-shadow(0 0 5px #1b5e36); }
+html.xmas .welcome-badge { text-shadow: 0 1px 2px #0d3a20; }
+html.xmas .welcome-flash { background: radial-gradient(closest-side, #ffffff, #fff1b8 30%, #ff6b74 60%, transparent); }
+html.xmas .welcome-ring { box-shadow: 0 0 18px #ffd76a, inset 0 0 14px #fff6; }

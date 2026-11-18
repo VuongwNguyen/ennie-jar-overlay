@@ -17,9 +17,53 @@
   const matches = event => String(event?.gift?.id ?? "") === TRIGGER_ID
     || TRIGGER_NAMES.includes(String(event?.gift?.name ?? "").trim().toLowerCase());
 
+  // At Christmas (season.js): snowflakes and a few gold stars falling over the clip while it plays, drawn on a
+  // canvas only while it shows.
+  const snow = (() => {
+    const canvas = document.getElementById("heartSnow");
+    if (!window.XMAS || !canvas || matchMedia("(prefers-reduced-motion: reduce)").matches) return { start() {}, stop() {} };
+    const g = canvas.getContext("2d");
+    let flakes = [], frame = 0, last = 0;
+    const make = top => {
+      const star = Math.random() < 0.12;
+      return { x: Math.random() * canvas.width, y: top ? -20 : Math.random() * canvas.height, r: star ? 7 + Math.random() * 6 : 2 + Math.random() * 4.5,
+        speed: 40 + Math.random() * 70, drift: Math.random() * Math.PI * 2, star };
+    };
+    function draw(now) {
+      const dt = Math.min(0.05, (now - (last || now)) / 1000);
+      last = now;
+      g.clearRect(0, 0, canvas.width, canvas.height);
+      for (const f of flakes) {
+        f.y += f.speed * dt;
+        f.drift += dt;
+        const x = f.x + Math.sin(f.drift) * 18;
+        if (f.star) {
+          g.fillStyle = "#ffd84a";
+          g.font = `${f.r * 2.4}px "Segoe UI Symbol", sans-serif`;
+          g.fillText("★", x, f.y);
+        } else {
+          g.fillStyle = "rgba(255,255,255,.9)";
+          g.beginPath(); g.arc(x, f.y, f.r, 0, Math.PI * 2); g.fill();
+        }
+        if (f.y > canvas.height + 20) Object.assign(f, make(true));
+      }
+      frame = requestAnimationFrame(draw);
+    }
+    return {
+      start() {
+        canvas.width = innerWidth; canvas.height = innerHeight;
+        flakes = Array.from({ length: Math.round(canvas.width * canvas.height / 9000) }, () => make(false));
+        canvas.classList.add("show");
+        cancelAnimationFrame(frame); last = 0; frame = requestAnimationFrame(draw);
+      },
+      stop() { cancelAnimationFrame(frame); canvas.classList.remove("show"); }
+    };
+  })();
+
   function hide() {
     video.classList.remove("show");
     video.pause();
+    snow.stop();
   }
 
   async function play() {
@@ -27,6 +71,7 @@
     video.currentTime = 0;
     video.muted = false;
     video.classList.add("show");
+    snow.start();
     try {
       await video.play();
     } catch {
@@ -44,6 +89,7 @@
     video.muted = true;
     video.addEventListener("loadeddata", () => { video.currentTime = Math.min(2.5, video.duration / 2 || 0); }, { once: true });
     video.classList.add("show");
+    snow.start();
     return;
   }
   socket.on("gift", event => { if (matches(event)) play(); });

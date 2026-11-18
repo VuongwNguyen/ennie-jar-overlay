@@ -47,6 +47,7 @@ if (!params.has("nosticker")) {
     sticker.style.height = `${height}px`;
     sticker.style.left = `${snap(Math.max(frame.left, Math.min(frame.right - width, left)))}px`;
     sticker.style.top = `${snap(rimY - BONE_BOTTOM * fit * pixel)}px`;
+    window.placeStickerHat?.(sticker); // Santa's hat at Christmas (xmas.js)
   };
   addEventListener("resize", () => requestAnimationFrame(place));
   requestAnimationFrame(place);

@@ -527,16 +527,20 @@ let layoutWrite = Promise.resolve();
 // Effect settings, set on the control page and kept in data/effects.json: burstFrom is the price of one
 // gift, in coins, from which it sets off the heart burst on the jar (bigburst.js); 0 turns the burst off.
 // jarStyle is what holds the gifts: "jar", the glass jar, or "tank", the fish tank (tank.js).
+// season dresses every overlay for a time of year: "none", the usual pink look, or "noel", Christmas (season.js);
+// the usual look is kept as it is, so switching back is all it takes once the season is over.
 // A setting left out of a change keeps its value (base), so saving one does not reset the other.
 const effectsFile = path.join(dataDir, "effects.json");
 const JAR_STYLES = ["jar", "tank"];
-const DEFAULT_EFFECTS = { burstFrom: 1000, jarStyle: "jar" };
+const SEASONS = ["none", "noel"];
+const DEFAULT_EFFECTS = { burstFrom: 1000, jarStyle: "jar", season: "none" };
 let effects = { ...DEFAULT_EFFECTS };
 const cleanEffects = (input, base = DEFAULT_EFFECTS) => {
   const n = Math.round(Number(input?.burstFrom ?? base.burstFrom));
   return {
     burstFrom: Number.isFinite(n) ? Math.max(0, Math.min(1_000_000, n)) : base.burstFrom,
-    jarStyle: JAR_STYLES.includes(input?.jarStyle) ? input.jarStyle : base.jarStyle
+    jarStyle: JAR_STYLES.includes(input?.jarStyle) ? input.jarStyle : base.jarStyle,
+    season: SEASONS.includes(input?.season) ? input.season : (base.season ?? "none")
   };
 };
 async function loadEffects() {

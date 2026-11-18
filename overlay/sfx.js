@@ -237,6 +237,21 @@
     pad = null;
   }
 
+  // Sleigh bells: many tiny, very high bell clinks shaken together, with a hiss of metal.
+  function sleighBells(t, length, peak) {
+    for (let shake = 0; shake < 2; shake++) {
+      const at = t + shake * (length / 2);
+      for (let i = 0; i < 9; i++) {
+        const f = rand(5200, 8200);
+        tone(at + rand(0, 0.08), f, rand(0.08, 0.2), { peak: peak * 0.3, attack: 0.002, pan: rand(-0.5, 0.5), roomy: 0.6 });
+      }
+      noise(at, 0.18, { type: "highpass", from: 7000, to: 9000, q: 0.7, peak: peak * 0.6, attack: 0.004, roomy: 0.6 });
+    }
+  }
+  // "Jingle Bells" (James Lord Pierpont, 1857), its first line, in semitones from C5 and beats.
+  const JINGLE = [[4, 1], [4, 1], [4, 2], [4, 1], [4, 1], [4, 2], [4, 1], [7, 1], [0, 1.5], [2, 0.5], [4, 4]];
+  const XMAS = !!window.XMAS;
+
   let landed = 0;
   window.burstSfx = {
     // The big gift falling in like a comet: a whistle sliding down, its fizz, and crackles in its tail.
@@ -299,14 +314,34 @@
     sparkle: play(t => {
       for (let i = 0; i < 12; i++) bell(t + i * 0.045 + rand(0, 0.02), note(PENTATONIC[i % PENTATONIC.length] + 12), 0.5, 0.03, rand(-0.8, 0.8));
     }),
-    // The sender's name appearing: a short, bright fanfare.
+    // The sender's name appearing: a short, bright fanfare; at Christmas the first line of "Jingle Bells"
+    // on bells, with sleigh bells on the beat.
     fanfare: play(t => {
+      if (XMAS) {
+        let at = 0;
+        const beat = 0.16;
+        for (const [s, beats] of JINGLE) {
+          bell(t + at, note(s + 12), Math.max(0.3, beats * beat * 1.6), 0.07);
+          tone(t + at, note(s), beats * beat * 1.2, { type: "triangle", peak: 0.025, attack: 0.01 });
+          at += beats * beat;
+        }
+        for (let b = 0; b < at; b += beat * 2) sleighBells(t + b, 0.12, 0.05);
+        return;
+      }
       [[0, 0], [0.11, 4], [0.22, 7], [0.36, 12]].forEach(([at, s], i) => {
         const len = i === 3 ? 1.1 : 0.22;
         for (const detune of [-6, 6]) tone(t + at, note(s), len, { type: "sawtooth", peak: 0.035, attack: 0.01, detune });
         tone(t + at, note(s) * 2, len, { type: "triangle", peak: 0.03, attack: 0.01 });
       });
       bell(t + 0.36, note(24), 1.4, 0.06);
+    }),
+    // At Christmas (bigburst.js) the three heartbeats are three shakes of sleigh bells, each on a chord,
+    // louder each time (strength 0, 1, 2).
+    jingle: play((t, strength = 0) => {
+      sleighBells(t, 0.5, 0.11 + strength * 0.04);
+      const root = [0, 5, 7][strength] ?? 0;
+      for (const s of [0, 4, 7]) bell(t + 0.02, note(root + s), 1.0, 0.035 + strength * 0.01);
+      tone(t, note(root - 24), 0.5, { peak: 0.25 + strength * 0.08, to: note(root - 26), roomy: 0.5 });
     }),
     // A heartbeat, "lub-dub", louder and deeper with each one (strength 0, 1, 2).
     beat: play((t, strength = 0) => {
@@ -369,6 +404,7 @@
     stop: play(t => stopPad(t, 0.2)),
     // All back in: a warm, bright chord with a bell on top.
     done: play((t, pan = 0) => {
+      if (XMAS) sleighBells(t, 0.8, 0.1);
       for (const s of [0, 4, 7, 12, 16]) for (const detune of [-5, 5]) tone(t, note(s - 12), 1.8, { type: "triangle", peak: 0.03, attack: 0.02, detune, pan: pan * 0.5 });
       bell(t + 0.05, note(24), 2.2, 0.08, pan * 0.5);
       bell(t + 0.15, note(28), 2.0, 0.05, pan * 0.5);

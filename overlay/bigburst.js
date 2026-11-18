@@ -18,8 +18,12 @@
   // At most this many gifts fly up out of the jar, the ones on top of the pile; the rest stay where they
   // are. A full jar holds hundreds, and moving them all at once is more than a streaming machine can draw.
   const MAX_FLY = 60;
-  const SPARKS = ["✦", "✧", "♥", "✿", "★"];
-  const SPARK_COLOURS = ["#fff4c2", "#ffc6e6", "#ffd76a", "#ffffff", "#ff8fc7"];
+  // At Christmas (season.js) the gifts form a Christmas tree with a star on top instead of a heart, and the
+  // sparkles are snowflakes and stars in snow white, gold, red and green.
+  const XMAS = !!window.XMAS;
+  const SPARKS = XMAS ? ["❄", "★", "✦", "❅", "★"] : ["✦", "✧", "♥", "✿", "★"];
+  const SPARK_COLOURS = XMAS ? ["#ffffff", "#ffe08a", "#ff5a64", "#9fe0b4", "#ffd76a"] : ["#fff4c2", "#ffc6e6", "#ffd76a", "#ffffff", "#ff8fc7"];
+  const PINK = XMAS ? "#9fe0b4" : "#ffc6e6", HOT = XMAS ? "#ff5a64" : "#ff8fc7", HALO = XMAS ? "#ffd76a" : "#ff8fc4";
 
   const queue = [];
   let busy = false, current = null;
@@ -47,7 +51,14 @@
   // gift is. Also gives the distance between neighbours, which sets how big each gift is drawn.
   function heartPoints(n, cx, cy, size, hole) {
     const outline = [];
-    for (let i = 0; i < 120; i++) {
+    // The Christmas tree: three tiers, wider towards the bottom, from the top of the box to just above its
+    // bottom, where the trunk is (drawn apart, see play).
+    if (XMAS) {
+      const half = [[0, -1], [-0.36, -0.52], [-0.2, -0.52], [-0.62, -0.06], [-0.4, -0.06], [-0.92, 0.62],
+        [0.92, 0.62], [0.4, -0.06], [0.62, -0.06], [0.2, -0.52], [0.36, -0.52]];
+      for (const [x, y] of half) outline.push([cx + x * size, cy + y * size]);
+    }
+    for (let i = 0; i < (XMAS ? 0 : 120); i++) {
       const t = (i / 120) * Math.PI * 2;
       const x = 16 * Math.sin(t) ** 3;
       const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
@@ -104,7 +115,7 @@
     const D = d * to;
     el.style.borderColor = colour;
     el.style.borderWidth = `${10 * to}px`;
-    el.style.boxShadow = `0 0 ${15 * to}px #ff8fc4`;
+    el.style.boxShadow = `0 0 ${15 * to}px ${HALO}`;
     gsap.fromTo(el, { width: D, height: D, x: x - D / 2, y: y - D / 2, scale: 0.15 / to, opacity: 1 },
       { scale: 1, opacity: 0, duration, delay, ease: "power2.out", onComplete: () => el.remove() });
   }
@@ -213,6 +224,20 @@
       const { points, spacing } = heartPoints(pieces.length, cx, cy, size, size * 0.34);
       // Each piece is drawn as big as the space it has, so neighbours just touch.
       const onHeart = el => Math.min(64, Math.max(12, spacing * 1.05)) / el._size;
+      // The tree's star and trunk, which appear as it closes and go in the burst.
+      let star = null, trunk = null;
+      if (XMAS) {
+        trunk = element("burst-trunk", group);
+        const tw = size * 0.26, th = size * 0.3;
+        gsap.set(trunk, { width: tw, height: th, x: cx - tw / 2, y: cy + size * 0.6, opacity: 0, scaleY: 0, transformOrigin: "50% 0%" });
+        star = element("burst-star", group);
+        star.textContent = "★";
+        star.style.fontSize = `${size * 0.42}px`;
+        gsap.set(star, { x: cx, y: cy - size * 1.02, xPercent: -50, yPercent: -55, scale: 0, opacity: 0 });
+        timeline.to(trunk, { opacity: 1, scaleY: 1, duration: 0.5, ease: "power2.out" }, GATHER * 0.6);
+        timeline.to(star, { scale: 1, opacity: 1, rotation: 360, duration: 0.7, ease: "back.out(2)" }, GATHER - 0.1);
+        timeline.to(star, { scale: 1.25, duration: 0.3, yoyo: true, repeat: 5, ease: "sine.inOut" }, GATHER + 0.6);
+      }
 
       // 1. Gathering: the gifts hop up out of the jar, then swing around the middle on their way in, so they
       // swirl; a stream of sparkles is drawn from the jar's mouth to the big gift.
@@ -282,7 +307,7 @@
           .to(group, { scale: 1, duration: 0.3, ease: "power1.in" }, at + 0.14)
           .to(glow, { opacity: 1, scale: 1.05 + i * 0.06, duration: 0.14, ease: "power2.out" }, at)
           .to(glow, { opacity: 0.85, scale: 1, duration: 0.3, ease: "power1.in" }, at + 0.14);
-        timeline.add(() => { ring(group, cx, cy, size * 0.9, "#ffc6e6", 1.6 + i * 0.25, 0.6); sfx.beat(i); }, at);
+        timeline.add(() => { ring(group, cx, cy, size * 0.9, PINK, 1.6 + i * 0.25, 0.6); XMAS ? sfx.jingle(i) : sfx.beat(i); }, at);
       });
 
       // 4. Gathering strength: the heart trembles, the rays spin up and the big gift swells.
@@ -304,7 +329,7 @@
         flash.style.setProperty("--cy", `${cy}px`);
         gsap.fromTo(flash, { opacity: 0 }, { opacity: 1, duration: 0.08, yoyo: true, repeat: 1, repeatDelay: 0.1, onComplete: () => flash.remove() });
         ring(group, cx, cy, size * 0.8, "#ffe08a", 5, 1.0);
-        ring(group, cx, cy, size * 0.8, "#ff8fc7", 4, 1.1, 0.08);
+        ring(group, cx, cy, size * 0.8, HOT, 4, 1.1, 0.08);
         ring(group, cx, cy, size * 0.8, "#ffffff", 3, 0.9, 0.16);
         for (let i = 0; i < 30; i++) {
           const angle = (i / 30) * Math.PI * 2 + random(-0.1, 0.1), dist = random(0.3, 0.6) * H;
@@ -313,6 +338,8 @@
       }, BURST);
       timeline.to(glow, { scale: 1.8, opacity: 0, duration: 0.7, ease: "power2.out" }, BURST);
       timeline.to(rays, { scale: 2, opacity: 0, duration: 0.8, ease: "power2.out" }, BURST);
+      if (star) timeline.to(star, { y: `-=${size * 0.6}`, scale: 2.2, opacity: 0, duration: 0.8, ease: "power2.out" }, BURST);
+      if (trunk) timeline.to(trunk, { opacity: 0, duration: 0.3 }, BURST);
       // The big gift shrinks back to a gift's size and goes back into the jar with the others.
       timeline.to(core, { scale: scale * 1.4, rotation: "+=180", duration: 0.6, ease: "back.in(1.4)" }, BURST);
       pieces.forEach(({ el, back }, i) => {

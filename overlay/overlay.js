@@ -283,7 +283,7 @@ function giftSize(event) {
 const ROSE_ID = "5655";
 const isRose = gift => (/^\d+$/.test(gift.id ?? "") ? gift.id === ROSE_ID : /rose|hoa hồng/i.test(gift.name || ""));
 function makeGiftEl(event, i) {
-  const emojis = isRose(event.gift) ? ["🌹", "🌹", "💗"] : ["💝", "✨", "🌸"];
+  const emojis = isRose(event.gift) ? ["🌹", "🌹", window.XMAS ? "❤️" : "💗"] : window.XMAS ? ["🎁", "❄️", "🎄"] : ["💝", "✨", "🌸"];
   const size = giftSize(event);
   const el = document.createElement("span");
   el.className = "gift-particle";
@@ -341,8 +341,9 @@ function fx(text, className = "") {
   return el;
 }
 const rand = (a, b) => a + Math.random() * (b - a);
-const SPARKS = ["✦", "✧", "✿", "♡"];
-const SPARK_COLORS = ["#fff4c2", "#ffc6e6", "#e2c6ff", "#ffffff"];
+// At Christmas (season.js): snowflakes and gold stars, in snow white, gold, berry red and pine green.
+const SPARKS = window.XMAS ? ["❄", "✦", "★", "❅"] : ["✦", "✧", "✿", "♡"];
+const SPARK_COLORS = window.XMAS ? ["#ffffff", "#ffe08a", "#ff5a64", "#9fe0b4"] : ["#fff4c2", "#ffc6e6", "#e2c6ff", "#ffffff"];
 
 function sparkleBurst(n) {
   for (let i = 0; i < n; i++) {
@@ -366,8 +367,8 @@ function floatText(coins) {
     .to(el, { y: MOUTH.y - 80, scale: 1, opacity: 0, duration: 1.12, ease: "power1.in" });
 }
 
-const CONFETTI = ["♥", "♡", "✦", "✿", "★"];
-const CONFETTI_COLORS = ["#ff9ccf", "#f4d38d", "#d3a8ff", "#ffffff", "#9fe6d0"];
+const CONFETTI = window.XMAS ? ["❄", "★", "✦", "❅", "●"] : ["♥", "♡", "✦", "✿", "★"];
+const CONFETTI_COLORS = window.XMAS ? ["#ffffff", "#f6d26b", "#e0303f", "#3fae6a", "#dff4ff"] : ["#ff9ccf", "#f4d38d", "#d3a8ff", "#ffffff", "#9fe6d0"];
 function confetti(n) {
   for (let i = 0; i < n; i++) {
     const dx = rand(-150, 150), up = rand(90, 190), fall = rand(40, 160), duration = rand(1.4, 2.1);
@@ -429,7 +430,7 @@ function celebrate(coins, tier) {
 
 function celebrateJar(coins, tier) {
   const wrap = $("jarWrap");
-  wrap.style.setProperty("--glow", tier === 2 ? "255 214 120" : tier === 1 ? "221 160 255" : "246 169 216");
+  wrap.style.setProperty("--glow", tier === 2 ? "255 214 120" : tier === 1 ? (window.XMAS ? "255 110 110" : "221 160 255") : (window.XMAS ? "200 235 255" : "246 169 216"));
   if (reduceMotion) return;
   shakeJar(tier);
   window.dogReact?.(tier);
@@ -565,7 +566,7 @@ function renderDonorTags(donors) {
     const avatar = donors[tag.dataset.rank - 1]?.avatar ?? "";
     if (frame.dataset.avatar === avatar) continue; // reloading the same image would make it blink
     frame.dataset.avatar = avatar;
-    const heart = () => { frame.replaceChildren(); frame.textContent = "♡"; };
+    const heart = () => { frame.replaceChildren(); frame.textContent = window.XMAS ? "★" : "♡"; };
     if (!/^https?:\/\//i.test(avatar)) { heart(); continue; }
     const img = document.createElement("img");
     img.referrerPolicy = "no-referrer";

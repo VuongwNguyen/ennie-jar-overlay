@@ -337,7 +337,21 @@ for (const chip of document.querySelectorAll(".chip[data-gift]")) {
 const showEffects = settings => {
   if (document.activeElement !== $("burstFrom")) $("burstFrom").value = settings.burstFrom;
   for (const button of document.querySelectorAll("[data-jar-style]")) button.setAttribute("aria-checked", String(button.dataset.jarStyle === (settings.jarStyle ?? "jar")));
+  for (const button of document.querySelectorAll("[data-season]")) button.setAttribute("aria-checked", String(button.dataset.season === (settings.season ?? "none")));
 };
+// The season's look (season.js): every overlay reloads itself in it.
+const SEASON_NAMES = { none: "giao diện bình thường", noel: "giao diện Giáng sinh" };
+document.querySelectorAll("[data-season]").forEach(button => button.addEventListener("click", async () => {
+  if (button.getAttribute("aria-checked") === "true") return;
+  try {
+    const { ok, body: saved } = await post("/api/effects", { season: button.dataset.season });
+    if (!ok) throw new Error("not saved");
+    showEffects(saved);
+    notify("seasonNotice", `Đã đổi sang ${SEASON_NAMES[saved.season]} ✓ Overlay đang tải lại.`);
+  } catch {
+    notify("seasonNotice", "Không đổi được, thử lại.", true);
+  }
+}));
 // The jar or the fish tank: the overlays switch over by themselves (overlay.js reloads on "effects").
 const JAR_STYLE_NAMES = { jar: "hũ quà", tank: "bể nuôi cá" };
 document.querySelectorAll("[data-jar-style]").forEach(button => button.addEventListener("click", async () => {

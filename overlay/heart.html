@@ -7,8 +7,12 @@
   <!-- A second overlay on its own, separate from the jar (overlay.html): the team heart clip, played by heartfx.js.
        Add it as its own source, so it can be layered, sized and given its own volume apart from the jar.
        heart.html?test plays the clip once after loading, to check where it sits. -->
+  <!-- The season's look (season.js): at Christmas snow and gold stars fall over the clip while it plays. -->
+  <script src="/season.js"></script>
   <style>
     html, body { margin: 0; width: 100%; height: 100%; background: transparent; overflow: hidden; }
+    .heart-snow { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; visibility: hidden; }
+    .heart-snow.show { visibility: visible; }
     /* The whole clip in its box (the whole source by default), transparent at the top, garden along the bottom. */
     .heart-fx {
       position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: contain; object-position: bottom;
@@ -19,6 +23,7 @@
 </head>
 <body>
   <video id="heartFx" class="heart-fx" src="/media/ennie_heart.webm" preload="auto" playsinline aria-hidden="true"></video>
+  <canvas id="heartSnow" class="heart-snow" aria-hidden="true"></canvas>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/heartfx.js"></script>
 </body>

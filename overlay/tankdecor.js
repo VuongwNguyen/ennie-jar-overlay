@@ -88,7 +88,8 @@
   const pearl = (parent, x, y, r = 4) => el("circle", { cx: x, cy: y - r, r, fill: "url(#seaPearl)", stroke: "#d8c6d0", "stroke-width": 0.5 }, parent);
 
   // ---------- A string of pearls across the front ----------
-  const strand = el("g", {}, svg);
+  // At Christmas a string of Christmas lights hangs here instead (xmas.js).
+  const strand = el("g", window.XMAS ? { style: "display:none" } : {}, svg);
   const swag = el("path", { d: "M8 2 Q136 58 264 2", fill: "none" }, strand);
   const length = swag.getTotalLength();
   for (let at = 0; at <= length; at += 8.5) {
