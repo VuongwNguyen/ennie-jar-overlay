@@ -299,10 +299,16 @@
   el("path", { d: `M14 ${WATER + 40} V${H - 70}`, stroke: "#fff", "stroke-opacity": 0.55, "stroke-width": 7, "stroke-linecap": "round" }, near);
   el("path", { d: `M24 ${WATER + 60} V${WATER + 130}`, stroke: "#fff", "stroke-opacity": 0.45, "stroke-width": 2.5, "stroke-linecap": "round" }, near);
   el("path", { d: `M${W - 12} ${WATER + 70} V${H - 110}`, stroke: "#fff", "stroke-opacity": 0.35, "stroke-width": 4, "stroke-linecap": "round" }, near);
-  // The lid, with a lamp shining down.
-  el("rect", { x: -8, y: -14, width: W + 16, height: 13, rx: 5, fill: "url(#tankLid)", stroke: "#d9689f", "stroke-width": 1.6 }, near);
-  el("rect", { x: 4, y: -11.5, width: 150, height: 3, rx: 1.5, fill: "#fff", "fill-opacity": 0.85 }, near);
-  el("rect", { x: 96, y: -2, width: 80, height: 4, rx: 2, fill: "#fff8d6", stroke: "#f4d38d", "stroke-width": 1 }, near);
+  // An open top: a rounded rim along the mouth of the glass, so the fish can leap out of it.
+  el("rect", { x: -6, y: -6, width: W + 12, height: 8, rx: 4, fill: "url(#tankLid)", stroke: "#d9689f", "stroke-width": 1.4 }, near);
+  el("rect", { x: 4, y: -4.5, width: 150, height: 2.4, rx: 1.2, fill: "#fff", "fill-opacity": 0.85 }, near);
+  // A fish leaping out is moved here for the leap: a layer over everything, the dog sitting on the rim
+  // included, so it is not cut off at the mouth of the tank as it is in the water (behind the gifts, inside
+  // the glass's outline) and nothing hides it in the air.
+  const sky = el("svg", { class: "jar-svg tank-sky", viewBox: "-14 -14 300 390", width: 300, height: 390, "aria-hidden": "true" });
+  sky.style.zIndex = 40;
+  document.getElementById("jarWrap").append(sky);
+  const flying = el("g", {}, sky);
   // The jar's ribbon is kept and tied round the tank, under the lid; it is made as wide as the tank.
   const ribbon = document.getElementById("jarRibbon");
   if (ribbon) { ribbon.setAttribute("x", -4); ribbon.setAttribute("width", W + 8); }
@@ -323,9 +329,14 @@
       .to(b, { keyframes: { x: [x, x + random(-6, 6), x + random(-6, 6), x] }, duration: rise, ease: "sine.inOut" }, 0)
       .to(b, { scale: 1.4, opacity: 0, duration: 0.25 }, rise - 0.1);
   }
-  // A gift falling in: a ring spreading on the surface, a few drops thrown up, and bubbles where it went in.
+  // A gift falling in: a ring spreading on the surface, a few drops thrown up, and bubbles where it went in;
+  // the fish near it are startled. A fish leaping out and back in makes the same splash without that.
   window.tankSplash = (x, radius = 14) => {
     if (still || document.hidden) return;
+    splash(x, radius);
+    fishReact.splash?.(x);
+  };
+  function splash(x, radius) {
     const ring = el("ellipse", { cx: x, cy: WATER, rx: radius * 0.6, ry: 2.5, fill: "none", stroke: "#fff", "stroke-width": 2 }, surface);
     gsap.to(ring, { attr: { rx: radius * 2.6, ry: 6 }, opacity: 0, duration: 0.9, ease: "power2.out", onComplete: () => ring.remove() });
     for (let i = 0; i < 5; i++) {
@@ -338,8 +349,7 @@
         .to(drop, { y: WATER + 4, opacity: 0, duration: 0.32, ease: "power2.in" }, 0.28);
     }
     for (let i = 0; i < 6; i++) bubble(x + random(-radius, radius), WATER + random(16, 40), random(1.5, 4), i * 0.05);
-    fishReact.splash?.(x);
-  };
+  }
 
   if (still) return;
   // ---------- Motion that keeps going ----------
@@ -385,8 +395,12 @@
     f.step?.kill();
     f.step = null;
     gsap.killTweensOf([f.outer, f.turn, f.front]);
+    f.leaping = false;
+    if (f.outer.parentNode !== deep) deep.append(f.outer); // back in the water if a leap was cut short
+    gsap.set(f.outer, { rotation: 0 });
     f.x = gsap.getProperty(f.outer, "x");
-    f.y = gsap.getProperty(f.outer, "y");
+    f.y = clampY(f, gsap.getProperty(f.outer, "y"));
+    gsap.set(f.outer, { y: f.y });
     gsap.set(f.turn, { scaleX: f.facing, opacity: 1 });
     gsap.set(f.front, { opacity: 0 });
   }
@@ -430,7 +444,7 @@
   fishReact.splash = x => {
     const now = performance.now();
     for (const f of swimmers) {
-      if (Math.abs(f.x - x) > 95 || now - f.startled < 1500) continue;
+      if (f.leaping || Math.abs(f.x - x) > 95 || now - f.startled < 1500) continue;
       f.startled = now;
       stop(f);
       f.busy = true;
@@ -466,6 +480,55 @@
       });
     });
   };
+  // A fish leaps right out of the tank: it swims to one side of it (the dog sits on the middle of the rim),
+  // turns toward the middle, speeds up toward the surface, bursts out and flies up past the mouth of the tank
+  // in an arc, nose up then nose down, and drops back in further along, with a splash where it leaves the
+  // water and where it comes back; then it dives and swims on. While it is in the air it is drawn in front of
+  // the glass (flying), so it is not cut off at the mouth.
+  const LEAP_TOP = -115; // how high it flies: 115 above the rim
+  function leap(f) {
+    stop(f);
+    f.busy = true;
+    const dir = f.x < W / 2 ? 1 : -1;
+    const out = dir > 0 ? 52 : W - 52, back = out + dir * 90;
+    // Down to the side it leaps from, below the surface, then round to face the way it will leap.
+    moveTo(f, out - dir * 30, WATER + 40, 70, "sine.inOut", () => turnTo(f, dir, () => {
+      f.leaping = true;
+      flying.append(f.outer);
+      beatAt(f, 2.6);
+      f.step = gsap.to(f.outer, {
+        x: out, y: WATER + 10, rotation: -dir * 30, duration: 0.45, ease: "power2.in",
+        onComplete: () => {
+          splash(out, 13);
+          const air = 1.8;
+          f.step = gsap.timeline({
+            onComplete: () => {
+              deep.append(f.outer);
+              f.leaping = false;
+              f.x = clampX(f, back + dir * 16);
+              f.y = WATER + 56;
+              f.step = null;
+              beatAt(f, 1);
+              cruise(f);
+            }
+          })
+            .to(f.outer, { x: back, duration: air, ease: "none" }, 0)
+            .to(f.outer, { y: LEAP_TOP, duration: air / 2, ease: "power2.out" }, 0)
+            .to(f.outer, { y: WATER + 10, duration: air / 2, ease: "power2.in" }, air / 2)
+            .fromTo(f.outer, { rotation: -dir * 55 }, { rotation: dir * 60, duration: air, ease: "sine.inOut" }, 0)
+            .add(() => splash(back, 14), air - 0.06)
+            // Back under, levelling out as it dives.
+            .to(f.outer, { y: WATER + 56, x: clampX(f, back + dir * 16), rotation: 0, duration: 0.6, ease: "sine.out" }, air);
+        }
+      });
+    }));
+  }
+  // Now and then, every 20 to 40 seconds, one fish that is not busy leaps. tankLeap() makes one leap now.
+  window.tankLeap = () => {
+    const free = swimmers.filter(f => !f.busy);
+    if (free.length && !document.hidden) leap(free[Math.floor(Math.random() * free.length)]);
+  };
+  const leaps = gsap.delayedCall(random(12, 25), () => { window.tankLeap(); leaps.delay(random(20, 40)).restart(true); });
   swimmers.forEach(cruise);
 
   // A big gift: the chest's lid lifts, light pours out, gold coins and bubbles burst up and drift down, and

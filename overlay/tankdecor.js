@@ -1,5 +1,5 @@
 // The outside of the fish tank (tank.js draws the tank itself), over the same coordinates as the jar in
-// overlay.html: seaweed draped over the lid and hanging down the glass, a string of pearls swagged across the
+// overlay.html: seaweed draped over the rim and hanging down the glass, a string of pearls swagged across the
 // front with a little scallop shell in the middle, and a conch, shells, starfish and pearls on the ends of its
 // seashell stand. Light: sparkles along the glass's edge and a soft sea-blue glow behind the tank. Its name
 // tag is a piece of driftwood (overlay.css, .jar-wrap.tank .heading).
@@ -32,7 +32,7 @@
   // ---------- A sea-blue glow behind the tank ----------
   const glow = el("ellipse", { cx: 136, cy: 180, rx: 195, ry: 225, fill: "url(#seaGlowBack)" }, behind);
 
-  // ---------- Seaweed draped over the lid ----------
+  // ---------- Seaweed draped over the rim ----------
   // A strand of kelp: a ribbon that wavers as it hangs from (x, top), with leaves along it.
   const kelps = [];
   function kelp(x, top, length, lean, width = 6) {
@@ -48,13 +48,13 @@
     }
     kelps.push({ group, x, top });
   }
-  // Over the lid at the left, two strands down the glass by its edge; one at the right.
-  kelp(-2, -14, 170, -10, 10);
-  kelp(16, -12, 108, -12, 8);
-  kelp(274, -12, 132, 8, 9);
-  // A twist of kelp lying on the lid where the strands hang from.
-  el("path", { d: "M-10 -14 C2 -20 18 -10 32 -16", fill: "none", stroke: "url(#seaKelp)", "stroke-width": 5, "stroke-linecap": "round" }, svg);
-  el("path", { d: "M256 -15 C264 -19 276 -11 284 -15", fill: "none", stroke: "url(#seaKelp)", "stroke-width": 5, "stroke-linecap": "round" }, svg);
+  // Over the rim at the left, two strands down the glass by its edge; one at the right.
+  kelp(-2, -6, 166, -10, 10);
+  kelp(16, -5, 104, -12, 8);
+  kelp(274, -5, 128, 8, 9);
+  // A twist of kelp lying on the rim where the strands hang from.
+  el("path", { d: "M-10 -6 C2 -12 18 -2 32 -8", fill: "none", stroke: "url(#seaKelp)", "stroke-width": 5, "stroke-linecap": "round" }, svg);
+  el("path", { d: "M256 -7 C264 -11 276 -3 284 -7", fill: "none", stroke: "url(#seaKelp)", "stroke-width": 5, "stroke-linecap": "round" }, svg);
 
   // ---------- Shells ----------
   // A scallop shell standing on its hinge, ribs fanning up, at (x, y) its bottom.
@@ -114,7 +114,7 @@
   // ---------- Motion ----------
   if (still) return;
   gsap.to(glow, { opacity: 0.6, duration: 3, ease: "sine.inOut", yoyo: true, repeat: -1 });
-  // The kelp sways from where it hangs on the lid; the pearls swing a little.
+  // The kelp sways from where it hangs on the rim; the pearls swing a little.
   kelps.forEach(({ group, x, top }, i) => {
     gsap.fromTo(group, { rotation: -3 }, { rotation: 3, svgOrigin: `${x} ${top}`, duration: random(2.4, 3.4), ease: "sine.inOut", yoyo: true, repeat: -1, delay: -i * 0.9 });
   });
