@@ -46,6 +46,18 @@
     parent.append(el);
     return el;
   };
+  // Their TikTok picture in the round frame, or the first letter of their name when there is none or it fails
+  // to load (TikTok's picture links expire).
+  const avatar = (frame, url, nickname) => {
+    const initial = () => { frame.replaceChildren(); frame.textContent = [...nickname][0]?.toUpperCase() ?? "♡"; };
+    if (!/^https?:\/\//i.test(url ?? "")) return initial();
+    const img = new Image();
+    img.referrerPolicy = "no-referrer";
+    img.alt = "";
+    img.onerror = initial;
+    img.src = url;
+    frame.append(img);
+  };
   const svg = markup => {
     const holder = document.createElement("div");
     holder.innerHTML = markup;
@@ -53,14 +65,17 @@
   };
 
   // The parts both kinds share: the drawing scaled to the page, a glow behind, the badge with its number,
-  // the ribbon and the name, centred across.
+  // the ribbon, and the person's picture with their name beside it, centred across.
   function scene(event, kind, ribbonText) {
     const group = element(`lv lv-${kind}`, layer);
     gsap.set(group, { scale: Math.max(0.2, Math.min(innerWidth, innerHeight) / DESIGN) });
     const glow = element("lv-glow", group);
     const badge = element("lv-badge", group);
     const ribbon = element("lv-ribbon", group, ribbonText);
-    const name = element("lv-name", group, event.user.nickname || "Người xem");
+    const nickname = event.user.nickname || "Người xem";
+    const name = element("lv-name", group);
+    avatar(element("lv-avatar", name), event.user.avatar, nickname);
+    element("lv-name-text", name, nickname, "span");
     gsap.set([ribbon, name], { xPercent: -50 });
     return { group, glow, badge, ribbon, name };
   }
