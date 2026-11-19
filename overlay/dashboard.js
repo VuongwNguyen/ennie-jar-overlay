@@ -846,8 +846,8 @@ $("traceForm").addEventListener("submit", event => {
 $("traceOff").addEventListener("click", () => setTrace(""));
 
 // ---------- Tabs ----------
-// Three tabs, by when they are used. The one open is remembered in this browser; the Live tab comes first.
-const TABS = ["live", "overlay", "settings"];
+// Four tabs, by when they are used. The one open is remembered in this browser; the Live tab comes first.
+const TABS = ["live", "overlay", "game", "settings"];
 // Tabs that were merged: the welcome cards are now on Overlay, and testing is under Settings.
 const OLD_TABS = { welcome: "overlay", test: "settings" };
 let tab = "live";

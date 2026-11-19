@@ -52,8 +52,12 @@
     return box;
   }
 
-  function showMvp(el, person, team) {
+  // A side's top givers in the round: top 1's picture in front, top 2 and 3 tucked behind it, smaller; no names
+  // and no coins (the dare sits between the two sides). people: the top three (an older server sends only top 1, as one person).
+  function showMvp(el, people, team) {
     el.replaceChildren();
+    const list = (Array.isArray(people) ? people : [people]).filter(Boolean).slice(0, 3);
+    const person = list[0];
     if (!person) {
       const who = document.createElement("span");
       who.className = "who";
@@ -61,13 +65,14 @@
       el.append(who);
       return;
     }
-    const who = document.createElement("span");
-    who.className = "who";
-    who.textContent = `👑 ${short(person.nickname, 18)}`;
-    const coins = document.createElement("em");
-    coins.textContent = `${fmt(person.coins)} xu`;
-    who.append(coins);
-    el.append(avatar(person, team === "raid" ? "😈" : "💗"), who);
+    const stack = document.createElement("span");
+    stack.className = "stack";
+    list.forEach((p, i) => {
+      const pic = avatar(p, team === "raid" ? "😈" : "💗");
+      pic.classList.add(`rank${i + 1}`);
+      stack.append(pic);
+    });
+    el.append(stack);
   }
 
   // A side's gifts, one per level ("" where a level has none); older servers sent a single name.
@@ -164,8 +169,8 @@
     const share = raid + guard ? Math.min(85, Math.max(15, (raid / (raid + guard)) * 100)) : 50;
     $("fillRaid").style.width = `${share}%`;
     $("spark").style.left = `${share}%`;
-    showMvp($("mvpRaid"), data.mvp.raid, "raid");
-    showMvp($("mvpGuard"), data.mvp.guard, "guard");
+    showMvp($("mvpRaid"), data.top?.raid ?? data.mvp.raid, "raid");
+    showMvp($("mvpGuard"), data.top?.guard ?? data.mvp.guard, "guard");
     $("dare").textContent = `Phe Phá thắng thì Ennie phải: ${data.dare}`;
     panel.classList.remove("done", "guiding");
     panel.classList.add("on");
@@ -391,6 +396,7 @@
       running: true, now, endsAt: now + 154_000, dare: "Hát một đoạn bài do top 1 chọn",
       score: { raid: 1240, guard: 860 },
       mvp: { raid: { nickname: "Bé Na", coins: 620 }, guard: { nickname: "Mèo Mun", coins: 410 } },
+      top: { raid: [{ nickname: "Bé Na", coins: 620 }, { nickname: "Tí", coins: 300 }, { nickname: "Lu", coins: 120 }], guard: [{ nickname: "Mèo Mun", coins: 410 }, { nickname: "Kem", coins: 200 }] },
       gifts: { raid: ["Hoa hồng", "Bánh vòng", "Nước hoa", "Sư tử"], guard: ["TikTok", "Bắn tim", "Thả tim", "Thiên hà"] }
     });
     round.endsAt = Infinity; // the clock stays at 2:34

@@ -34,6 +34,9 @@
       background: linear-gradient(180deg, rgb(255 250 253 / var(--veil)), rgb(255 241 248 / var(--veil))); border: 3px solid #ffd0e8;
       box-shadow: 0 4px 14px #3b1a3226, inset 0 2px 0 #fff8;
     }
+    /* During a round the board is only as tall as what is on it (the dare sits between the two sides' top givers,
+       so there is no row of its own below); the guide and the result keep the full height. */
+    .pk:not(.done):not(.guiding) .board { inset: 0 0 80px 0; }
     .head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; height: 76px; }
     .side { display: flex; flex-direction: column; line-height: 1.05; }
     .side b { font-size: 26px; font-weight: 900; letter-spacing: .5px; }
@@ -74,17 +77,26 @@
     .score { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; font-size: 30px; font-weight: 900; color: #fff; text-shadow: 0 2px 4px #0005; font-variant-numeric: tabular-nums; }
     .score.raid { left: 20px; }
     .score.guard { right: 20px; }
-    .mvps { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 10px; height: 40px; }
+    .mvps { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; margin-top: 10px; height: 40px; }
+    .mvps .dare { margin-top: 0; min-width: 0; height: 34px; font-size: 15px; gap: 6px; padding: 0 10px; }
     .mvp { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 16px; font-weight: 700; }
     .mvp.guard { flex-direction: row-reverse; text-align: right; }
     .mvp .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .mvp em { font-style: normal; font-size: 13px; opacity: .75; display: block; }
     .avatar { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; overflow: hidden; background: #fff; font-size: 20px; }
     .mvp.raid .avatar { border: 3px solid var(--raid); }
+    /* Top 1 in front; top 2 and 3 tucked behind it, a little smaller, toward the middle of the panel. */
+    .mvp .stack { display: flex; align-items: center; flex: none; }
+    .mvp .stack .avatar { position: relative; box-shadow: 0 1px 4px #0003; }
+    .mvp .stack .rank1 { z-index: 3; }
+    .mvp .stack .rank2 { z-index: 2; width: 34px; height: 34px; font-size: 16px; margin-left: -12px; }
+    .mvp .stack .rank3 { z-index: 1; width: 29px; height: 29px; font-size: 14px; margin-left: -11px; }
+    .mvp.guard .stack { flex-direction: row-reverse; }
+    .mvp.guard .stack .rank2, .mvp.guard .stack .rank3 { margin-left: 0; margin-right: -12px; }
     .mvp.guard .avatar { border: 3px solid var(--guard); }
     .avatar img { width: 100%; height: 100%; object-fit: cover; }
     .dare { margin-top: 10px; height: 36px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 18px; background: rgb(255 247 214 / var(--veil-inner)); border: 2px dashed #f4c95d; font-size: 18px; font-weight: 800; color: #9a5a12; white-space: nowrap; overflow: hidden; }
-    .dare span { overflow: hidden; text-overflow: ellipsis; }
+    .dare span { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     /* The result, in place of the board for a while once time is up. */
     .result { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 12px 18px; box-sizing: border-box; border-radius: 28px; text-align: center; }
     .pk.done .result { display: flex; }
@@ -168,11 +180,12 @@
         <div class="score raid" id="scoreRaid">0</div>
         <div class="score guard" id="scoreGuard">0</div>
       </div>
+      <!-- Each side's top givers at its end, and the dare in the middle between them. -->
       <div class="mvps">
         <div class="mvp raid" id="mvpRaid"></div>
+        <div class="dare">🎯 <span id="dare"></span></div>
         <div class="mvp guard" id="mvpGuard"></div>
       </div>
-      <div class="dare">🎯 <span id="dare"></span></div>
     </div>
     <div class="result" id="result"></div>
     <div class="guide" id="guide">

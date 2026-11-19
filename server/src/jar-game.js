@@ -153,6 +153,8 @@ export function createJarGame({ app, io, dataDir, getState, persist, catalog }) 
       running: true, id: round.id, now: Date.now(), startsAt: round.startsAt, startedAt: round.startsAt, endsAt: round.endsAt, dare: round.dare,
       score: { ...round.score },
       mvp: { raid: people(round.donors.raid)[0] ?? null, guard: people(round.donors.guard)[0] ?? null },
+      // Each side's top three, for the pictures on the panel (top 1 in front, 2 and 3 behind it).
+      top: { raid: people(round.donors.raid).slice(0, 3), guard: people(round.donors.guard).slice(0, 3) },
       gifts: { raid: names("raid"), guard: names("guard") }
     };
   }

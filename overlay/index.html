@@ -27,6 +27,7 @@
     <nav class="tabs" role="tablist" aria-label="Mục">
       <button role="tab" id="tab-live" aria-controls="pane-live" data-tab="live">🔴 Live<i class="alert" id="liveAlert" hidden></i></button>
       <button role="tab" id="tab-overlay" aria-controls="pane-overlay" data-tab="overlay">🎨 Overlay</button>
+      <button role="tab" id="tab-game" aria-controls="pane-game" data-tab="game">🎮 Trò chơi</button>
       <button role="tab" id="tab-settings" aria-controls="pane-settings" data-tab="settings">⚙️ Cài đặt</button>
     </nav>
 
@@ -73,7 +74,7 @@
       </div>
     </section>
 
-    <!-- What shows on Studio: the link and layout, who gets the welcome frame, the big gift effect, the old links. -->
+    <!-- What shows on Studio: the link and layout, the jar style, who gets the welcome frame, the big gift effect, the old links. -->
     <section class="pane" role="tabpanel" id="pane-overlay" aria-labelledby="tab-overlay" hidden>
       <div class="card">
         <h2>Link cho Studio <small>một nguồn Link, 1080 × 1920</small></h2>
@@ -139,6 +140,28 @@
         </form>
         <p class="hint" id="effectsNotice" role="status"></p>
       </div>
+      <details class="card fold-card">
+        <summary>Link riêng lẻ (cũ) <small>không chỉnh được trên trang bố cục</small></summary>
+        <div class="link-row">
+          <span class="link-name">Hũ quà</span>
+          <input class="link-url" id="overlayUrl" readonly value="http://127.0.0.1:8787/overlay.html" aria-label="Link hũ quà">
+          <button class="copy" data-copy="overlayUrl">Copy</button>
+        </div>
+        <div class="link-row">
+          <span class="link-name">Video tim</span>
+          <input class="link-url" id="heartUrl" readonly value="http://127.0.0.1:8787/heart.html" aria-label="Link video tim đội">
+          <button class="copy" data-copy="heartUrl">Copy</button>
+        </div>
+        <div class="link-row">
+          <span class="link-name">Lên cấp</span>
+          <input class="link-url" id="levelupUrl" readonly value="http://127.0.0.1:8787/levelup.html" aria-label="Link hiệu ứng lên cấp">
+          <button class="copy" data-copy="levelupUrl">Copy</button>
+        </div>
+      </details>
+    </section>
+
+    <!-- The jar game: Phe Phá / Phe Giữ, its rounds and the gifts of each side. -->
+    <section class="pane" role="tabpanel" id="pane-game" aria-labelledby="tab-game" hidden>
       <!-- The jar game (server/src/jar-game.js, overlay/jargame.js): which gift is Phe Phá and which is Phe Giữ,
            kept in data/jar-game.json. How strong a turn is follows the sample steps shown in the table. -->
       <div class="card">
@@ -172,24 +195,6 @@
         <p class="hint">Nút thử không đổi tổng xu và top người tặng.</p>
         </div>
       </div>
-      <details class="card fold-card">
-        <summary>Link riêng lẻ (cũ) <small>không chỉnh được trên trang bố cục</small></summary>
-        <div class="link-row">
-          <span class="link-name">Hũ quà</span>
-          <input class="link-url" id="overlayUrl" readonly value="http://127.0.0.1:8787/overlay.html" aria-label="Link hũ quà">
-          <button class="copy" data-copy="overlayUrl">Copy</button>
-        </div>
-        <div class="link-row">
-          <span class="link-name">Video tim</span>
-          <input class="link-url" id="heartUrl" readonly value="http://127.0.0.1:8787/heart.html" aria-label="Link video tim đội">
-          <button class="copy" data-copy="heartUrl">Copy</button>
-        </div>
-        <div class="link-row">
-          <span class="link-name">Lên cấp</span>
-          <input class="link-url" id="levelupUrl" readonly value="http://127.0.0.1:8787/levelup.html" aria-label="Link hiệu ứng lên cấp">
-          <button class="copy" data-copy="levelupUrl">Copy</button>
-        </div>
-      </details>
     </section>
 
     <!-- Settings: for now, testing without a live (gifts, a viewer joining, a level up, the heart clip, the welcome frame). -->
