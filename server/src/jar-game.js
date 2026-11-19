@@ -22,16 +22,40 @@ export const TIERS = [
 ];
 export const tierFor = coins => Math.max(0, TIERS.findLastIndex(tier => coins >= tier.from));
 
-// Sample dares, for Ennie to change on the control page.
+// Sample dares, for Ennie to change on the control page: 28 light, friendly ones in four groups.
 const SAMPLE_DARES = [
+  // Hát và nhảy
   "Hát một đoạn bài do top 1 chọn",
   "Nhảy 30 giây theo nhạc trend",
+  "Hát một câu bằng giọng em bé",
+  "Hát bài \"Happy Birthday\" tặng top 1 dù không phải sinh nhật",
+  "Nhảy điệu con vịt 20 giây",
+  "Hát một đoạn nhạc thiếu nhi thật nhiệt tình",
+  "Vừa hát vừa nhảy một câu do top 2 chọn",
+  // Giọng nói, biểu cảm
   "Nói giọng miền khác trong 1 phút",
   "Làm 3 biểu cảm xấu nhất có thể",
+  "Nói chuyện bằng giọng robot trong 1 phút",
+  "Bắt chước tiếng 3 con vật do top 1 chọn",
+  "Làm mặt dễ thương nhất có thể 10 giây không cười",
+  "Giả làm MC giới thiệu top 3 thật hoành tráng",
+  "Đọc tên top 1 bằng 3 giọng khác nhau",
+  // Dễ thương, cảm ơn
   "Đọc một bài thơ tặng top 1",
+  "Gọi tên cảm ơn top 5 thật dễ thương",
+  "Viết tên top 1 lên giấy rồi giơ lên camera",
+  "Khen top 1 năm câu không trùng nhau",
+  "Tạo dáng chụp ảnh với tên top 1 trên màn hình",
+  "Gửi một câu chúc ngủ ngon thật ngọt cho Phe Phá",
+  // Thử thách nhẹ
   "Đeo tai thỏ đến hết buổi live",
   "Kể một chuyện xấu hổ hồi nhỏ",
-  "Gọi tên cảm ơn top 5 thật dễ thương"
+  "Uống một ngụm nước chanh không đường",
+  "Nói \"Ennie thua rồi\" 10 lần thật nhanh",
+  "Đội một món đồ lên đầu đến hết ván sau",
+  "Gọi Phe Phá là \"đại ca\" đến hết buổi live",
+  "Ngồi im không chớp mắt 20 giây",
+  "Đọc nhanh một câu nói lắp do top 1 chọn"
 ];
 // Each side has one gift for each level (raid[0] is the gift for "Nhỏ", raid[3] for "Rất to"), so viewers know
 // which gift does what. A level may be left empty. The coin ranges of the levels stay as they are: the streamer
