@@ -170,6 +170,8 @@ function drawJar() {
   const colour = new URLSearchParams(location.search).get("jar");
   if (colour) $("jarWrap").dataset.jar = colour;
   if (THEME !== "jar") $("jarWrap").classList.add(THEME);
+  // The whole page knows too, for what is drawn outside the jar (the big gift effect's banner, overlay.css).
+  document.documentElement.classList.toggle("theme-tank", TANK);
   const inset = (pts, d, from, to) => pts.filter(([, y]) => y >= from && y <= to).map(([x, y]) => [x + d, y]);
   $("hlLeft").setAttribute("d", toPath(inset(left, 20, 80, 290)));
   $("hlLeftThin").setAttribute("d", toPath(inset(left, 34, 96, 170)));
@@ -341,8 +343,9 @@ function fx(text, className = "") {
   return el;
 }
 const rand = (a, b) => a + Math.random() * (b - a);
-const SPARKS = ["✦", "✧", "✿", "♡"];
-const SPARK_COLORS = ["#fff4c2", "#ffc6e6", "#e2c6ff", "#ffffff"];
+// In the fish tank: bubbles and stars of the sea in its blues and whites, instead of flowers and hearts.
+const SPARKS = TANK ? ["○", "◦", "✦", "○"] : ["✦", "✧", "✿", "♡"];
+const SPARK_COLORS = TANK ? ["#e9fbff", "#9fe3ff", "#ffffff", "#bff3ff"] : ["#fff4c2", "#ffc6e6", "#e2c6ff", "#ffffff"];
 
 function sparkleBurst(n) {
   for (let i = 0; i < n; i++) {
@@ -366,8 +369,8 @@ function floatText(coins) {
     .to(el, { y: MOUTH.y - 80, scale: 1, opacity: 0, duration: 1.12, ease: "power1.in" });
 }
 
-const CONFETTI = ["♥", "♡", "✦", "✿", "★"];
-const CONFETTI_COLORS = ["#ff9ccf", "#f4d38d", "#d3a8ff", "#ffffff", "#9fe6d0"];
+const CONFETTI = TANK ? ["★", "○", "✦", "◦", "★"] : ["♥", "♡", "✦", "✿", "★"];
+const CONFETTI_COLORS = TANK ? ["#ff9f6b", "#7fd3ff", "#ffe27a", "#ffffff", "#ff8fb8"] : ["#ff9ccf", "#f4d38d", "#d3a8ff", "#ffffff", "#9fe6d0"];
 function confetti(n) {
   for (let i = 0; i < n; i++) {
     const dx = rand(-150, 150), up = rand(90, 190), fall = rand(40, 160), duration = rand(1.4, 2.1);
@@ -565,7 +568,7 @@ function renderDonorTags(donors) {
     const avatar = donors[tag.dataset.rank - 1]?.avatar ?? "";
     if (frame.dataset.avatar === avatar) continue; // reloading the same image would make it blink
     frame.dataset.avatar = avatar;
-    const heart = () => { frame.replaceChildren(); frame.textContent = "♡"; };
+    const heart = () => { frame.replaceChildren(); frame.textContent = TANK ? "🐚" : "♡"; };
     if (!/^https?:\/\//i.test(avatar)) { heart(); continue; }
     const img = document.createElement("img");
     img.referrerPolicy = "no-referrer";

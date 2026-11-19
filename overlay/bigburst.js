@@ -18,8 +18,13 @@
   // At most this many gifts fly up out of the jar, the ones on top of the pile; the rest stay where they
   // are. A full jar holds hundreds, and moving them all at once is more than a streaming machine can draw.
   const MAX_FLY = 60;
-  const SPARKS = ["✦", "✧", "♥", "✿", "★"];
-  const SPARK_COLOURS = ["#fff4c2", "#ffc6e6", "#ffd76a", "#ffffff", "#ff8fc7"];
+  // In the fish tank (THEME in overlay.js) its sparkles are bubbles and sea stars, and its light is sea blue.
+  const SEA = window.JAR_THEME === "tank";
+  const SPARKS = SEA ? ["○", "◦", "✦", "★", "○"] : ["✦", "✧", "♥", "✿", "★"];
+  const SPARK_COLOURS = SEA ? ["#e9fbff", "#9fe3ff", "#ffe27a", "#ffffff", "#5fd0f0"] : ["#fff4c2", "#ffc6e6", "#ffd76a", "#ffffff", "#ff8fc7"];
+  // The colours of the rings of light, by the pink theme's colour.
+  const TINT = SEA ? { "#ffe08a": "#bff3ff", "#ffc6e6": "#7fd3ff", "#ff8fc7": "#3fb6e0", "#ff8fc4": "#5fd0f0" } : {};
+  const tint = colour => TINT[colour] ?? colour;
 
   const queue = [];
   let busy = false, current = null;
@@ -102,9 +107,9 @@
   function ring(group, x, y, d, colour, to, duration, delay = 0) {
     const el = element("burst-ring", group);
     const D = d * to;
-    el.style.borderColor = colour;
+    el.style.borderColor = tint(colour);
     el.style.borderWidth = `${10 * to}px`;
-    el.style.boxShadow = `0 0 ${15 * to}px #ff8fc4`;
+    el.style.boxShadow = `0 0 ${15 * to}px ${tint("#ff8fc4")}`;
     gsap.fromTo(el, { width: D, height: D, x: x - D / 2, y: y - D / 2, scale: 0.15 / to, opacity: 1 },
       { scale: 1, opacity: 0, duration, delay, ease: "power2.out", onComplete: () => el.remove() });
   }

@@ -60,3 +60,16 @@
 /* Big four-pointed stars that grow and spin behind the frame. */
 .welcome-flare { position: absolute; left: 0; top: 0; width: 220px; height: 220px; margin: -110px 0 0 -110px; overflow: visible; }
 .welcome-spark { position: absolute; left: 0; top: 0; width: 14px; height: 14px; margin: -7px 0 0 -7px; overflow: visible; }
+
+/* Dressed for the sea, with the fish tank (welcome.js, dressForTheSea): sea blue shadows and light. */
+.welcome.sea .welcome-avatar { background: radial-gradient(circle at 40% 35%, #f0fbff, #8fdcf5 75%, #3fb6e0); text-shadow: 0 2px 4px #0b5f8a; }
+.welcome.sea .welcome-hello, .welcome.sea .welcome-sub { text-shadow: 0 1px 2px #0b4f7a; }
+.welcome.sea .welcome-name { filter: drop-shadow(0 2px 0 #0b5f8a) drop-shadow(0 0 5px #1675a8); }
+.welcome.sea .welcome-badge { color: #fff4e0; text-shadow: 0 1px 0 #4a2a10, 0 0 4px #4a2a1088; }
+.welcome.sea .welcome-flash { background: radial-gradient(closest-side, #ffffff, #e9fbff 30%, #7fd3ff 60%, transparent); }
+.welcome.sea .welcome-ring { border-color: #bff3ff; box-shadow: 0 0 18px #5fd0f0, inset 0 0 14px #fff6; }
+.welcome.sea .welcome-flash { display: none; } /* no flash of light in the sea */
+.welcome.sea .welcome-ring { display: none; } /* nor rings of light */
+/* In the sea the confetti is drops of water, and the drifting bits are bubbles. */
+.welcome.sea .welcome-confetti { width: 8px; height: 9px; border-radius: 50% 50% 50% 50% / 58% 58% 42% 42%; box-shadow: inset -1px -2px 0 #0b5f8a33, inset 1px 1px 0 #ffffffaa; }
+.welcome-bubble { color: #f4fdff; text-shadow: 0 0 4px #7fd3ff, 0 0 1px #3fb6e0; }
