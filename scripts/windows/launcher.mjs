@@ -14,7 +14,9 @@ const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const RELEASES = process.env.GIFTJAR_UPDATE_URL || "https://api.github.com/repos/VuongwNguyen/ennie-jar-overlay/releases/latest";
 const ASSET = "GiftJar-update.zip";
 // What an update replaces. node/ and data/ (the gifts and donors) are never touched.
-const PARTS = ["overlay", "server", "node_modules", "package.json", "package-lock.json", "launcher.mjs", "HUONG-DAN.txt", "version.json"];
+// Kich-ban-tro-choi-tren-hu.docx is Ennie's script for the jar game. A launcher from before it was added does
+// not know it, so it comes with the update after the one that brings this launcher.
+const PARTS = ["overlay", "server", "node_modules", "package.json", "package-lock.json", "launcher.mjs", "HUONG-DAN.txt", "Kich-ban-tro-choi-tren-hu.docx", "version.json"];
 const WORK = path.join(ROOT, "update");
 const PORT = Number(process.env.PORT || 8787);
 const DASHBOARD = `http://127.0.0.1:${PORT}/`;
