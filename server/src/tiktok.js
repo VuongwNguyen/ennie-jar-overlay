@@ -168,7 +168,9 @@ async function isLive(conn) {
 // onRaw(method, decoded, payload) hears every message TikTok sends, including the kinds the library cannot
 // decode and would otherwise drop (decoded is then null), for trace.js.
 // onLevelUp(event) hears someone's gifter or team heart level going up (mapTikTokLevelUp).
-export function createTikTokAdapter({ onGift, onMember, onUser, onLevelUp, onStatus, onRaw }) {
+// wantsGiftList() says whether TikTok's gift list is wanted; it is then fetched once connected and handed to
+// onGiftList(list), for the prices and pictures of gifts (gift-catalog.js).
+export function createTikTokAdapter({ onGift, onMember, onUser, onLevelUp, onStatus, onRaw, wantsGiftList, onGiftList }) {
   let connection = null;
   let status = { state: "disconnected", username: "", error: "" };
 
@@ -293,6 +295,11 @@ export function createTikTokAdapter({ onGift, onMember, onUser, onLevelUp, onSta
         }
       }, LIVE_CHECK_MS);
       watch.unref?.();
+      if (onGiftList && wantsGiftList?.()) {
+        conn.fetchAvailableGifts()
+          .then(list => onGiftList(list))
+          .catch(err => console.log(`TikTok gift list: ${err?.message || err}`));
+      }
     } catch (err) {
       if (connection === conn) connection = null;
       setStatus({ state: "disconnected", error: err?.message || "Không kết nối được" });

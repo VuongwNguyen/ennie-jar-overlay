@@ -351,7 +351,7 @@ export async function startSpriteDog() {
   function startGreetings() {
     const SHOW = 2.6, THANK_SHOW = 3.2, SHORT_SHOW = 0.8, GAP = 0.3;
     const GREETINGS_MAX = 3, THANKS_MAX = 6, AGAIN_AFTER_MS = 15_000;
-    const thanks = [], greetings = [], greeted = new Map();
+    const thanks = [], greetings = [], says = [], greeted = new Map();
     let showing = null, hideCall = null;
     const short = (text, max) => {
       const letters = [...String(text)];
@@ -368,6 +368,15 @@ export async function startSpriteDog() {
       greetings.push(name);
       if (greetings.length > GREETINGS_MAX) greetings.splice(0, greetings.length - GREETINGS_MAX);
       if (!showing) next();
+    };
+
+    // Something she says herself, such as the jar game's cry for help: after any thanks, before greetings.
+    window.dogSay = rawText => {
+      const text = String(rawText ?? "").trim();
+      if (!text || says.includes(text)) return;
+      says.push(text);
+      if (!showing) next();
+      else if (showing === "greeting") hideSoon(SHORT_SHOW);
     };
 
     window.dogThank = (rawName, rawGift, count = 1) => {
@@ -400,9 +409,13 @@ export async function startSpriteDog() {
 
     function next() {
       const thank = thanks.shift();
-      const name = thank ? null : greetings.shift();
-      if (!thank && !name) return;
-      if (thank) {
+      const say = thank ? null : says.shift();
+      const name = thank || say ? null : greetings.shift();
+      if (!thank && !say && !name) return;
+      if (say) {
+        bubbleText.textContent = say;
+        bubble.classList.remove("thanks");
+      } else if (thank) {
         const times = thank.count > 1 ? ` ×${thank.count}` : "";
         bubbleText.textContent = `Cảm ơn ${short(thank.name, 14)} đã tặng ${short(thank.gift, 14)}${times}! 💖`;
         bubble.classList.add("thanks");
@@ -410,13 +423,13 @@ export async function startSpriteDog() {
         bubbleText.textContent = `Chào ${short(name, 16)}! 🐾`;
         bubble.classList.remove("thanks");
       }
-      showing = thank ? "thanks" : "greeting";
+      showing = thank || say ? "thanks" : "greeting";
       bubble.classList.add("on");
       placeBubble();
       gsap.fromTo(bubbleBody, { scale: 0.4, opacity: 0, y: 8 }, { scale: 1, opacity: 1, y: 0, duration: 0.35, ease: "back.out(2)" });
       // A greeting waiting behind thanks would otherwise never be seen in a busy live; a waiting
       // thank-you shortens the current one a little so the line keeps moving.
-      hideSoon(thank ? (thanks.length ? 2.2 : THANK_SHOW) : SHOW);
+      hideSoon(thank ? (thanks.length ? 2.2 : THANK_SHOW) : say ? THANK_SHOW : SHOW);
     }
   }
 }

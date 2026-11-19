@@ -11,6 +11,8 @@ import { createTrace } from "./trace.js";
 import { createGiftLog } from "./gift-log.js";
 import { createLevelWatch } from "./levelwatch.js";
 import { vietnameseGiftName } from "./gift-names.js";
+import { createJarGame } from "./jar-game.js";
+import { createGiftCatalog } from "./gift-catalog.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "../../");
@@ -36,7 +38,7 @@ app.get("/vendor/pacifico.woff2", (_req, res) => {
   res.sendFile(path.join(projectRoot, "node_modules/@fontsource/pacifico/files/pacifico-latin-400-normal.woff2"));
 });
 
-const freshState = () => ({ sessionId: randomUUID(), startedAt: Date.now(), totalCoins: 0, gifts: 0, donors: {}, jar: [] });
+const freshState = () => ({ sessionId: randomUUID(), startedAt: Date.now(), totalCoins: 0, gifts: 0, donors: {}, jar: [], stolen: 0 });
 let state;
 
 // Writes are serialized so concurrent gifts never race on the same .tmp file.
@@ -58,6 +60,8 @@ async function loadState() {
     if (!parsed || typeof parsed.totalCoins !== "number" || !parsed.donors) throw new Error("Invalid state");
     // Sessions saved by older versions have no jar.
     if (!Array.isArray(parsed.jar)) parsed.jar = [];
+    // How many pieces Ennie has taken out of the jar in the jar game (jar-game.js); none before it existed.
+    if (!Number.isFinite(parsed.stolen) || parsed.stolen < 0) parsed.stolen = 0;
     return parsed;
   } catch {
     return freshState();
@@ -103,10 +107,15 @@ function normalizeGift(input = {}) {
 }
 
 const giftLog = createGiftLog(dataDir);
+// What each gift costs and looks like (gift-catalog.js), for choosing the jar game's gifts by price.
+const giftCatalog = createGiftCatalog(dataDir);
+const jarGame = createJarGame({ app, io, dataDir, getState: () => state, persist, catalog: giftCatalog });
 const seenEvents = new Set();
 // source: "tiktok" for a real gift, "test" for one sent from the control page.
 async function handleGift(raw, source = "tiktok") {
   const event = normalizeGift(raw);
+  // A real gift tells its price and picture; test gifts are made up, so they are left out.
+  if (source === "tiktok") giftCatalog.fromGift(event.gift, raw?.gift?.name);
   const logged = { ...event, user: { ...event.user, uniqueId: String(raw?.user?.uniqueId || "") } };
   // A streak still in progress is credited once, when its final event arrives.
   if (!event.gift.repeatEnd) {
@@ -134,10 +143,13 @@ async function handleGift(raw, source = "tiktok") {
   state.gifts += event.gift.repeatCount;
   const { id, name, image, diamondCount, repeatCount } = event.gift;
   state.jar.push({ eventId: event.eventId, calculatedCoins: coins, gift: { id, name, image, diamondCount, repeatCount } });
+  // A gift of Phe Phá or Phe Giữ also plays a turn of the jar game, once it has fallen in.
+  const turn = jarGame.onGift(event, coins);
   await persist();
 
   io.emit("gift", { ...event, calculatedCoins: coins });
   io.emit("state", publicState());
+  if (turn) io.emit("jar-game", turn);
   return { ok: true, coins };
 }
 
@@ -474,7 +486,11 @@ const LAYERS = {
   welcome: { name: "Khung chào mừng", x: 140, y: 880, w: 800, h: 346 },
   heart: { name: "Video tim đội", x: 0, y: 0, w: 1080, h: 1920 },
   // Someone going up a level (levelup.html), drawn in the middle of its box; over the jar by default.
-  levelup: { name: "Hiệu ứng lên cấp", x: 420, y: 120, w: 560, h: 560 }
+  levelup: { name: "Hiệu ứng lên cấp", x: 420, y: 120, w: 560, h: 560 },
+  // The panel of the jar game (pk.html): the guide between rounds, then the PK bars, the clock, the dare and
+  // the honours.
+  // veil: how solid its background is, 0-100 (see pk.html).
+  pk: { name: "Trò chơi trên hũ", x: 140, y: 330, w: 800, h: 300, veil: 55 }
 };
 const DEFAULT_LAYOUT = Object.entries(LAYERS).map(([id, box]) => ({ id, ratio: true, ...box, visible: true, locked: false }));
 let layout = structuredClone(DEFAULT_LAYOUT);
@@ -500,7 +516,8 @@ function cleanLayout(input) {
       locked: item.locked === true,
       // Keep the width and height in step when resizing (on by default).
       ratio: item.ratio !== false,
-      ...("drop" in base ? { drop: num(item.drop, base.drop, -STAGE.h, 2 * STAGE.h) } : {})
+      ...("drop" in base ? { drop: num(item.drop, base.drop, -STAGE.h, 2 * STAGE.h) } : {}),
+      ...("veil" in base ? { veil: num(item.veil, base.veil, 0, 100) } : {})
     });
   }
   // The floor is never above the top of the box; a layout saved before there was one has it at the box's bottom.
@@ -623,6 +640,9 @@ if (trace) {
 
 const tiktok = createTikTokAdapter({
   onRaw: trace?.message,
+  // TikTok's full gift list, with prices and pictures, at most once a day.
+  wantsGiftList: () => giftCatalog.wantsTikTokList(),
+  onGiftList: list => giftCatalog.fromTikTok(list),
   onGift: event => {
     considerWelcome(event.user, "gift");
     return handleGift(event);
@@ -684,9 +704,10 @@ app.post("/api/tiktok/disconnect", async (_req, res) => {
 
 io.on("connection", socket => {
   socket.emit("state", publicState());
-  socket.emit("jar", { sessionId: state.sessionId, gifts: state.jar });
+  socket.emit("jar", { sessionId: state.sessionId, gifts: state.jar, stolen: state.stolen });
   socket.emit("tiktok-status", tiktok.getStatus());
   socket.emit("effects", effects);
+  jarGame.greet(socket);
   // The overlay reports welcome frames as they appear, or when its queue was full and let one go.
   socket.on("welcome-shown", key => welcomeShown(cleanId(key)));
   socket.on("welcome-dropped", key => welcomeDropped(cleanId(key)));
@@ -703,6 +724,8 @@ await loadLayout();
 await loadEffects();
 await loadLevels();
 await trace?.load();
+await giftCatalog.load();
+await jarGame.load();
 httpServer.listen(PORT, HOST, () => {
   console.log(`Jar Overlay running: http://${HOST}:${PORT}`);
   console.log(`Dashboard: http://${HOST}:${PORT}/`);
