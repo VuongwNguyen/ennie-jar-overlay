@@ -96,7 +96,7 @@ export function mapTikTokMember(data) {
 // shows them a "high-level fan joined" banner instead, sent as a barrage message with subType
 // "fans_entrance". Seen on real lives: every entry of two fans at levels 21 and 23 came this way, and none
 // as a member message; fans below 20 still come as member messages. The user is inside the banner's text
-// pieces, with their team heart badge.
+// pieces, with their team heart badge. Its message type is 11 (FANS_LEVEL_ENTRANCE, below).
 // Super Fans (paid monthly subscribers) get a banner of their own when they come in, keyed
 // "ttlive_superfan_commentnotif_superfanjoined"; the library also sends it as "superFanJoin".
 // Guardians (Hộ vệ) come in with a banner of their own too: scene and subType "guardian_entrance", key
@@ -108,15 +108,43 @@ const GUARDIAN_ENTRANCE = "guardian_entrance";
 const bannerKeys = data => [data?.content?.key, data?.content?.displayType, data?.commonBarrageContent?.key, data?.commonBarrageContent?.displayType];
 // The first user in the banner's text pieces (named pieces or piecesList, depending on the decoder).
 const bannerUser = text => (text?.pieces ?? text?.piecesList ?? []).find(piece => piece?.userValue?.user)?.userValue?.user;
+// Entrance banners by their message type (msgType), as tiktok-live-proto names them
+// (BarrageMessageBarrageType): 9 is GRADE_USER_ENTRANCE_NOTIFICATION, someone with a high gifter level coming
+// in, with the level and the user in userGradeParam; 11 is FANS_LEVEL_ENTRANCE, the high-level fan above, with
+// fansLevelParam; 15 is ENIGMA_ENTRANCE, someone coming in with their identity hidden.
+const GRADE_ENTRANCE = 9, FANS_LEVEL_ENTRANCE = 11, ENIGMA_ENTRANCE = 15;
+const ENTRANCE_TYPES = new Set([GRADE_ENTRANCE, FANS_LEVEL_ENTRANCE, ENIGMA_ENTRANCE]);
+// Any other entrance banner TikTok may have for some viewers is caught too: a subType or scene ending in
+// "_entrance", or a key about someone joining (not the fan club or a team), with a user in it. The first time a
+// kind not listed above turns up it is written to the server's log, so it can be named here.
+const ANY_ENTRANCE = /_entrance$/i;
+const ANY_JOIN_KEY = /join/i, NOT_A_ROOM_JOIN = /club|team|group|follow|linkmic|battle/i;
+const reportedEntrances = new Set();
 export function mapTikTokFanJoin(data) {
+  const type = Number(data?.msgType);
   const guardian = data?.subType === GUARDIAN_ENTRANCE || data?.scene === GUARDIAN_ENTRANCE;
-  const isJoin = guardian || data?.subType === "fans_entrance" || bannerKeys(data).some(key => JOIN_BANNER.test(key ?? ""));
-  if (!isJoin) return null;
-  const user = mapTikTokUser(bannerUser(data.commonBarrageContent) ?? bannerUser(data.content));
+  const keys = bannerKeys(data).filter(Boolean).map(String);
+  const known = guardian || ENTRANCE_TYPES.has(type) || data?.subType === "fans_entrance" || keys.some(key => JOIN_BANNER.test(key));
+  const other = !known && (ANY_ENTRANCE.test(data?.subType ?? "") || ANY_ENTRANCE.test(data?.scene ?? "")
+    || keys.some(key => ANY_JOIN_KEY.test(key) && !NOT_A_ROOM_JOIN.test(key)));
+  if (!known && !other) return null;
+  const param = type === GRADE_ENTRANCE ? data.userGradeParam : type === FANS_LEVEL_ENTRANCE ? data.fansLevelParam : null;
+  const user = mapTikTokUser(param?.user ?? bannerUser(data.commonBarrageContent) ?? bannerUser(data.content) ?? data.user);
   if (!user) return null;
+  if (other) {
+    const kind = `msgType=${data?.msgType ?? "-"} subType=${data?.subType || "-"} scene=${data?.scene || "-"} key=${keys[0] || "-"}`;
+    if (!reportedEntrances.has(kind) && reportedEntrances.size < 50) {
+      reportedEntrances.add(kind);
+      console.log(`TikTok: a new kind of entrance banner (${kind}) for ${user.nickname}: counted as joining`);
+    }
+  }
   // What kind of entrance it was, for the welcome rules.
   if (guardian) user.guardian = true;
   if (bannerKeys(data).some(key => SUPER_FAN_BANNER.test(key ?? ""))) user.superFan = true;
+  // The level the banner is about, which the user's badges may not show.
+  const level = Number(param?.currentGrade) || 0;
+  if (type === GRADE_ENTRANCE && level) user.gifterLevel = Math.max(user.gifterLevel, level);
+  if (type === FANS_LEVEL_ENTRANCE && level) user.fanLevel = Math.max(user.fanLevel, level);
   // The banner's own badge carries the team heart level too, should the user's badge list lack it.
   if (!user.fanLevel && data.badge?.sceneType === FAN_BADGE) user.fanLevel = Number(data.badge.privilegeLogExtra?.level) || 0;
   if (user.fanLevel && !user.fanClub) user.fanClub = data.badge?.combine?.str || "";
