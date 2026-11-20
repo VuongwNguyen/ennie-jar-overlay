@@ -30,8 +30,8 @@ cp "$CACHE/node-extract/node-$NODE_VERSION-win-x64/LICENSE" "$STAGE/node/"
 rm -rf "$CACHE/node-extract"
 
 cp scripts/windows/HUONG-DAN.txt scripts/windows/launcher.mjs "$STAGE/"
-# Ennie's script for the jar game, to have at hand on the streaming PC.
-cp Kich-ban-tro-choi-tren-hu.docx "$STAGE/"
+# docs: papers for Ennie to have at hand on the streaming PC (the jar game's script, ...), as they are.
+cp -r docs "$STAGE/"
 printf '{ "build": %s, "commit": "%s", "node": "%s" }\n' "$BUILD_NUMBER" "$BUILD_COMMIT" "$NODE_VERSION" > "$STAGE/version.json"
 # .bat files need CRLF line endings
 sed 's/$/\r/' scripts/windows/start.bat > "$STAGE/start.bat"
@@ -47,6 +47,6 @@ make_zip() { # make_zip <folder to run in> <zip path relative to it> <files...>
 }
 make_zip dist GiftJar-Windows.zip GiftJar
 # Keep this list in step with PARTS in scripts/windows/launcher.mjs.
-make_zip "$STAGE" ../GiftJar-update.zip overlay server node_modules package.json package-lock.json launcher.mjs HUONG-DAN.txt Kich-ban-tro-choi-tren-hu.docx version.json
+make_zip "$STAGE" ../GiftJar-update.zip overlay server node_modules package.json package-lock.json launcher.mjs HUONG-DAN.txt docs version.json
 (cd dist && sha256sum GiftJar-update.zip | cut -d' ' -f1 > GiftJar-update.zip.sha256)
 ls -lh dist/GiftJar-Windows.zip dist/GiftJar-update.zip
