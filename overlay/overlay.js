@@ -266,15 +266,22 @@ const tierOf = coins => (coins >= MEGA_GIFT ? 2 : coins >= BIG_GIFT ? 1 : 0);
 
 // Gifts priced at 90 coins or more are drawn larger, going by the price of one gift so a long streak of cheap
 // gifts stays small. Below that all are the standard 28px; 90 coins is 75px, 150 coins 80px. From 199 coins the
-// size is also multiplied (GIFT_BIG_FACTOR): 199 coins is 108px, 1000 coins 129px, 5000 coins 155px, up to a
-// limit of 180px.
-const GIFT_SIZE = 28, GIFT_SIZE_MAX = 180, GIFT_GROWS_FROM = 90;
+// size is also multiplied (GIFT_BIG_FACTOR): 199 coins is 108px, 999 coins 129px.
+// From 1000 coins, as Ennie asked, every 500 coins more makes it a step bigger, evenly: 1000 coins is 215px, 1500
+// coins 225px, 2000 coins 235px, 3000 coins 255px; up to what still goes into the container (270px in the tank,
+// reached at 4000 coins; 240px in the glass jar, whose neck is narrower, reached at 2500 coins). The gift's body
+// is 0.92 of its size, see addGiftBody.
+const GIFT_SIZE = 28, GIFT_GROWS_FROM = 90;
 const GIFT_BIG_FROM = 199, GIFT_BIG_FACTOR = 1.3;
+const GIFT_HUGE_FROM = 1000, GIFT_HUGE_SIZE = 215, GIFT_HUGE_STEP = 500, GIFT_HUGE_GROW = 10;
+const GIFT_SIZE_MAX = TANK ? 270 : 240;
 function giftSize(event) {
   const repeat = Math.max(1, event.gift.repeatCount || 1);
   const price = event.gift.diamondCount || (event.calculatedCoins ?? 1) / repeat;
   if (price < GIFT_GROWS_FROM) return GIFT_SIZE;
-  const size = GIFT_SIZE * (1 + 0.85 * Math.log10(price)) * (price >= GIFT_BIG_FROM ? GIFT_BIG_FACTOR : 1);
+  const size = price >= GIFT_HUGE_FROM
+    ? GIFT_HUGE_SIZE + Math.floor((price - GIFT_HUGE_FROM) / GIFT_HUGE_STEP) * GIFT_HUGE_GROW
+    : GIFT_SIZE * (1 + 0.85 * Math.log10(price)) * (price >= GIFT_BIG_FROM ? GIFT_BIG_FACTOR : 1);
   return Math.min(GIFT_SIZE_MAX, size);
 }
 
