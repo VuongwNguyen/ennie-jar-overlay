@@ -8,11 +8,14 @@
 // air; a rush as they are pulled back; plinks climbing a scale as they drop into the jar; and a final chord.
 // overlay.html?sfx=0.4 sets the volume (0 to 1, 0.7 by default; 0 is silent). The copy shown on the layout
 // page (?preview) makes no sound, so it never doubles what Studio plays.
+// The makings (tones, bells, noise, the hall) are also lent out as window.sfxKit, for the jar game's sounds
+// (pksfx.js), which may change the volume (setVolume).
 (() => {
   const params = new URLSearchParams(location.search);
-  const volume = params.has("preview") ? 0
+  const quiet = params.has("preview");
+  let volume = quiet ? 0
     : params.has("sfx") ? Math.max(0, Math.min(1, Number(params.get("sfx")) || 0)) : 0.7;
-  let ctx = null, dry = null, wet = null, noiseBuffer = null;
+  let ctx = null, dry = null, wet = null, noiseBuffer = null, master = null;
   // Sound is put to sleep a few seconds after the last one ends: an open sound card keeps its hall reverb
   // working all the time, even in silence, which costs the streaming machine for nothing.
   const IDLE_MS = 5000;
@@ -26,13 +29,22 @@
     }, IDLE_MS);
   }
 
+  // The sound is made as the outermost page's (live.html's, when this page is one of its parts): a browser tab
+  // allows sound once that page has been clicked, and a click on live.html never reaches the parts inside it,
+  // which let clicks through. A page of its own, or inside another site, makes its own.
+  const Context = (() => {
+    try { return window.top.AudioContext || AudioContext; } catch { return AudioContext; }
+  })();
+  // A sound made as live.html's would outlive this part when it reloads: it goes with the part.
+  addEventListener("pagehide", () => { try { ctx?.close(); } catch { /* already closed */ } });
+
   // Started on first use; a browser that does not allow sound yet stays silent rather than failing.
   function audio() {
     if (volume <= 0) return null;
     if (!ctx) {
-      try { ctx = new AudioContext(); } catch { return null; }
+      try { ctx = new Context(); } catch { return null; }
       parked = true; // a new one may start suspended; resumed just below
-      const master = ctx.createGain();
+      master = ctx.createGain();
       master.gain.value = volume;
       // Keeps the loud moments (the boom with many plinks) from clipping.
       const limiter = ctx.createDynamicsCompressor();
@@ -59,13 +71,22 @@
     }
     if (ctx.state === "suspended") {
       // Suspended by the browser (sound not allowed yet), not by us: skip the sound rather than queue
-      // up notes that would wait for ever.
-      if (!parked) return null;
+      // up notes that would wait for ever, but ask again, since a click on the page may allow it by now.
+      if (!parked) { ctx.resume().catch(() => {}); return null; }
       parked = false;
       ctx.resume().catch(() => {});
     }
     rest();
     return ctx;
+  }
+  // A browser tab (Chrome, Edge) allows sound only once the page has been clicked: the first click or key on
+  // this page, or on live.html around it, wakes the sound up. OBS and Studio allow it from the start.
+  const unlock = () => {
+    if (ctx && ctx.state === "suspended") { parked = false; ctx.resume().catch(() => {}); }
+  };
+  for (const type of ["pointerdown", "keydown"]) {
+    addEventListener(type, unlock, true);
+    try { if (window.top !== window) window.top.addEventListener(type, unlock, true); } catch { /* another site */ }
   }
 
   // Where a sound goes: panned (-1 left, 1 right), straight out and into the hall.
@@ -116,6 +137,22 @@
     osc.connect(envelope(t, length, peak, attack, out(pan, roomy)));
     osc.start(t);
     osc.stop(t + length + 0.05);
+  }
+  // A tone held at one loudness for its whole length, then cut off quickly: a beep or a buzzer rather than a
+  // note dying away.
+  function held(t, freq, length, { type = "sine", peak = 0.2, attack = 0.005, release = 0.04, pan = 0, roomy = 1, detune = 0 } = {}) {
+    const osc = ctx.createOscillator();
+    osc.type = type;
+    osc.detune.value = detune;
+    osc.frequency.value = freq;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(peak, t + attack);
+    gain.gain.setValueAtTime(peak, t + length);
+    gain.gain.linearRampToValueAtTime(0, t + length + release);
+    osc.connect(gain).connect(out(pan, roomy));
+    osc.start(t);
+    osc.stop(t + length + release + 0.05);
   }
   // A bell or harp note: the tone and two quieter overtones, which die away faster.
   function bell(t, freq, length = 1.2, peak = 0.1, pan = 0) {
@@ -236,6 +273,16 @@
     for (const osc of [...voices, lfo]) osc.stop(t + fade + 0.05);
     pad = null;
   }
+
+  // For other sounds made the same way (pksfx.js). setVolume: 0 to 1, 0 is silent; the layout page's copy
+  // (?preview) stays silent whatever it is given.
+  window.sfxKit = {
+    play, limited, tone, held, bell, noise, click, note, rand, PENTATONIC,
+    setVolume(value) {
+      volume = quiet ? 0 : Math.max(0, Math.min(1, Number(value) || 0));
+      if (master) master.gain.value = volume;
+    }
+  };
 
   let landed = 0;
   window.burstSfx = {

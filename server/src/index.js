@@ -650,8 +650,12 @@ const tiktok = createTikTokAdapter({
   onMember: handleMember,
   onLevelUp: handleLevelUp,
   // Chat, likes, follows and shares: their levels are remembered, and someone seen this way for the
-  // first time (TikTok may not have reported their join) is considered for the welcome frame.
-  onUser: (user, source) => considerWelcome(user, source),
+  // first time (TikTok may not have reported their join) is considered for the welcome frame. During a jar
+  // game round, a like or a comment also adds a point to Phe Giữ (jar-game.js onCheer).
+  onUser: (user, source) => {
+    considerWelcome(user, source);
+    if (source === "like" || source === "chat") jarGame.onCheer(user, source);
+  },
   onStatus: status => {
     // A new connection (Kết nối, or reconnecting on its own) starts with an empty list of people.
     if (status.state === "connecting") {

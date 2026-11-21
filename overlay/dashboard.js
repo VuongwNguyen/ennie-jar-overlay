@@ -603,6 +603,23 @@ function renderGameTiers(tiers) {
       tests.append(button);
     });
   }
+  // A pretend like or comment: +1 to Phe Giữ during a round, up to the cap per name.
+  for (const [cheer, label] of [["like", "❤️ Thả tim"], ["chat", "💬 Bình luận"]]) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "chip";
+    button.textContent = label;
+    button.addEventListener("click", async () => {
+      try {
+        const { ok } = await post("/api/jar-game/test", { cheer, nickname: $("nickname").value.trim() });
+        if (!ok) throw new Error();
+        notify("gameNotice", "Đã gửi ✓ (chỉ tính khi đang có ván, tối đa 5 điểm mỗi người)");
+      } catch {
+        notify("gameNotice", "Không liên lạc được với server.", true);
+      }
+    });
+    tests.append(button);
+  }
 }
 function showGame(settings) {
   $("gameOn").checked = settings.on;
@@ -619,6 +636,8 @@ function showGame(settings) {
   // What the server holds counts as saved, so showing it sends nothing back.
   if (gameLevels.length) gameSaver.known({ raid: settings.raid ?? [], guard: settings.guard ?? [], minutes: settings.minutes, dares: settings.dares ?? [] });
 }
+// The boost a round drew for Phe Giữ, written "×1,5".
+const boostText = boost => `×${Number(boost || 1).toLocaleString("vi-VN")}`;
 Promise.all([fetch("/api/jar-game/gifts").then(res => res.json()), fetch("/api/jar-game").then(res => res.json())])
   .then(([gifts, settings]) => { gameGifts = gifts; showGame(settings); })
   .catch(() => {});
@@ -687,10 +706,10 @@ let gameRound = null, roundOffset = 0;
 function showRound(data) {
   if (Number.isFinite(data?.now)) roundOffset = data.now - Date.now();
   if (data?.result) {
-    const { winner, score, dare, top } = data.result;
+    const { winner, score, dare, top, boost } = data.result;
     const who = winner === "raid" ? `😈 Phe Phá thắng, Ennie trả kèo: ${dare}` : winner === "guard" ? "💗 Phe Giữ thắng" : "Hòa";
     gameRound = null;
-    $("roundStatus").textContent = `Hết giờ: ${who} (${score.raid.toLocaleString("vi-VN")} – ${score.guard.toLocaleString("vi-VN")} xu)${top?.[0] ? ` · Top 1: ${top[0].nickname}` : ""}`;
+    $("roundStatus").textContent = `Hết giờ: ${who} (${score.raid.toLocaleString("vi-VN")} – ${score.guard.toLocaleString("vi-VN")} điểm, Phe Giữ ${boostText(boost)})${top?.[0] ? ` · Top 1: ${top[0].nickname}` : ""}`;
     $("roundStatus").classList.remove("live");
   } else if (data?.running) {
     gameRound = data;
@@ -707,14 +726,14 @@ function tickRound() {
   if (!gameRound) return;
   const now = Date.now() + roundOffset;
   if (Number.isFinite(gameRound.startsAt) && now < gameRound.startsAt) {
-    $("roundStatus").textContent = `Đang hiện kèo trên overlay · bắt đầu sau ${Math.ceil((gameRound.startsAt - now) / 1000)} giây · Kèo: ${gameRound.dare}`;
+    $("roundStatus").textContent = `Đang hiện kèo trên overlay · bắt đầu sau ${Math.ceil((gameRound.startsAt - now) / 1000)} giây · 💗 Phe Giữ ${boostText(gameRound.boost)} · Kèo: ${gameRound.dare}`;
     $("roundStatus").classList.add("live");
     return;
   }
   const left = Math.max(0, Math.ceil((gameRound.endsAt - now) / 1000));
   const clock = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
   const { raid, guard } = gameRound.score;
-  $("roundStatus").textContent = `Đang đấu · còn ${clock} · 😈 ${raid.toLocaleString("vi-VN")} – ${guard.toLocaleString("vi-VN")} 💗 · Kèo: ${gameRound.dare}`;
+  $("roundStatus").textContent = `Đang đấu · còn ${clock} · 😈 ${raid.toLocaleString("vi-VN")} – ${guard.toLocaleString("vi-VN")} (${boostText(gameRound.boost)}) 💗 điểm · Kèo: ${gameRound.dare}`;
   $("roundStatus").classList.add("live");
 }
 setInterval(tickRound, 500);

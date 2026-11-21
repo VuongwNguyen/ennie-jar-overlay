@@ -5,8 +5,12 @@
 // taken from the picture. How many pieces are out of the jar is kept with the session (state.stolen), so a
 // reloaded overlay does not fill up again; the overlay (jargame.js) plays each turn.
 // On top of that, a round like a PK: the streamer starts it, a clock counts down, each side's gifts add up in
-// coins, and when time is up the side with more wins. If Phe Phá wins, Ennie does a dare drawn at random from
+// points, and when time is up the side with more wins. If Phe Phá wins, Ennie does a dare drawn at random from
 // her list at the start of the round. The top three of the winning side are honoured (pk.html shows it all).
+// Phe Phá's viewers want the dare, so they give more. To even it out: a coin given to Phe Giữ counts for more
+// points, by a boost drawn at random at the start of each round; Phe Phá wins only with 15% more points than
+// Phe Giữ (RULES.raidMargin), anything less goes to Phe Giữ; and likes and comments add a point to Phe Giữ
+// each, up to RULES.cheerCap points per person per round.
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { readFile, writeFile, mkdir, rename } from "node:fs/promises";
@@ -74,6 +78,13 @@ const DEFAULT_GUARD = [
   { id: "5585", name: "Pháo hoa giấy" }, // 100 coins
   { id: "11046", name: "Thiên hà" }      // 1,000 coins
 ];
+// How many points a coin given to Phe Giữ counts for in a round: one of 1 (the same as Phe Phá), 1.5, 2, ... 5,
+// drawn at random when the round starts.
+export const BOOSTS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
+const drawBoost = () => BOOSTS[Math.floor(Math.random() * BOOSTS.length)];
+// raidMargin: how much more Phe Phá needs to win (0.15: more than Phe Giữ's points and 15% on top). cheerPoints: what a like
+// or a comment adds to Phe Giữ; cheerCap: the most one person adds that way in a round.
+export const RULES = { raidMargin: 0.15, cheerPoints: 1, cheerCap: 5 };
 const DEFAULTS = { on: false, raid: DEFAULT_RAID, guard: DEFAULT_GUARD, minutes: 3, dares: SAMPLE_DARES };
 // The name is TikTok's Vietnamese one where gift-names.js knows the gift, so a name saved before it changed is
 // brought up to date.
@@ -175,26 +186,43 @@ export function createJarGame({ app, io, dataDir, getState, persist, catalog }) 
     if (!round) return { running: false, now: Date.now(), result: lastResult };
     return {
       running: true, id: round.id, now: Date.now(), startsAt: round.startsAt, startedAt: round.startsAt, endsAt: round.endsAt, dare: round.dare,
-      score: { ...round.score },
+      score: { ...round.score }, boost: round.boost,
       mvp: { raid: people(round.donors.raid)[0] ?? null, guard: people(round.donors.guard)[0] ?? null },
       // Each side's top three, for the pictures on the panel (top 1 in front, 2 and 3 behind it).
       top: { raid: people(round.donors.raid).slice(0, 3), guard: people(round.donors.guard).slice(0, 3) },
       gifts: { raid: names("raid"), guard: names("guard") }
     };
   }
-  const sendRound = () => io.emit("jar-game-round", publicRound());
+  // gain: what has just been added, { team, coins, points }, for pk.html to show the boost being put on it.
+  const sendRound = gain => io.emit("jar-game-round", gain ? { ...publicRound(), gain } : publicRound());
   // Each level's gift name, "" for a level without one.
   function names(team) { return settings[team].map(gift => gift?.name ?? ""); }
 
   function addToRound(team, coins, user) {
     if (!live()) return;
-    round.score[team] += coins;
+    // Points: Phe Giữ's coins count boost times (the round's own boost). A donor's own total stays in real coins.
+    const points = team === "guard" ? Math.round(coins * round.boost) : coins;
+    round.score[team] += points;
     const key = String(user?.id || user?.nickname || "?");
     const donor = round.donors[team].get(key) ?? { nickname: String(user?.nickname || "Người xem").slice(0, 40), avatar: "", coins: 0 };
     if (/^https?:\/\//i.test(user?.avatar ?? "")) donor.avatar = user.avatar;
     donor.coins += coins;
     round.donors[team].set(key, donor);
-    sendRound();
+    // The giver goes with it, for pk.html to name them when the gift is a big one.
+    sendRound({ team, coins, points, nickname: donor.nickname, avatar: donor.avatar });
+  }
+
+  // A like or a comment during a round: a point for Phe Giữ, up to RULES.cheerCap per person per round. kind:
+  // "like" or "chat". These points count towards the score only; the honours go by coins given.
+  function onCheer(user, kind) {
+    if (!settings.on || !live()) return;
+    const key = String(user?.id || user?.nickname || "?");
+    const got = round.cheers.get(key) ?? 0;
+    if (got >= RULES.cheerCap) return;
+    const points = Math.min(RULES.cheerPoints, RULES.cheerCap - got);
+    round.cheers.set(key, got + points);
+    round.score.guard += points;
+    sendRound({ team: "guard", coins: 0, points, cheer: kind === "chat" ? "chat" : "like", nickname: String(user?.nickname || "Người xem").slice(0, 40) });
   }
 
   function startRound() {
@@ -206,25 +234,32 @@ export function createJarGame({ app, io, dataDir, getState, persist, catalog }) 
     round = {
       id: randomUUID(), startsAt, endsAt: startsAt + settings.minutes * 60_000,
       dare: dares[Math.floor(Math.random() * dares.length)],
-      score: { raid: 0, guard: 0 }, donors: { raid: new Map(), guard: new Map() }
+      // Drawn now and shown with the dare, so everyone knows it before the clock starts.
+      boost: drawBoost(),
+      score: { raid: 0, guard: 0 }, donors: { raid: new Map(), guard: new Map() },
+      // The points each person has added to Phe Giữ by liking and commenting (onCheer).
+      cheers: new Map()
     };
     timer = setTimeout(endRound, round.endsAt - Date.now());
     previewTimer = setTimeout(sendRound, PREVIEW_MS);
     sendRound();
   }
 
-  // Time is up: the side with more coins wins, and its top three are honoured. A draw honours both sides' best.
+  // Time is up: Phe Phá wins only with more than Phe Giữ's points and RULES.raidMargin on top (15%); anything less,
+  // a draw included, goes to Phe Giữ. A round nobody played in is a draw. The winners' top three are honoured.
   function endRound() {
     if (!round) return;
     clearTimeout(timer);
     const { raid, guard } = round.score;
-    const winner = raid > guard ? "raid" : guard > raid ? "guard" : "draw";
+    // In whole hundredths, since 100 × 1.15 is 114.999... in floating point and would let 115 through.
+    const winner = raid * 100 > guard * Math.round(100 + RULES.raidMargin * 100) ? "raid" : raid + guard > 0 ? "guard" : "draw";
     const top = winner === "draw"
       ? [...people(round.donors.raid), ...people(round.donors.guard)].sort((a, b) => b.coins - a.coins).slice(0, 3)
       : people(round.donors[winner]).slice(0, 3);
     // Everyone who gave on either side, for the thank-you list after the honours and the control page's list.
     const everyone = { raid: people(round.donors.raid).slice(0, 500), guard: people(round.donors.guard).slice(0, 500) };
-    const result = { id: round.id, winner, score: { raid, guard }, dare: winner === "raid" ? round.dare : "", top, everyone };
+    // endedAt: pk.html celebrates a result only when it has just come, not when a page opens on an old one.
+    const result = { id: round.id, endedAt: Date.now(), winner, score: { raid, guard }, boost: round.boost, dare: winner === "raid" ? round.dare : "", top, everyone };
     round = null;
     lastResult = result;
     sendRound();
@@ -260,7 +295,7 @@ export function createJarGame({ app, io, dataDir, getState, persist, catalog }) 
     const seen = getState().jar.find(entry => entry.gift?.id === gift.id && entry.gift.image);
     return seen?.gift.image ?? catalog?.list().find(known => known.id === gift.id)?.image ?? "";
   }
-  const publicSettings = () => ({ ...settings, tiers: TIERS, images: { raid: settings.raid.map(imageOf), guard: settings.guard.map(imageOf) } });
+  const publicSettings = () => ({ ...settings, tiers: TIERS, rules: RULES, images: { raid: settings.raid.map(imageOf), guard: settings.guard.map(imageOf) } });
   const isPicked = id => TEAMS.some(team => settings[team].some(gift => gift?.id === id));
 
   // Called for every credited gift, after it has been added to the jar.
@@ -277,7 +312,7 @@ export function createJarGame({ app, io, dataDir, getState, persist, catalog }) 
     return turn(place.team, coins, event.user.nickname, event.gift.name, place.level, event.eventId, Math.max(1, event.gift.repeatCount || 1));
   }
 
-  const reply = () => ({ ...settings, tiers: TIERS, round: publicRound() });
+  const reply = () => ({ ...settings, tiers: TIERS, rules: RULES, round: publicRound() });
   app.get("/api/jar-game", (_req, res) => res.json(reply()));
   // The gifts to choose from, with price and picture where known (gift-catalog.js), and any other gift that came
   // in this session.
@@ -309,11 +344,11 @@ export function createJarGame({ app, io, dataDir, getState, persist, catalog }) 
     if (round) {
       return res.json({
         state: live() ? "live" : Date.now() < round.startsAt ? "preview" : "ending",
-        dare: round.dare, score: { ...round.score },
+        dare: round.dare, score: { ...round.score }, boost: round.boost,
         everyone: { raid: people(round.donors.raid), guard: people(round.donors.guard) }
       });
     }
-    if (lastResult) return res.json({ state: "done", dare: lastResult.dare, winner: lastResult.winner, score: lastResult.score, everyone: lastResult.everyone });
+    if (lastResult) return res.json({ state: "done", dare: lastResult.dare, winner: lastResult.winner, score: lastResult.score, boost: lastResult.boost, everyone: lastResult.everyone });
     res.json({ state: "none" });
   });
   app.post("/api/jar-game/round/start", async (_req, res) => {
@@ -333,6 +368,12 @@ export function createJarGame({ app, io, dataDir, getState, persist, catalog }) 
   // A turn without a gift, from the test buttons; it plays even while the game is off, and counts towards a
   // round under way, under the name typed on the test tab.
   app.post("/api/jar-game/test", async (req, res) => {
+    // A pretend like or comment (cheer "like" or "chat") from the name typed on the test tab.
+    if (req.body?.cheer === "like" || req.body?.cheer === "chat") {
+      const nickname = String(req.body?.nickname ?? "").trim() || "Người thử";
+      onCheer({ id: `test-${nickname}`, nickname }, req.body.cheer);
+      return res.json({ ok: true });
+    }
     const team = req.body?.team === "guard" ? "guard" : "raid";
     const tier = Math.max(0, Math.min(TIERS.length - 1, Math.round(Number(req.body?.tier)) || 0));
     const nickname = String(req.body?.nickname ?? "").trim() || "Người thử";
@@ -349,5 +390,5 @@ export function createJarGame({ app, io, dataDir, getState, persist, catalog }) 
     socket.emit("jar-game-round", publicRound());
   }
 
-  return { load, onGift, greet, settings: () => settings };
+  return { load, onGift, onCheer, greet, settings: () => settings };
 }
